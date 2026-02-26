@@ -1,95 +1,284 @@
-/**
- * Supabase Database type definitions.
- *
- * TEMPORARY: Hand-written to match supabase/migrations/00000000000000_initial_schema.sql.
- * Replace with generated output once local Supabase or staging is available:
- *   - Local:  npm run db:types
- *   - Remote: npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts
- */
-
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       rounds: {
         Row: {
-          id: string;
-          user_id: string | null;
-          created_at: string;
-          played_at: string;
-          course_name: string;
-          score: number;
-          handicap_index: number;
-          course_rating: number;
-          slope_rating: number;
-          fairways_hit: number;
-          fairway_attempts: number;
-          greens_in_regulation: number;
-          total_putts: number;
-          penalty_strokes: number;
-          eagles: number;
-          birdies: number;
-          pars: number;
-          bogeys: number;
-          double_bogeys: number;
-          triple_plus: number;
-          up_and_down_attempts: number | null;
-          up_and_down_converted: number | null;
-          sand_saves: number | null;
-          sand_save_attempts: number | null;
-          three_putts: number | null;
-          sg_total: number | null;
-          sg_off_the_tee: number | null;
-          sg_approach: number | null;
-          sg_around_the_green: number | null;
-          sg_putting: number | null;
-          benchmark_bracket: string | null;
-        };
+          benchmark_bracket: string | null
+          birdies: number
+          bogeys: number
+          course_name: string
+          course_rating: number
+          created_at: string
+          double_bogeys: number
+          eagles: number
+          fairway_attempts: number
+          fairways_hit: number
+          greens_in_regulation: number
+          handicap_index: number
+          id: string
+          pars: number
+          penalty_strokes: number
+          played_at: string
+          sand_save_attempts: number | null
+          sand_saves: number | null
+          score: number
+          sg_approach: number | null
+          sg_around_the_green: number | null
+          sg_off_the_tee: number | null
+          sg_putting: number | null
+          sg_total: number | null
+          slope_rating: number
+          three_putts: number | null
+          total_putts: number
+          triple_plus: number
+          up_and_down_attempts: number | null
+          up_and_down_converted: number | null
+          user_id: string | null
+        }
         Insert: {
-          id?: string;
-          user_id?: string | null;
-          created_at?: string;
-          played_at: string;
-          course_name: string;
-          score: number;
-          handicap_index: number;
-          course_rating: number;
-          slope_rating: number;
-          fairways_hit: number;
-          fairway_attempts: number;
-          greens_in_regulation: number;
-          total_putts: number;
-          penalty_strokes: number;
-          eagles: number;
-          birdies: number;
-          pars: number;
-          bogeys: number;
-          double_bogeys: number;
-          triple_plus: number;
-          up_and_down_attempts?: number | null;
-          up_and_down_converted?: number | null;
-          sand_saves?: number | null;
-          sand_save_attempts?: number | null;
-          three_putts?: number | null;
-          sg_total?: number | null;
-          sg_off_the_tee?: number | null;
-          sg_approach?: number | null;
-          sg_around_the_green?: number | null;
-          sg_putting?: number | null;
-          benchmark_bracket?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["rounds"]["Insert"]>;
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-  };
-};
+          benchmark_bracket?: string | null
+          birdies: number
+          bogeys: number
+          course_name: string
+          course_rating: number
+          created_at?: string
+          double_bogeys: number
+          eagles: number
+          fairway_attempts: number
+          fairways_hit: number
+          greens_in_regulation: number
+          handicap_index: number
+          id?: string
+          pars: number
+          penalty_strokes: number
+          played_at: string
+          sand_save_attempts?: number | null
+          sand_saves?: number | null
+          score: number
+          sg_approach?: number | null
+          sg_around_the_green?: number | null
+          sg_off_the_tee?: number | null
+          sg_putting?: number | null
+          sg_total?: number | null
+          slope_rating: number
+          three_putts?: number | null
+          total_putts: number
+          triple_plus: number
+          up_and_down_attempts?: number | null
+          up_and_down_converted?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          benchmark_bracket?: string | null
+          birdies?: number
+          bogeys?: number
+          course_name?: string
+          course_rating?: number
+          created_at?: string
+          double_bogeys?: number
+          eagles?: number
+          fairway_attempts?: number
+          fairways_hit?: number
+          greens_in_regulation?: number
+          handicap_index?: number
+          id?: string
+          pars?: number
+          penalty_strokes?: number
+          played_at?: string
+          sand_save_attempts?: number | null
+          sand_saves?: number | null
+          score?: number
+          sg_approach?: number | null
+          sg_around_the_green?: number | null
+          sg_off_the_tee?: number | null
+          sg_putting?: number | null
+          sg_total?: number | null
+          slope_rating?: number
+          three_putts?: number | null
+          total_putts?: number
+          triple_plus?: number
+          up_and_down_attempts?: number | null
+          up_and_down_converted?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const

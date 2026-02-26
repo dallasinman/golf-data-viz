@@ -13,7 +13,7 @@ const SERVICE_ROLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 // Default local dev anon key
 const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WO_o0BQXj0V-f7-MmhQRVJ5voNvU2GwDCpm8";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 
 /** A valid round payload — all required fields with valid values. */
 function validRound(overrides: Record<string, unknown> = {}) {
@@ -74,14 +74,13 @@ describe("Schema constraints (local Supabase)", () => {
 
   describe("RLS: insert policy blocks user_id spoofing", () => {
     it("allows anonymous insert with user_id = NULL", async () => {
-      const { data, error } = await anon
+      // Don't chain .select() — anon can INSERT but can't SELECT back
+      // (the SELECT RLS policy requires auth.uid() = user_id, which fails for NULL)
+      const { error } = await anon
         .from("rounds")
-        .insert(validRound({ user_id: null }))
-        .select("id")
-        .single();
+        .insert(validRound({ user_id: null }));
 
       expect(error).toBeNull();
-      if (data?.id) insertedIds.push(data.id);
     });
 
     it("rejects anonymous insert with a fake user_id", async () => {
