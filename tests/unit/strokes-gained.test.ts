@@ -310,14 +310,14 @@ describe("toRadarChartData", () => {
   it("returns 4 RadarChartDatum entries", () => {
     const benchmark = getBracketForHandicap(14.3);
     const result = calculateStrokesGained(makeRound(), benchmark);
-    const chartData = toRadarChartData(result, benchmark);
+    const chartData = toRadarChartData(result);
     expect(chartData).toHaveLength(4);
   });
 
   it("each datum has category, player, and peerAverage fields", () => {
     const benchmark = getBracketForHandicap(14.3);
     const result = calculateStrokesGained(makeRound(), benchmark);
-    const chartData = toRadarChartData(result, benchmark);
+    const chartData = toRadarChartData(result);
     for (const datum of chartData) {
       expect(typeof datum.category).toBe("string");
       expect(typeof datum.player).toBe("number");
@@ -328,15 +328,13 @@ describe("toRadarChartData", () => {
   it("peerAverage is always 50 (baseline) for all categories", () => {
     const benchmark = getBracketForHandicap(14.3);
     const result = calculateStrokesGained(makeRound(), benchmark);
-    const chartData = toRadarChartData(result, benchmark);
+    const chartData = toRadarChartData(result);
     for (const datum of chartData) {
       expect(datum.peerAverage).toBe(50);
     }
   });
 
   it("player values are clamped to [0, 100]", () => {
-    const benchmark = getBracketForHandicap(14.3);
-
     // Extreme positive SG: fabricate a result with large values
     const extremePositive: StrokesGainedResult = {
       total: 24,
@@ -348,7 +346,7 @@ describe("toRadarChartData", () => {
       },
       benchmarkBracket: "10-15",
     };
-    const chartHigh = toRadarChartData(extremePositive, benchmark);
+    const chartHigh = toRadarChartData(extremePositive);
     for (const datum of chartHigh) {
       expect(datum.player).toBeLessThanOrEqual(100);
       expect(datum.player).toBeGreaterThanOrEqual(0);
@@ -365,7 +363,7 @@ describe("toRadarChartData", () => {
       },
       benchmarkBracket: "10-15",
     };
-    const chartLow = toRadarChartData(extremeNegative, benchmark);
+    const chartLow = toRadarChartData(extremeNegative);
     for (const datum of chartLow) {
       expect(datum.player).toBeLessThanOrEqual(100);
       expect(datum.player).toBeGreaterThanOrEqual(0);
@@ -375,7 +373,7 @@ describe("toRadarChartData", () => {
   it("category labels are human-readable", () => {
     const benchmark = getBracketForHandicap(14.3);
     const result = calculateStrokesGained(makeRound(), benchmark);
-    const chartData = toRadarChartData(result, benchmark);
+    const chartData = toRadarChartData(result);
     const labels = chartData.map((d) => d.category);
     expect(labels).toContain("Off the Tee");
     expect(labels).toContain("Approach");

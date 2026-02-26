@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/incompatible-library -- react-hook-form watch() is intentionally reactive */
 
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

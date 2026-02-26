@@ -44,8 +44,10 @@ test.describe("Strokes Gained Benchmarker", () => {
       page.getByText("Your Strokes Gained Breakdown")
     ).toBeVisible({ timeout: 5000 });
 
-    // Verify radar chart rendered (Nivo renders SVG)
-    await expect(page.locator("svg")).toBeVisible();
+    // Verify radar chart rendered (Nivo renders SVG) — scope to results container
+    await expect(
+      page.locator('[data-testid="sg-results"] svg')
+    ).toBeVisible();
 
     // Verify SG categories are displayed
     await expect(page.getByText("Off the Tee")).toBeVisible();

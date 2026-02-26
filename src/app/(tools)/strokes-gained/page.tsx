@@ -23,7 +23,7 @@ export default function StrokesGainedPage() {
   function handleFormSubmit(input: RoundInput) {
     const benchmark = getBracketForHandicap(input.handicapIndex);
     const sgResult = calculateStrokesGained(input, benchmark);
-    const radar = toRadarChartData(sgResult, benchmark);
+    const radar = toRadarChartData(sgResult);
 
     setResult(sgResult);
     setChartData(radar);
@@ -48,7 +48,7 @@ export default function StrokesGainedPage() {
       </div>
 
       {result && chartData && (
-        <div ref={resultsRef} className="mt-12 space-y-8">
+        <div ref={resultsRef} data-testid="sg-results" className="mt-12 space-y-8">
           <h2 className="text-2xl font-bold text-gray-900">
             Your Strokes Gained Breakdown
           </h2>

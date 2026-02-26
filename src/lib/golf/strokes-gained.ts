@@ -146,10 +146,8 @@ function clamp(value: number, min: number, max: number): number {
  * Normalized to 0-100 scale (50 = peer baseline), clamped to [0, 100].
  * Raw SG values stay in StrokesGainedResult for the summary (D2).
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function toRadarChartData(
-  result: StrokesGainedResult,
-  _benchmark?: BracketBenchmark
+  result: StrokesGainedResult
 ): RadarChartDatum[] {
   const categories: StrokesGainedCategory[] = [
     "off-the-tee",
