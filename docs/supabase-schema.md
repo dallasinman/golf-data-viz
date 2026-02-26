@@ -76,14 +76,18 @@ Primary table for round data. Stores raw input from the form and calculated SG r
 | `chk_slope_rating` | `slope_rating BETWEEN 55 AND 155` | USGA slope range |
 | `chk_scoring_sum` | `eagles + birdies + pars + bogeys + double_bogeys + triple_plus = 18` | Scoring must total 18 holes |
 | `chk_fairways` | `fairways_hit <= fairway_attempts` | Can't hit more fairways than attempted |
-| `chk_up_and_down` | `up_and_down_converted <= up_and_down_attempts` | Conversions can't exceed attempts |
-| `chk_sand_saves` | `sand_saves <= sand_save_attempts` | Saves can't exceed attempts |
+| `chk_up_and_down_paired` | `(attempts IS NULL) = (converted IS NULL)` | Both NULL or both NOT NULL |
+| `chk_sand_saves_paired` | `(attempts IS NULL) = (saves IS NULL)` | Both NULL or both NOT NULL |
+| `chk_up_and_down` | `converted IS NULL OR (converted >= 0 AND converted <= attempts)` | Non-negative, can't exceed attempts |
+| `chk_sand_saves` | `saves IS NULL OR (saves >= 0 AND saves <= attempts)` | Non-negative, can't exceed attempts |
+| `chk_three_putts` | `three_putts IS NULL OR (three_putts >= 0 AND three_putts <= total_putts)` | Non-negative, bounded by total putts |
+| `chk_*_nonneg` (×11) | `field >= 0` for all required count columns | Prevent negative counts |
 
 ### Row Level Security Policies
 
 | Policy | Operation | Rule | Description |
 |--------|-----------|------|-------------|
-| Anyone can insert | `INSERT` | `WITH CHECK (true)` | Allow anonymous round creation |
+| Anyone can insert | `INSERT` | `WITH CHECK (user_id IS NULL OR auth.uid() = user_id)` | Allow anonymous (NULL user_id) or own-user inserts; prevents user_id spoofing |
 | Users read own rounds | `SELECT` | `USING (auth.uid() = user_id)` | Authenticated users see only their rounds |
 | Users update own rounds | `UPDATE` | `USING (auth.uid() = user_id)` | Users can edit their own rounds |
 | Users delete own rounds | `DELETE` | `USING (auth.uid() = user_id)` | Users can remove their own rounds |
@@ -157,7 +161,7 @@ Versioned benchmark data computed from community rounds.
 
 ## Migration Strategy
 
-1. **Initial setup:** Run `docs/supabase-schema.sql` in the Supabase SQL Editor (or via `supabase db push`)
-2. **Version control:** SQL file lives in the repo at `docs/supabase-schema.sql`
-3. **Future migrations:** When the schema evolves, add migration files to `supabase/migrations/` using the Supabase CLI
+1. **Initial setup:** Apply via `supabase db reset` (local) or `supabase db push` (remote)
+2. **Version control:** Migrations live in `supabase/migrations/` (source of truth). The original `docs/supabase-schema.sql` is kept as a legacy reference.
+3. **Future migrations:** Add timestamped migration files to `supabase/migrations/` using `supabase migration new <name>`
 4. **Environment:** Use `.env.local` for Supabase URL and anon key (never commit secrets)
