@@ -99,14 +99,14 @@ describe("saveRound server action", () => {
 
   it("passes mapped snake_case data to supabase insert", async () => {
     await saveRound(
-      makeRound({ course: "Pebble Beach", date: "2026-06-15" }),
+      makeRound({ course: "Pebble Beach", date: "2026-01-15" }),
       makeSGResult()
     );
 
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         course_name: "Pebble Beach",
-        played_at: "2026-06-15",
+        played_at: "2026-01-15",
         handicap_index: 14.3,
         user_id: null,
       })
@@ -141,5 +141,34 @@ describe("saveRound server action", () => {
         user_id: null,
       })
     );
+  });
+
+  it("rejects invalid input with server-side Zod validation", async () => {
+    const invalidRound = makeRound({
+      score: 999, // out of range (50-150)
+    });
+
+    const result = await saveRound(invalidRound, makeSGResult());
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toMatch(/score/i);
+    }
+    // Should not reach Supabase
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects input where scoring breakdown does not total 18", async () => {
+    const invalidRound = makeRound({
+      eagles: 0,
+      birdies: 1,
+      pars: 7,
+      bogeys: 7,
+      doubleBogeys: 2,
+      triplePlus: 0, // sums to 17, not 18
+    });
+
+    const result = await saveRound(invalidRound, makeSGResult());
+    expect(result.success).toBe(false);
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 });

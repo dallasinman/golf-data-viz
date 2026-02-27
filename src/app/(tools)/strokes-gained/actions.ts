@@ -2,6 +2,7 @@
 
 import type { RoundInput, StrokesGainedResult } from "@/lib/golf/types";
 import { toRoundInsert } from "@/lib/golf/round-mapper";
+import { roundInputSchema } from "@/lib/golf/schemas";
 import { createClient } from "@/lib/supabase/server";
 
 export type SaveRoundResult =
@@ -13,6 +14,16 @@ export async function saveRound(
   sg: StrokesGainedResult
 ): Promise<SaveRoundResult> {
   try {
+    // Server-side validation: reject tampered payloads before touching DB
+    const parsed = roundInputSchema.safeParse(input);
+    if (!parsed.success) {
+      const message = parsed.error.issues
+        .map((i) => i.message)
+        .join("; ");
+      console.error("[saveRound] Validation failed:", message);
+      return { success: false, error: message };
+    }
+
     const supabase = await createClient();
     const row = toRoundInsert(input, sg);
 
