@@ -311,9 +311,16 @@ describe("handicap-brackets.json sanity", () => {
   });
 
   // Monotonic trends — improve with handicap (decrease)
-  // Note: FIR% is NOT monotonically decreasing in real data (confirmed by
-  // Shot Scope). We test that first bracket > last bracket as a weaker sanity check.
-  it("fairwayPercentage: first bracket > last bracket", () => {
+  // Note: FIR% is NOT strictly monotonic in real data (confirmed by Shot Scope).
+  // We allow a tolerance of +5pp for known non-monotonic transitions, but still
+  // catch large transcription errors (e.g., 25-30 bracket at 70% would fail).
+  it("fairwayPercentage: generally decreasing with bounded exceptions", () => {
+    const FIR_TOLERANCE_PP = 5;
+    for (let i = 1; i < brackets.length; i++) {
+      const diff = brackets[i].fairwayPercentage - brackets[i - 1].fairwayPercentage;
+      expect(diff).toBeLessThanOrEqual(FIR_TOLERANCE_PP);
+    }
+    // Overall trend: first bracket must exceed last bracket
     expect(brackets[0].fairwayPercentage).toBeGreaterThan(
       brackets[brackets.length - 1].fairwayPercentage
     );

@@ -281,7 +281,9 @@ export default function MethodologyPage() {
                     </td>
                     <td className="py-2 pr-4 text-gray-600">
                       {entries.length > 0
-                        ? entries[0].accessedDate
+                        ? entries.reduce((latest, c) =>
+                            c.accessedDate > latest ? c.accessedDate : latest,
+                          entries[0].accessedDate)
                         : "\u2014"}
                     </td>
                     <td className="py-2 pr-4 text-gray-600">

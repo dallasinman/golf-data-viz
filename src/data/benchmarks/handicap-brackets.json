@@ -27,39 +27,179 @@
   "citations": {
     "averageScore": [
       {
-        "source": "Shot Scope Law of Averages Series (derived from par-hole scoring averages)",
+        "source": "Shot Scope Law of Averages: 0-HCP (derived from par-hole averages)",
         "url": "https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/",
         "publishedDate": null,
         "accessedDate": "2026-03-01",
-        "coveredBrackets": ["0-5", "5-10", "10-15", "15-20", "20-25", "25-30"]
+        "coveredBrackets": ["0-5"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 5-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["5-10"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 10-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/stats/10handicap-law-of-averages-series/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["10-15"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 15-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["15-20"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 20-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["20-25"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 25-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["25-30"]
       }
     ],
     "fairwayPercentage": [
       {
-        "source": "Shot Scope Law of Averages Series",
+        "source": "Shot Scope Law of Averages: 0-HCP",
         "url": "https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/",
         "publishedDate": null,
         "accessedDate": "2026-03-01",
-        "coveredBrackets": ["0-5", "5-10", "10-15", "15-20", "20-25", "25-30"]
+        "coveredBrackets": ["0-5"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 5-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["5-10"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 10-HCP",
+        "url": "https://shotscope.com/blog/stats/10handicap-law-of-averages-series/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["10-15"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 15-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["15-20"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 20-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["20-25"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 25-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["25-30"]
       }
     ],
     "girPercentage": [
       {
-        "source": "Shot Scope Law of Averages Series",
+        "source": "Shot Scope Law of Averages: 0-HCP",
         "url": "https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/",
         "publishedDate": null,
         "accessedDate": "2026-03-01",
-        "coveredBrackets": ["0-5", "5-10", "10-15", "15-20", "20-25", "25-30"]
+        "coveredBrackets": ["0-5"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 5-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["5-10"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 10-HCP",
+        "url": "https://shotscope.com/blog/stats/10handicap-law-of-averages-series/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["10-15"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 15-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["15-20"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 20-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["20-25"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 25-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["25-30"]
       }
     ],
     "puttsPerRound": [],
     "upAndDownPercentage": [
       {
-        "source": "Shot Scope Law of Averages Series",
+        "source": "Shot Scope Law of Averages: 0-HCP",
         "url": "https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/",
         "publishedDate": null,
         "accessedDate": "2026-03-01",
-        "coveredBrackets": ["0-5", "5-10", "10-15", "15-20", "20-25", "25-30"]
+        "coveredBrackets": ["0-5"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 5-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["5-10"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 10-HCP",
+        "url": "https://shotscope.com/blog/stats/10handicap-law-of-averages-series/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["10-15"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 15-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["15-20"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 20-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["20-25"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 25-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["25-30"]
       }
     ],
     "penaltiesPerRound": [],
