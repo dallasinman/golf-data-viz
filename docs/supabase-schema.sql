@@ -1,5 +1,5 @@
 -- Golf Data Viz: Initial Schema
--- Run in Supabase SQL Editor or via `supabase db push`
+-- Applied via `supabase db reset` or `supabase db push`
 -- Spec: docs/supabase-schema.md
 
 -- =============================================================================
@@ -49,15 +49,52 @@ CREATE TABLE IF NOT EXISTS rounds (
   sg_putting            numeric(4,2),
   benchmark_bracket     text,
 
-  -- Check constraints
+  -- Range constraints
   CONSTRAINT chk_score_range     CHECK (score BETWEEN 50 AND 150),
   CONSTRAINT chk_handicap_range  CHECK (handicap_index BETWEEN 0 AND 54),
   CONSTRAINT chk_course_rating   CHECK (course_rating BETWEEN 60 AND 80),
   CONSTRAINT chk_slope_rating    CHECK (slope_rating BETWEEN 55 AND 155),
   CONSTRAINT chk_scoring_sum     CHECK (eagles + birdies + pars + bogeys + double_bogeys + triple_plus = 18),
+
+  -- Relational constraints
   CONSTRAINT chk_fairways        CHECK (fairways_hit <= fairway_attempts),
-  CONSTRAINT chk_up_and_down     CHECK (up_and_down_converted IS NULL OR up_and_down_converted <= up_and_down_attempts),
-  CONSTRAINT chk_sand_saves      CHECK (sand_saves IS NULL OR sand_saves <= sand_save_attempts)
+
+  -- Paired nullability: both NULL or both NOT NULL
+  CONSTRAINT chk_up_and_down_paired CHECK (
+    (up_and_down_attempts IS NULL) = (up_and_down_converted IS NULL)
+  ),
+  CONSTRAINT chk_sand_saves_paired CHECK (
+    (sand_save_attempts IS NULL) = (sand_saves IS NULL)
+  ),
+
+  -- Optional stat comparison + bounds
+  CONSTRAINT chk_up_and_down CHECK (
+    up_and_down_converted IS NULL
+    OR (up_and_down_converted >= 0 AND up_and_down_converted <= up_and_down_attempts)
+  ),
+  CONSTRAINT chk_sand_saves CHECK (
+    sand_saves IS NULL
+    OR (sand_saves >= 0 AND sand_saves <= sand_save_attempts)
+  ),
+
+  -- three_putts bounded by total_putts
+  CONSTRAINT chk_three_putts CHECK (
+    three_putts IS NULL
+    OR (three_putts >= 0 AND three_putts <= total_putts)
+  ),
+
+  -- Non-negative bounds for required count fields
+  CONSTRAINT chk_fairways_hit_nonneg         CHECK (fairways_hit >= 0),
+  CONSTRAINT chk_fairway_attempts_nonneg     CHECK (fairway_attempts >= 0),
+  CONSTRAINT chk_greens_in_regulation_nonneg CHECK (greens_in_regulation >= 0),
+  CONSTRAINT chk_total_putts_nonneg          CHECK (total_putts >= 0),
+  CONSTRAINT chk_penalty_strokes_nonneg      CHECK (penalty_strokes >= 0),
+  CONSTRAINT chk_eagles_nonneg               CHECK (eagles >= 0),
+  CONSTRAINT chk_birdies_nonneg              CHECK (birdies >= 0),
+  CONSTRAINT chk_pars_nonneg                 CHECK (pars >= 0),
+  CONSTRAINT chk_bogeys_nonneg               CHECK (bogeys >= 0),
+  CONSTRAINT chk_double_bogeys_nonneg        CHECK (double_bogeys >= 0),
+  CONSTRAINT chk_triple_plus_nonneg          CHECK (triple_plus >= 0)
 );
 
 -- =============================================================================
@@ -74,10 +111,10 @@ CREATE INDEX IF NOT EXISTS idx_rounds_handicap   ON rounds(handicap_index);
 
 ALTER TABLE rounds ENABLE ROW LEVEL SECURITY;
 
--- Anyone can insert (supports anonymous round creation)
+-- Anyone can insert, but only with their own user_id or NULL (anonymous)
 CREATE POLICY "Anyone can insert rounds"
   ON rounds FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (user_id IS NULL OR auth.uid() = user_id);
 
 -- Authenticated users can read their own rounds
 CREATE POLICY "Users can read own rounds"
