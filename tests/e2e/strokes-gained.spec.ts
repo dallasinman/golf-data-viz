@@ -149,6 +149,35 @@ test.describe("Strokes Gained Benchmarker", () => {
     await expect(page.locator('[data-testid="sg-results"]')).not.toBeVisible();
   });
 
+  test("results show trust signals and Benchmarks link to methodology", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitRound(page);
+
+    const sgResults = page.locator('[data-testid="sg-results"]');
+
+    // Trust label with provisional flag and proxy language
+    await expect(
+      sgResults.getByText(
+        /Estimated SG Proxy \(provisional\).*Benchmarks v/
+      )
+    ).toBeVisible();
+
+    // Benchmarks link navigates to methodology page
+    const benchmarksLink = sgResults.getByRole("link", {
+      name: /Benchmarks/i,
+    });
+    await expect(benchmarksLink).toBeVisible();
+    await benchmarksLink.click();
+
+    // Methodology page renders with key content
+    await expect(page.locator("h1")).toContainText("Methodology");
+    await expect(page.getByText("Off the Tee")).toBeVisible();
+    await expect(page.getByText("Putting")).toBeVisible();
+    await expect(page.getByText(/proxy model/i)).toBeVisible();
+  });
+
   test("form validation prevents submission with invalid scoring sum", async ({
     page,
   }) => {
