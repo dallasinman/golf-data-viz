@@ -72,9 +72,9 @@ export const roundInputSchema = z
       .int()
       .min(55, "Slope must be 55–155")
       .max(155, "Slope must be 55–155"),
-    fairwaysHit: z.coerce.number().int().min(0).max(14),
+    fairwaysHit: optionalInt(14),
     fairwayAttempts: z.coerce.number().int().min(0).max(14),
-    greensInRegulation: z.coerce.number().int().min(0).max(18),
+    greensInRegulation: optionalInt(18),
     totalPutts: z.coerce
       .number()
       .int()
@@ -108,10 +108,14 @@ export const roundInputSchema = z
       path: ["triplePlus"],
     }
   )
-  .refine((data) => data.fairwaysHit <= data.fairwayAttempts, {
-    message: "Fairways hit can't exceed fairway attempts",
-    path: ["fairwaysHit"],
-  })
+  .refine(
+    (data) =>
+      data.fairwaysHit == null || data.fairwaysHit <= data.fairwayAttempts,
+    {
+      message: "Fairways hit can't exceed fairway attempts",
+      path: ["fairwaysHit"],
+    }
+  )
   .refine(
     (data) =>
       data.upAndDownConverted == null ||

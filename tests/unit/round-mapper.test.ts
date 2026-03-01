@@ -51,6 +51,7 @@ describe("toRoundInsert", () => {
         putting: 0.2,
       },
       benchmarkBracket: "15-20",
+      skippedCategories: [],
     });
     const row = toRoundInsert(makeRound(), sg);
     expect(row.sg_total).toBe(2.5);
@@ -74,6 +75,15 @@ describe("toRoundInsert", () => {
     expect(row.sand_saves).toBeNull();
     expect(row.sand_save_attempts).toBeNull();
     expect(row.three_putts).toBeNull();
+  });
+
+  it("maps undefined fairwaysHit and greensInRegulation to null", () => {
+    const round = makeRound();
+    delete round.fairwaysHit;
+    delete round.greensInRegulation;
+    const row = toRoundInsert(round, makeSGResult());
+    expect(row.fairways_hit).toBeNull();
+    expect(row.greens_in_regulation).toBeNull();
   });
 
   it("maps present optional fields to their values", () => {

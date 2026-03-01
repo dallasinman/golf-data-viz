@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { RoundInput } from "@/lib/golf/types";
-import { makeRound, makeSGResult } from "../fixtures/factories";
+import { makeRound } from "../fixtures/factories";
 
 // --- Mock Supabase ---
 
@@ -34,7 +34,7 @@ describe("saveRound server action", () => {
   });
 
   it("returns { success: true } on successful insert", async () => {
-    const result = await saveRound(makeRound(), makeSGResult());
+    const result = await saveRound(makeRound());
     expect(result).toEqual({ success: true });
   });
 
@@ -43,7 +43,7 @@ describe("saveRound server action", () => {
       error: { message: "check constraint violated", code: "23514" },
     });
 
-    const result = await saveRound(makeRound(), makeSGResult());
+    const result = await saveRound(makeRound());
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBe("check constraint violated");
@@ -53,7 +53,7 @@ describe("saveRound server action", () => {
   it("returns { success: false, error } when insert throws", async () => {
     mockInsert.mockRejectedValue(new Error("Network failure"));
 
-    const result = await saveRound(makeRound(), makeSGResult());
+    const result = await saveRound(makeRound());
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBe("Network failure");
@@ -62,8 +62,7 @@ describe("saveRound server action", () => {
 
   it("passes mapped snake_case data to supabase insert", async () => {
     await saveRound(
-      makeRound({ course: "Pebble Beach", date: "2026-01-15" }),
-      makeSGResult()
+      makeRound({ course: "Pebble Beach", date: "2026-01-15" })
     );
 
     expect(mockInsert).toHaveBeenCalledWith(
@@ -82,7 +81,7 @@ describe("saveRound server action", () => {
       error: null,
     });
 
-    await saveRound(makeRound(), makeSGResult());
+    await saveRound(makeRound());
 
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -97,7 +96,7 @@ describe("saveRound server action", () => {
       error: null,
     });
 
-    await saveRound(makeRound(), makeSGResult());
+    await saveRound(makeRound());
 
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -111,7 +110,7 @@ describe("saveRound server action", () => {
       score: 999, // out of range (50-150)
     });
 
-    const result = await saveRound(invalidRound, makeSGResult());
+    const result = await saveRound(invalidRound);
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toMatch(/score/i);
@@ -130,9 +129,21 @@ describe("saveRound server action", () => {
       triplePlus: 0, // sums to 17, not 18
     });
 
-    const result = await saveRound(invalidRound, makeSGResult());
+    const result = await saveRound(invalidRound);
     expect(result.success).toBe(false);
     expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("maps blank FIR/GIR to null in DB insert", async () => {
+    const round = makeRound();
+    delete round.fairwaysHit;
+    delete round.greensInRegulation;
+
+    await saveRound(round);
+
+    const insertedRow = mockInsert.mock.calls[0][0];
+    expect(insertedRow.fairways_hit).toBeNull();
+    expect(insertedRow.greens_in_regulation).toBeNull();
   });
 
   it("inserts parsed.data (coerced/sanitized), not raw input", async () => {
@@ -158,7 +169,7 @@ describe("saveRound server action", () => {
       threePutts: "" as unknown as number, // blank → schema coerces to undefined → mapper maps to null
     } as RoundInput;
 
-    await saveRound(rawInput, makeSGResult());
+    await saveRound(rawInput);
 
     // The insert should receive coerced numbers, not strings
     const insertedRow = mockInsert.mock.calls[0][0];

@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS rounds (
   slope_rating          smallint    NOT NULL,
 
   -- Aggregate stats
-  fairways_hit          smallint    NOT NULL,
+  fairways_hit          smallint,
   fairway_attempts      smallint    NOT NULL,
-  greens_in_regulation  smallint    NOT NULL,
+  greens_in_regulation  smallint,
   total_putts           smallint    NOT NULL,
   penalty_strokes       smallint    NOT NULL,
 

@@ -4,8 +4,9 @@
  * Implements strokes gained methodology adapted for amateur golfers,
  * benchmarking against handicap peer groups rather than PGA Tour averages.
  *
- * All 4 categories always return a finite number (Design Decision D1).
- * When optional stats are missing, values are estimated from available data.
+ * Categories with sufficient data return a finite SG value.
+ * Categories missing required inputs (e.g., GIR for approach) are skipped:
+ * their value is 0 and they appear in `skippedCategories`.
  *
  * Weight constants are starting values from PRD, subject to calibration.
  */
@@ -29,9 +30,9 @@ export const SG_WEIGHTS = {
 
 /** Calculate SG: Off-the-Tee */
 function calcOTT(input: RoundInput, benchmark: BracketBenchmark): number {
-  // Skip FIR component on par-3 course (0 fairway attempts)
+  // Skip FIR component when fairwaysHit not tracked or par-3 course (0 attempts)
   const firComponent =
-    input.fairwayAttempts > 0
+    input.fairwaysHit != null && input.fairwayAttempts > 0
       ? (input.fairwaysHit / input.fairwayAttempts -
           benchmark.fairwayPercentage / 100) *
         SG_WEIGHTS.OTT_FIR_WEIGHT
@@ -46,6 +47,7 @@ function calcOTT(input: RoundInput, benchmark: BracketBenchmark): number {
 
 /** Calculate SG: Approach */
 function calcApproach(input: RoundInput, benchmark: BracketBenchmark): number {
+  if (input.greensInRegulation == null) return 0;
   const playerGIR = input.greensInRegulation / 18;
   const peerGIR = benchmark.girPercentage / 100;
   return (playerGIR - peerGIR) * SG_WEIGHTS.APPROACH_WEIGHT;
@@ -65,6 +67,7 @@ function calcATG(input: RoundInput, benchmark: BracketBenchmark): number {
   }
 
   // Path 2: Fallback — estimate scramble rate from scoring on missed greens
+  if (input.greensInRegulation == null) return 0;
   const missedGreens = 18 - input.greensInRegulation;
   if (missedGreens === 0) return 0;
 
@@ -110,16 +113,35 @@ export function calculateStrokesGained(
     putting: calcPutting(input, benchmark),
   };
 
-  const total =
-    categories["off-the-tee"] +
-    categories["approach"] +
-    categories["around-the-green"] +
-    categories["putting"];
+  // Determine which categories are skipped due to missing data
+  const skippedCategories: StrokesGainedCategory[] = [];
+
+  // Approach requires GIR
+  if (input.greensInRegulation == null) {
+    skippedCategories.push("approach");
+  }
+
+  // ATG: Path 1 needs upAndDown data with attempts > 0; Path 2 needs GIR
+  const hasUpAndDown =
+    input.upAndDownAttempts != null &&
+    input.upAndDownConverted != null &&
+    input.upAndDownAttempts > 0;
+  if (!hasUpAndDown && input.greensInRegulation == null) {
+    skippedCategories.push("around-the-green");
+  }
+
+  const skippedSet = new Set(skippedCategories);
+  const total = (
+    Object.entries(categories) as [StrokesGainedCategory, number][]
+  )
+    .filter(([cat]) => !skippedSet.has(cat))
+    .reduce((sum, [, val]) => sum + val, 0);
 
   return {
     total,
     categories,
     benchmarkBracket: benchmark.bracket,
+    skippedCategories,
   };
 }
 
@@ -151,8 +173,13 @@ export function toRadarChartData(
     "putting",
   ];
 
+  const skippedSet = new Set(result.skippedCategories);
+
   return categories.map((cat) => ({
     category: CATEGORY_LABELS[cat],
-    player: clamp(50 + result.categories[cat] * 10, 0, 100),
+    player: skippedSet.has(cat)
+      ? 50
+      : clamp(50 + result.categories[cat] * 10, 0, 100),
+    ...(skippedSet.has(cat) ? { skipped: true } : {}),
   }));
 }

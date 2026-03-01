@@ -175,7 +175,7 @@ export function RoundInputForm({ onSubmit, initialValues }: RoundInputFormProps)
           />
         </FormField>
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Fairways Hit" error={errors.fairwaysHit?.message}>
+          <FormField label="Fairways Hit (optional)" error={errors.fairwaysHit?.message}>
             <input
               type="number"
               inputMode="numeric"
@@ -197,7 +197,7 @@ export function RoundInputForm({ onSubmit, initialValues }: RoundInputFormProps)
         </div>
         <div className="grid grid-cols-2 gap-4">
           <FormField
-            label="Greens in Regulation"
+            label="Greens in Regulation (optional)"
             error={errors.greensInRegulation?.message}
           >
             <input

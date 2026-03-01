@@ -35,6 +35,7 @@ export function makeSGResult(
       putting: -0.5,
     },
     benchmarkBracket: "10-15",
+    skippedCategories: [],
     ...overrides,
   };
 }

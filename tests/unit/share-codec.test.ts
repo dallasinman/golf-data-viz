@@ -41,6 +41,20 @@ describe("share-codec", () => {
       expect(decoded!.upAndDownAttempts).toBeUndefined();
       expect(decoded!.threePutts).toBeUndefined();
     });
+
+    it("round-trips with omitted fairwaysHit and greensInRegulation", () => {
+      const input = makeRound();
+      delete input.fairwaysHit;
+      delete input.greensInRegulation;
+
+      const encoded = encodeRound(input);
+      const decoded = decodeRound(encoded);
+      expect(decoded).toBeDefined();
+      expect(decoded!.fairwaysHit).toBeUndefined();
+      expect(decoded!.greensInRegulation).toBeUndefined();
+      expect(decoded!.score).toBe(input.score);
+      expect(decoded!.totalPutts).toBe(input.totalPutts);
+    });
   });
 
   describe("encodeRound", () => {
