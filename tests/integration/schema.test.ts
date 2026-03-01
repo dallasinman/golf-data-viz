@@ -226,6 +226,59 @@ describe("Schema constraints (local Supabase)", () => {
     });
   });
 
+  describe("nullable fairways_hit and greens_in_regulation", () => {
+    it("accepts fairways_hit = null", async () => {
+      const { data, error } = await admin
+        .from("rounds")
+        .insert(validRound({ fairways_hit: null }))
+        .select("id")
+        .single();
+
+      expect(error).toBeNull();
+      if (data?.id) insertedIds.push(data.id);
+    });
+
+    it("accepts greens_in_regulation = null", async () => {
+      const { data, error } = await admin
+        .from("rounds")
+        .insert(validRound({ greens_in_regulation: null }))
+        .select("id")
+        .single();
+
+      expect(error).toBeNull();
+      if (data?.id) insertedIds.push(data.id);
+    });
+
+    it("accepts both null simultaneously", async () => {
+      const { data, error } = await admin
+        .from("rounds")
+        .insert(validRound({ fairways_hit: null, greens_in_regulation: null }))
+        .select("id")
+        .single();
+
+      expect(error).toBeNull();
+      if (data?.id) insertedIds.push(data.id);
+    });
+
+    it("still rejects negative fairways_hit when non-null", async () => {
+      const { error } = await admin
+        .from("rounds")
+        .insert(validRound({ fairways_hit: -1 }));
+
+      expect(error).not.toBeNull();
+      expect(error!.message).toContain("chk_fairways_hit_nonneg");
+    });
+
+    it("still rejects negative greens_in_regulation when non-null", async () => {
+      const { error } = await admin
+        .from("rounds")
+        .insert(validRound({ greens_in_regulation: -1 }));
+
+      expect(error).not.toBeNull();
+      expect(error!.message).toContain("chk_greens_in_regulation_nonneg");
+    });
+  });
+
   describe("comparison constraints", () => {
     it("rejects up_and_down_converted exceeding attempts", async () => {
       const { error } = await admin

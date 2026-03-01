@@ -320,6 +320,103 @@ describe("calculateStrokesGained", () => {
   });
 });
 
+describe("missing fairwaysHit and greensInRegulation", () => {
+  it("approach is skipped when GIR is missing", () => {
+    const round = makeRound();
+    delete round.greensInRegulation;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(result.skippedCategories).toContain("approach");
+    expect(result.categories["approach"]).toBe(0);
+  });
+
+  it("ATG is skipped when GIR is missing and no up-and-down data", () => {
+    const round = makeRound();
+    delete round.greensInRegulation;
+    delete round.upAndDownAttempts;
+    delete round.upAndDownConverted;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(result.skippedCategories).toContain("around-the-green");
+  });
+
+  it("ATG is NOT skipped when GIR is missing but up-and-down data exists", () => {
+    const round = makeRound({
+      upAndDownAttempts: 8,
+      upAndDownConverted: 4,
+    });
+    delete round.greensInRegulation;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(result.skippedCategories).not.toContain("around-the-green");
+    expect(Number.isFinite(result.categories["around-the-green"])).toBe(true);
+  });
+
+  it("ATG is skipped when upAndDownAttempts = 0 and GIR is missing", () => {
+    const round = makeRound({
+      upAndDownAttempts: 0,
+      upAndDownConverted: 0,
+    });
+    delete round.greensInRegulation;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(result.skippedCategories).toContain("around-the-green");
+  });
+
+  it("OTT still calculates penalty component when fairwaysHit is missing", () => {
+    const round = makeRound({ penaltyStrokes: 5 });
+    delete round.fairwaysHit;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(result.skippedCategories).not.toContain("off-the-tee");
+    expect(result.categories["off-the-tee"]).not.toBe(0);
+  });
+
+  it("putting is unaffected by missing GIR and fairwaysHit", () => {
+    const round = makeRound({ totalPutts: 30 });
+    delete round.fairwaysHit;
+    delete round.greensInRegulation;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(result.skippedCategories).not.toContain("putting");
+    expect(Number.isFinite(result.categories["putting"])).toBe(true);
+  });
+
+  it("total only sums non-skipped categories", () => {
+    const round = makeRound();
+    delete round.greensInRegulation;
+    delete round.upAndDownAttempts;
+    delete round.upAndDownConverted;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(result.total).toBeCloseTo(
+      result.categories["off-the-tee"] + result.categories["putting"],
+      10
+    );
+  });
+
+  it("handles both fairwaysHit and GIR missing simultaneously", () => {
+    const round = makeRound();
+    delete round.fairwaysHit;
+    delete round.greensInRegulation;
+    delete round.upAndDownAttempts;
+    delete round.upAndDownConverted;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(Number.isFinite(result.total)).toBe(true);
+    expect(result.skippedCategories).toContain("approach");
+    expect(result.skippedCategories).toContain("around-the-green");
+    expect(result.skippedCategories).not.toContain("off-the-tee");
+    expect(result.skippedCategories).not.toContain("putting");
+  });
+
+  it("existing rounds with all fields have empty skippedCategories", () => {
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(makeRound(), benchmark);
+    expect(result.skippedCategories).toEqual([]);
+  });
+});
+
 describe("toRadarChartData", () => {
   it("returns 4 RadarChartDatum entries", () => {
     const benchmark = getBracketForHandicap(14.3);
@@ -350,6 +447,7 @@ describe("toRadarChartData", () => {
         putting: 6,
       },
       benchmarkBracket: "10-15",
+      skippedCategories: [],
     };
     const chartHigh = toRadarChartData(extremePositive);
     for (const datum of chartHigh) {
@@ -367,6 +465,7 @@ describe("toRadarChartData", () => {
         putting: -6,
       },
       benchmarkBracket: "10-15",
+      skippedCategories: [],
     };
     const chartLow = toRadarChartData(extremeNegative);
     for (const datum of chartLow) {
@@ -391,7 +490,7 @@ describe("toRadarChartData", () => {
     const result = calculateStrokesGained(makeRound(), benchmark);
     const chartData = toRadarChartData(result);
 
-    // Only "category" and "player" keys should exist
+    // Only "category" and "player" keys should exist (no skipped for full data)
     const allKeys = new Set(chartData.flatMap((d) => Object.keys(d)));
     expect(allKeys).toEqual(new Set(["category", "player"]));
 
@@ -400,5 +499,27 @@ describe("toRadarChartData", () => {
       expect(datum.player).toBeGreaterThanOrEqual(0);
       expect(datum.player).toBeLessThanOrEqual(100);
     }
+  });
+
+  it("marks skipped categories at baseline 50 with skipped flag", () => {
+    const round = makeRound();
+    delete round.greensInRegulation;
+    delete round.upAndDownAttempts;
+    delete round.upAndDownConverted;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+    const chartData = toRadarChartData(result);
+
+    const approach = chartData.find((d) => d.category === "Approach");
+    const atg = chartData.find((d) => d.category === "Around the Green");
+    expect(approach?.player).toBe(50);
+    expect(approach?.skipped).toBe(true);
+    expect(atg?.player).toBe(50);
+    expect(atg?.skipped).toBe(true);
+
+    const ott = chartData.find((d) => d.category === "Off the Tee");
+    const putting = chartData.find((d) => d.category === "Putting");
+    expect(ott?.skipped).toBeUndefined();
+    expect(putting?.skipped).toBeUndefined();
   });
 });

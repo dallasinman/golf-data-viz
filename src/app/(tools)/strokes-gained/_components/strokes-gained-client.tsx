@@ -75,7 +75,7 @@ export default function StrokesGainedClient({
     window.history.replaceState(null, "", `?d=${encoded}`);
 
     // Save to DB in background — surface errors to user
-    saveRound(input, sgResult)
+    saveRound(input)
       .then((res) => {
         if (!res.success) {
           console.error("[StrokesGained] Save failed:", res.error);
