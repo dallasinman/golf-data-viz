@@ -36,6 +36,18 @@ vi.mock("@/lib/golf/benchmarks", () => ({
     updatedAt: "2026-02-28",
     provisional: true,
     sources: [],
+    citations: Object.fromEntries(
+      [
+        "averageScore",
+        "fairwayPercentage",
+        "girPercentage",
+        "puttsPerRound",
+        "upAndDownPercentage",
+        "penaltiesPerRound",
+        "scoringDistribution",
+      ].map((key) => [key, []])
+    ),
+    changelog: [{ version: "0.1.0", date: "2026-02-28", summary: "Test" }],
   })),
 }));
 

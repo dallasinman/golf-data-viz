@@ -4,6 +4,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { ShareCard } from "@/app/(tools)/strokes-gained/_components/share-card";
 import { makeSGResult } from "../fixtures/factories";
 import type { BenchmarkMeta, RadarChartDatum } from "@/lib/golf/types";
+import { makeEmptyCitations } from "../helpers";
 
 afterEach(cleanup);
 
@@ -118,6 +119,10 @@ describe("ShareCard", () => {
       updatedAt: "2026-02-28",
       provisional: true,
       sources: [],
+      citations: makeEmptyCitations(),
+      changelog: [
+        { version: "0.1.0", date: "2026-02-28", summary: "Test" },
+      ],
     };
 
     render(

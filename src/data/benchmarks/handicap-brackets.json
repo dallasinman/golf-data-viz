@@ -1,14 +1,14 @@
 {
-  "version": "0.1.0",
-  "updatedAt": "2026-02-28",
+  "version": "0.2.0",
+  "updatedAt": "2026-03-01",
   "provisional": true,
   "sources": [
+    "Shot Scope Law of Averages Series (2024–2025)",
     "USGA handicap index statistics (2024)",
     "Arccos aggregate performance reports (2023-2024)",
-    "Shot Scope performance data by handicap band (2024)",
     "Lou Stagner published amateur statistics"
   ],
-  "methodology": "Composite averages from public reports, weighted by recency. Not statistically sampled. See /methodology for details.",
+  "methodology": "Core metrics (FIR%, GIR%, up-and-down%, average score) sourced from Shot Scope Law of Averages articles. Average score derived from Shot Scope par-hole scoring averages (4 par-3s + 10 par-4s + 4 par-5s on a standard par-72 layout). Putts per round, penalties, and scoring distribution retain seed estimates pending sourcing. See /methodology for details.",
   "sampleSizeByBracket": {
     "0-5": null,
     "5-10": null,
@@ -19,17 +19,212 @@
     "30+": null
   },
   "notes": [
-    "Seed dataset for development and UI wiring.",
-    "Replace with validated benchmark data before production."
+    "v0.2.0: Shot Scope data for core metrics (brackets 0-5 through 25-30).",
+    "Bracket 30+ retains seed values — no Shot Scope coverage.",
+    "puttsPerRound, penaltiesPerRound, and scoringDistribution retain seed estimates.",
+    "FIR% is not monotonically decreasing across handicaps — confirmed by Shot Scope data."
+  ],
+  "citations": {
+    "averageScore": [
+      {
+        "source": "Shot Scope Law of Averages: 0-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["0-5"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 5-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["5-10"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 10-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/stats/10handicap-law-of-averages-series/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["10-15"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 15-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["15-20"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 20-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["20-25"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 25-HCP (derived from par-hole averages)",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["25-30"]
+      }
+    ],
+    "fairwayPercentage": [
+      {
+        "source": "Shot Scope Law of Averages: 0-HCP",
+        "url": "https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["0-5"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 5-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["5-10"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 10-HCP",
+        "url": "https://shotscope.com/blog/stats/10handicap-law-of-averages-series/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["10-15"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 15-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["15-20"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 20-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["20-25"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 25-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["25-30"]
+      }
+    ],
+    "girPercentage": [
+      {
+        "source": "Shot Scope Law of Averages: 0-HCP",
+        "url": "https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["0-5"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 5-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["5-10"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 10-HCP",
+        "url": "https://shotscope.com/blog/stats/10handicap-law-of-averages-series/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["10-15"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 15-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["15-20"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 20-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["20-25"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 25-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["25-30"]
+      }
+    ],
+    "puttsPerRound": [],
+    "upAndDownPercentage": [
+      {
+        "source": "Shot Scope Law of Averages: 0-HCP",
+        "url": "https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["0-5"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 5-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["5-10"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 10-HCP",
+        "url": "https://shotscope.com/blog/stats/10handicap-law-of-averages-series/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["10-15"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 15-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["15-20"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 20-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["20-25"]
+      },
+      {
+        "source": "Shot Scope Law of Averages: 25-HCP",
+        "url": "https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/",
+        "publishedDate": null,
+        "accessedDate": "2026-03-01",
+        "coveredBrackets": ["25-30"]
+      }
+    ],
+    "penaltiesPerRound": [],
+    "scoringDistribution": []
+  },
+  "changelog": [
+    {
+      "version": "0.2.0",
+      "date": "2026-03-01",
+      "summary": "Shot Scope data for core metrics (brackets 0-5 through 25-30). Average score derived from par-hole averages. FIR% confirmed non-monotonic across handicaps."
+    },
+    {
+      "version": "0.1.0",
+      "date": "2026-02-28",
+      "summary": "Initial seed data. Provisional."
+    }
   ],
   "brackets": [
     {
       "bracket": "0-5",
-      "averageScore": 77.5,
-      "fairwayPercentage": 57,
-      "girPercentage": 48,
+      "averageScore": 74.0,
+      "fairwayPercentage": 50,
+      "girPercentage": 59,
       "puttsPerRound": 31,
-      "upAndDownPercentage": 48,
+      "upAndDownPercentage": 54,
       "penaltiesPerRound": 1.3,
       "scoring": {
         "eaglesPerRound": 0.02,
@@ -42,11 +237,11 @@
     },
     {
       "bracket": "5-10",
-      "averageScore": 82.1,
-      "fairwayPercentage": 52,
-      "girPercentage": 40,
+      "averageScore": 80.4,
+      "fairwayPercentage": 51,
+      "girPercentage": 41,
       "puttsPerRound": 32,
-      "upAndDownPercentage": 41,
+      "upAndDownPercentage": 47,
       "penaltiesPerRound": 1.7,
       "scoring": {
         "eaglesPerRound": 0.01,
@@ -59,11 +254,11 @@
     },
     {
       "bracket": "10-15",
-      "averageScore": 87.0,
-      "fairwayPercentage": 47,
-      "girPercentage": 32,
+      "averageScore": 83.2,
+      "fairwayPercentage": 50,
+      "girPercentage": 35,
       "puttsPerRound": 33,
-      "upAndDownPercentage": 34,
+      "upAndDownPercentage": 40,
       "penaltiesPerRound": 2.2,
       "scoring": {
         "eaglesPerRound": 0,
@@ -76,11 +271,11 @@
     },
     {
       "bracket": "15-20",
-      "averageScore": 92.3,
-      "fairwayPercentage": 42,
-      "girPercentage": 24,
+      "averageScore": 89.5,
+      "fairwayPercentage": 47,
+      "girPercentage": 23,
       "puttsPerRound": 34,
-      "upAndDownPercentage": 28,
+      "upAndDownPercentage": 35,
       "penaltiesPerRound": 2.8,
       "scoring": {
         "eaglesPerRound": 0,
@@ -93,11 +288,11 @@
     },
     {
       "bracket": "20-25",
-      "averageScore": 97.5,
-      "fairwayPercentage": 38,
-      "girPercentage": 18,
+      "averageScore": 94.0,
+      "fairwayPercentage": 45,
+      "girPercentage": 16,
       "puttsPerRound": 35,
-      "upAndDownPercentage": 22,
+      "upAndDownPercentage": 32,
       "penaltiesPerRound": 3.3,
       "scoring": {
         "eaglesPerRound": 0,
@@ -110,11 +305,11 @@
     },
     {
       "bracket": "25-30",
-      "averageScore": 102.8,
-      "fairwayPercentage": 34,
-      "girPercentage": 13,
+      "averageScore": 103.4,
+      "fairwayPercentage": 50,
+      "girPercentage": 9,
       "puttsPerRound": 36,
-      "upAndDownPercentage": 18,
+      "upAndDownPercentage": 24,
       "penaltiesPerRound": 3.9,
       "scoring": {
         "eaglesPerRound": 0,

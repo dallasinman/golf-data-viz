@@ -2,13 +2,25 @@
 
 ## Current State
 
-Seed data lives at `src/data/benchmarks/handicap-brackets.json`:
+Data lives at `src/data/benchmarks/handicap-brackets.json` (v0.2.0):
 - 7 brackets: 0-5, 5-10, 10-15, 15-20, 20-25, 25-30, 30+
 - Fields per bracket: averageScore, fairwayPercentage, girPercentage, puttsPerRound, upAndDownPercentage, penaltiesPerRound, scoring distribution (6 sub-fields)
 - Metadata flag: `"provisional": true`
-- Values are plausible but unvalidated — created for development scaffolding
+- Core metrics (FIR%, GIR%, up-and-down%, averageScore) sourced from Shot Scope "Law of Averages" series for brackets 0-5 through 25-30
+- Bracket 30+ retains seed values — no Shot Scope coverage
+- puttsPerRound, penaltiesPerRound, and scoring distribution retain seed estimates pending sourcing
+- Per-metric citation arrays track provenance and bracket coverage
 
 **Goal:** Replace every provisional value with a validated number backed by 2+ published sources. Set `provisional: false` before public launch.
+
+### Status Semantics
+
+Citation status is derived at runtime by `getCitationStatus()`, not stored:
+- **pending** — no citation entries with bracket coverage
+- **partial** — some but not all 7 brackets covered
+- **sourced** — all 7 brackets covered by one or more entries
+
+Dataset-level `provisional: false` requires every P0 metric to have 2+ citation entries collectively covering all 7 brackets.
 
 ---
 
@@ -28,20 +40,30 @@ Seed data lives at `src/data/benchmarks/handicap-brackets.json`:
 - [ ] Map Arccos bracket boundaries to our 7 brackets
 - [ ] Document source URLs in the JSON `notes` array
 
-### Primary: Shot Scope Performance Centre
+### Primary: Shot Scope "Law of Averages" Series
 
-- **What:** "100 Stats" pages at shotscope.com/performance-centre
-- **Data available:** 100+ stats per handicap band — extremely granular. Includes FIR, GIR, putts, up-and-down %, scramble %, sand saves, penalties, scoring distribution, and much more.
+- **What:** Blog series at shotscope.com covering average stats per handicap bracket
+- **Data available:** FIR%, GIR%, up-and-down%, par-hole scoring averages (par 3/4/5), three-putt avoidance
 - **Sample size:** Millions of rounds from Shot Scope device users
-- **Access:** Freely available on their website, no login required
-- **Brackets:** Similar 5-stroke bands. May use slightly different boundaries — document any mismatches.
+- **Access:** Freely available blog posts, no login required
+- **Brackets:** 0-HCP, 5-HCP, 10-HCP, 15-HCP, 20-HCP, 25-HCP (maps to our 0-5 through 25-30)
+- **URLs:**
+  - 0-HCP: https://shotscope.com/blog/stats/reduce-hcp-law-of-averages-0hcp/
+  - 5-HCP: https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-5hcp-averages/
+  - 10-HCP: https://shotscope.com/blog/stats/10handicap-law-of-averages-series/
+  - 15-HCP: https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-15hcp/
+  - 20-HCP: https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-20hcp-averages/
+  - 25-HCP: https://shotscope.com/blog/practice-green/game-improvement/reduce-your-handicap-25hcp/
+- **Limitations:** No puttsPerRound or penaltiesPerRound directly. Average score derived from par-hole averages (4 par-3s + 10 par-4s + 4 par-5s). No 30+ bracket coverage.
+- **Notable finding:** FIR% is NOT monotonically decreasing across handicaps (50, 51, 50, 47, 45, 50, 30). This is a real pattern — lower-handicap golfers may sacrifice fairway accuracy for distance, and mid-high handicaps may play conservative tee shots.
 
 **Action items:**
-- [ ] Record Shot Scope stats for each bracket (focus on fields matching BracketBenchmark)
-- [ ] Map Shot Scope bracket boundaries to our brackets
-- [ ] Identify which Shot Scope stats map to each BracketBenchmark field
-- [ ] Flag any bracket boundary mismatches (e.g., they use 0-5 vs our 0-5 — likely aligned)
-- [ ] Document source URLs
+- [x] Record Shot Scope stats for each bracket (v0.2.0)
+- [x] Map Shot Scope bracket boundaries to our brackets (exact match 0-5 through 25-30)
+- [x] Identify which Shot Scope stats map to each BracketBenchmark field
+- [x] Document source URLs in citations array
+- [ ] Seek second source for brackets 0-5 through 25-30 to remove provisional flag
+- [ ] Find source for 30+ bracket
 
 ### Secondary: USGA/GHIN Data
 
@@ -169,4 +191,4 @@ _Record validation work here as it's completed._
 
 | Date | Action | Fields Updated | Sources Used |
 |------|--------|----------------|--------------|
-| — | _Not yet started_ | — | — |
+| 2026-03-01 | Transcribed Shot Scope data for 6 brackets (0-5 through 25-30). Added citation infrastructure (per-metric arrays, changelog, getCitationStatus). | averageScore, fairwayPercentage, girPercentage, upAndDownPercentage | Shot Scope Law of Averages Series (6 articles) |

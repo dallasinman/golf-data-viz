@@ -82,12 +82,54 @@ export interface BracketBenchmark {
   };
 }
 
+/** Canonical metric keys for per-metric citation tracking */
+export const CITATION_METRIC_KEYS = [
+  "averageScore",
+  "fairwayPercentage",
+  "girPercentage",
+  "puttsPerRound",
+  "upAndDownPercentage",
+  "penaltiesPerRound",
+  "scoringDistribution",
+] as const;
+
+export type CitationMetricKey = (typeof CITATION_METRIC_KEYS)[number];
+
+/** A single citation source for a benchmark metric */
+export interface MetricCitation {
+  source: string;
+  url: string | null;
+  publishedDate: string | null;
+  accessedDate: string;
+  coveredBrackets: HandicapBracket[];
+}
+
+/** Changelog entry for benchmark data versioning */
+export interface ChangelogEntry {
+  version: string;
+  date: string;
+  summary: string;
+}
+
+/** All 7 handicap brackets for coverage checks */
+export const ALL_HANDICAP_BRACKETS: readonly HandicapBracket[] = [
+  "0-5",
+  "5-10",
+  "10-15",
+  "15-20",
+  "20-25",
+  "25-30",
+  "30+",
+] as const;
+
 /** Benchmark provenance metadata for trust signals */
 export interface BenchmarkMeta {
   version: string;
   updatedAt: string;
   provisional: boolean;
   sources: string[];
+  citations: Record<CitationMetricKey, MetricCitation[]>;
+  changelog: ChangelogEntry[];
 }
 
 /** Chart-ready data shape for Nivo radar chart */
