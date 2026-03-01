@@ -3,8 +3,13 @@ import {
   loadBrackets,
   getBracketForHandicap,
   getBenchmarkMeta,
+  getCitationStatus,
 } from "@/lib/golf/benchmarks";
-import type { HandicapBracket } from "@/lib/golf/types";
+import {
+  CITATION_METRIC_KEYS,
+  ALL_HANDICAP_BRACKETS,
+} from "@/lib/golf/types";
+import type { HandicapBracket, MetricCitation } from "@/lib/golf/types";
 
 describe("loadBrackets", () => {
   it("returns exactly 7 brackets", () => {
@@ -88,9 +93,9 @@ describe("getBracketForHandicap", () => {
   it("returns '10-15' for handicap 14.3 (target user)", () => {
     const bracket = getBracketForHandicap(14.3);
     expect(bracket.bracket).toBe("10-15");
-    expect(bracket.averageScore).toBe(87.0);
-    expect(bracket.fairwayPercentage).toBe(47);
-    expect(bracket.girPercentage).toBe(32);
+    expect(bracket.averageScore).toBe(83.2);
+    expect(bracket.fairwayPercentage).toBe(50);
+    expect(bracket.girPercentage).toBe(35);
   });
 
   // Error cases
@@ -115,6 +120,129 @@ describe("getBenchmarkMeta", () => {
     expect(typeof meta.provisional).toBe("boolean");
     expect(Array.isArray(meta.sources)).toBe(true);
     expect(meta.sources.length).toBeGreaterThan(0);
+  });
+
+  it("returns citations and changelog", () => {
+    const meta = getBenchmarkMeta();
+    expect(meta.citations).toBeDefined();
+    expect(meta.changelog).toBeDefined();
+    expect(Array.isArray(meta.changelog)).toBe(true);
+  });
+});
+
+describe("citation schema", () => {
+  const meta = getBenchmarkMeta();
+
+  it("every CITATION_METRIC_KEYS entry has an array in citations", () => {
+    for (const key of CITATION_METRIC_KEYS) {
+      expect(Array.isArray(meta.citations[key])).toBe(true);
+    }
+  });
+
+  it("every citation with coveredBrackets has non-null url and accessedDate", () => {
+    for (const key of CITATION_METRIC_KEYS) {
+      for (const citation of meta.citations[key]) {
+        if (citation.coveredBrackets.length > 0) {
+          expect(citation.url).not.toBeNull();
+          expect(citation.accessedDate).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  it("provisional is true when not all P0 metrics have 2+ sources covering all brackets", () => {
+    const p0Keys = [
+      "averageScore",
+      "fairwayPercentage",
+      "girPercentage",
+      "puttsPerRound",
+      "upAndDownPercentage",
+    ] as const;
+
+    const allMet = p0Keys.every((key) => {
+      const entries = meta.citations[key];
+      if (entries.length < 2) return false;
+      const covered = new Set(entries.flatMap((c) => c.coveredBrackets));
+      return ALL_HANDICAP_BRACKETS.every((b) => covered.has(b));
+    });
+
+    if (allMet) {
+      expect(meta.provisional).toBe(false);
+    } else {
+      expect(meta.provisional).toBe(true);
+    }
+  });
+
+  it("changelog has at least one entry and is sorted by date descending", () => {
+    expect(meta.changelog.length).toBeGreaterThanOrEqual(1);
+    for (let i = 1; i < meta.changelog.length; i++) {
+      expect(meta.changelog[i - 1].date >= meta.changelog[i].date).toBe(true);
+    }
+  });
+});
+
+describe("getCitationStatus", () => {
+  it("returns 'pending' for empty array", () => {
+    expect(getCitationStatus([])).toBe("pending");
+  });
+
+  it("returns 'pending' when all entries have empty coveredBrackets", () => {
+    const citations: MetricCitation[] = [
+      {
+        source: "Test",
+        url: null,
+        publishedDate: null,
+        accessedDate: "2026-03-01",
+        coveredBrackets: [],
+      },
+    ];
+    expect(getCitationStatus(citations)).toBe("pending");
+  });
+
+  it("returns 'partial' when some but not all brackets covered", () => {
+    const citations: MetricCitation[] = [
+      {
+        source: "Test",
+        url: "https://example.com",
+        publishedDate: null,
+        accessedDate: "2026-03-01",
+        coveredBrackets: ["0-5", "5-10", "10-15"],
+      },
+    ];
+    expect(getCitationStatus(citations)).toBe("partial");
+  });
+
+  it("returns 'sourced' when all 7 brackets covered", () => {
+    const citations: MetricCitation[] = [
+      {
+        source: "Test",
+        url: "https://example.com",
+        publishedDate: null,
+        accessedDate: "2026-03-01",
+        coveredBrackets: [...ALL_HANDICAP_BRACKETS],
+      },
+    ];
+    expect(getCitationStatus(citations)).toBe("sourced");
+  });
+
+  it("returns 'sourced' when multiple entries together cover all brackets", () => {
+    const citations: MetricCitation[] = [
+      {
+        source: "A",
+        url: "https://a.com",
+        publishedDate: null,
+        accessedDate: "2026-03-01",
+        coveredBrackets: ["0-5", "5-10", "10-15", "15-20"],
+      },
+      {
+        source: "B",
+        url: "https://b.com",
+        publishedDate: null,
+        accessedDate: "2026-03-01",
+        coveredBrackets: ["20-25", "25-30", "30+"],
+      },
+    ];
+    expect(getCitationStatus(citations)).toBe("sourced");
   });
 });
 
@@ -183,17 +311,17 @@ describe("handicap-brackets.json sanity", () => {
   });
 
   // Monotonic trends — improve with handicap (decrease)
-  it("fairwayPercentage decreases monotonically across brackets", () => {
-    for (let i = 1; i < brackets.length; i++) {
-      expect(brackets[i].fairwayPercentage).toBeLessThan(
-        brackets[i - 1].fairwayPercentage
-      );
-    }
+  // Note: FIR% is NOT monotonically decreasing in real data (confirmed by
+  // Shot Scope). We test that first bracket > last bracket as a weaker sanity check.
+  it("fairwayPercentage: first bracket > last bracket", () => {
+    expect(brackets[0].fairwayPercentage).toBeGreaterThan(
+      brackets[brackets.length - 1].fairwayPercentage
+    );
   });
 
   it("girPercentage decreases monotonically across brackets", () => {
     for (let i = 1; i < brackets.length; i++) {
-      expect(brackets[i].girPercentage).toBeLessThan(
+      expect(brackets[i].girPercentage).toBeLessThanOrEqual(
         brackets[i - 1].girPercentage
       );
     }

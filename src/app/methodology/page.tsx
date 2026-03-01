@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
-import { getBenchmarkMeta, getBracketForHandicap } from "@/lib/golf/benchmarks";
+import {
+  getBenchmarkMeta,
+  getBracketForHandicap,
+  getCitationStatus,
+} from "@/lib/golf/benchmarks";
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
+import { CITATION_METRIC_KEYS } from "@/lib/golf/types";
+import type { CitationMetricKey } from "@/lib/golf/types";
 
 export const metadata: Metadata = {
   title: "Methodology",
@@ -220,7 +226,7 @@ export default function MethodologyPage() {
         </div>
       </section>
 
-      {/* Section 3: Metric-Level Citations */}
+      {/* Section 3: Metric-Level Citations (dynamic from JSON) */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-gray-900">
           Data Sources &amp; Citations
@@ -231,71 +237,72 @@ export default function MethodologyPage() {
               <tr className="border-b border-gray-300 text-left">
                 <th className="pb-2 pr-4 font-medium text-gray-700">Metric</th>
                 <th className="pb-2 pr-4 font-medium text-gray-700">Source</th>
-                <th className="pb-2 pr-4 font-medium text-gray-700">Date</th>
+                <th className="pb-2 pr-4 font-medium text-gray-700">
+                  Accessed
+                </th>
+                <th className="pb-2 pr-4 font-medium text-gray-700">
+                  Coverage
+                </th>
                 <th className="pb-2 font-medium text-gray-700">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              <tr>
-                <td className="py-2 pr-4 text-gray-800">averageScore</td>
-                <td className="py-2 pr-4 text-gray-600">
-                  USGA Handicap Research Report
-                </td>
-                <td className="py-2 pr-4 text-gray-600">2024</td>
-                <td className="py-2 text-amber-600">Pending verification</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4 text-gray-800">fairwayPercentage</td>
-                <td className="py-2 pr-4 text-gray-600">
-                  Shot Scope &quot;Average Golfer Stats&quot;
-                </td>
-                <td className="py-2 pr-4 text-gray-600">2024</td>
-                <td className="py-2 text-amber-600">Pending verification</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4 text-gray-800">girPercentage</td>
-                <td className="py-2 pr-4 text-gray-600">
-                  Shot Scope &quot;Average Golfer Stats&quot;
-                </td>
-                <td className="py-2 pr-4 text-gray-600">2024</td>
-                <td className="py-2 text-amber-600">Pending verification</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4 text-gray-800">puttsPerRound</td>
-                <td className="py-2 pr-4 text-gray-600">
-                  Arccos Putting Statistics
-                </td>
-                <td className="py-2 pr-4 text-gray-600">2023</td>
-                <td className="py-2 text-amber-600">Pending verification</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4 text-gray-800">
-                  upAndDownPercentage
-                </td>
-                <td className="py-2 pr-4 text-gray-600">
-                  Shot Scope Scrambling Stats
-                </td>
-                <td className="py-2 pr-4 text-gray-600">2024</td>
-                <td className="py-2 text-amber-600">Pending verification</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4 text-gray-800">penaltiesPerRound</td>
-                <td className="py-2 pr-4 text-gray-600">
-                  Lou Stagner / Arccos
-                </td>
-                <td className="py-2 pr-4 text-gray-600">2023</td>
-                <td className="py-2 text-amber-600">Pending verification</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4 text-gray-800">
-                  scoring distribution
-                </td>
-                <td className="py-2 pr-4 text-gray-600">
-                  Arccos Scoring Distribution
-                </td>
-                <td className="py-2 pr-4 text-gray-600">2023</td>
-                <td className="py-2 text-amber-600">Pending verification</td>
-              </tr>
+              {CITATION_METRIC_KEYS.map((key) => {
+                const entries = meta.citations[key as CitationMetricKey];
+                const status = getCitationStatus(entries);
+                const bracketCount = new Set(
+                  entries.flatMap((c) => c.coveredBrackets)
+                ).size;
+
+                return (
+                  <tr key={key}>
+                    <td className="py-2 pr-4 text-gray-800">{key}</td>
+                    <td className="py-2 pr-4 text-gray-600">
+                      {entries.length === 0 ? (
+                        <span className="italic text-gray-400">None</span>
+                      ) : (
+                        entries.map((c, i) => (
+                          <span key={i} className={i > 0 ? "mt-1 block" : ""}>
+                            {c.url ? (
+                              <a
+                                href={c.url}
+                                className="text-blue-600 underline"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {c.source}
+                              </a>
+                            ) : (
+                              c.source
+                            )}
+                          </span>
+                        ))
+                      )}
+                    </td>
+                    <td className="py-2 pr-4 text-gray-600">
+                      {entries.length > 0
+                        ? entries[0].accessedDate
+                        : "\u2014"}
+                    </td>
+                    <td className="py-2 pr-4 text-gray-600">
+                      {bracketCount > 0
+                        ? `${bracketCount}/7 brackets`
+                        : "\u2014"}
+                    </td>
+                    <td className="py-2">
+                      {status === "sourced" && (
+                        <span className="text-green-600">Sourced</span>
+                      )}
+                      {status === "partial" && (
+                        <span className="text-amber-600">Partial</span>
+                      )}
+                      {status === "pending" && (
+                        <span className="text-gray-400">Pending</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -375,14 +382,18 @@ export default function MethodologyPage() {
         </div>
       </section>
 
-      {/* Section 6: Changelog */}
+      {/* Section 6: Changelog (dynamic from JSON) */}
       <section className="mt-10">
         <h2 className="text-xl font-semibold text-gray-900">Changelog</h2>
         <ul className="mt-4 list-disc space-y-1 pl-6 text-sm text-gray-700">
-          <li>
-            <strong>v0.1.0 (2026-02-28)</strong> — Initial seed data.
-            Provisional. Sources: USGA, Arccos, Shot Scope, Stagner.
-          </li>
+          {meta.changelog.map((entry) => (
+            <li key={entry.version}>
+              <strong>
+                v{entry.version} ({entry.date})
+              </strong>{" "}
+              — {entry.summary}
+            </li>
+          ))}
         </ul>
       </section>
 

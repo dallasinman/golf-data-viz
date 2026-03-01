@@ -8,7 +8,15 @@
  * - Lou Stagner's published amateur statistics
  */
 
-import type { BenchmarkMeta, BracketBenchmark, HandicapBracket } from "./types";
+import type {
+  BenchmarkMeta,
+  BracketBenchmark,
+  CitationMetricKey,
+  ChangelogEntry,
+  HandicapBracket,
+  MetricCitation,
+} from "./types";
+import { ALL_HANDICAP_BRACKETS } from "./types";
 import rawData from "@/data/benchmarks/handicap-brackets.json";
 
 interface BenchmarkFile {
@@ -19,6 +27,8 @@ interface BenchmarkFile {
   methodology: string;
   sampleSizeByBracket: Record<string, number | null>;
   notes: string[];
+  citations: Record<CitationMetricKey, MetricCitation[]>;
+  changelog: ChangelogEntry[];
   brackets: BracketBenchmark[];
 }
 
@@ -36,7 +46,21 @@ export function getBenchmarkMeta(): BenchmarkMeta {
     updatedAt: data.updatedAt,
     provisional: data.provisional,
     sources: data.sources ?? [],
+    citations: data.citations,
+    changelog: data.changelog,
   };
+}
+
+/** Derive display status from a metric's citation array. */
+export function getCitationStatus(
+  citations: MetricCitation[]
+): "pending" | "partial" | "sourced" {
+  const withCoverage = citations.filter((c) => c.coveredBrackets.length > 0);
+  if (withCoverage.length === 0) return "pending";
+
+  const covered = new Set(withCoverage.flatMap((c) => c.coveredBrackets));
+  const allCovered = ALL_HANDICAP_BRACKETS.every((b) => covered.has(b));
+  return allCovered ? "sourced" : "partial";
 }
 
 /** Map handicap index to bracket label. */
