@@ -227,12 +227,12 @@ export default function MethodologyPage() {
       </section>
 
       {/* Section 3: Metric-Level Citations (dynamic from JSON) */}
-      <section className="mt-10">
+      <section className="mt-10" data-testid="citations-section">
         <h2 className="text-xl font-semibold text-gray-900">
           Data Sources &amp; Citations
         </h2>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" data-testid="citations-table">
             <thead>
               <tr className="border-b border-gray-300 text-left">
                 <th className="pb-2 pr-4 font-medium text-gray-700">Metric</th>
@@ -255,7 +255,7 @@ export default function MethodologyPage() {
                 ).size;
 
                 return (
-                  <tr key={key}>
+                  <tr key={key} data-testid={`citation-row-${key}`}>
                     <td className="py-2 pr-4 text-gray-800">{key}</td>
                     <td className="py-2 pr-4 text-gray-600">
                       {entries.length === 0 ? (
@@ -291,7 +291,7 @@ export default function MethodologyPage() {
                         ? `${bracketCount}/7 brackets`
                         : "\u2014"}
                     </td>
-                    <td className="py-2">
+                    <td className="py-2" data-testid={`citation-status-${key}`}>
                       {status === "sourced" && (
                         <span className="text-green-600">Sourced</span>
                       )}
@@ -385,7 +385,7 @@ export default function MethodologyPage() {
       </section>
 
       {/* Section 6: Changelog (dynamic from JSON) */}
-      <section className="mt-10">
+      <section className="mt-10" data-testid="changelog-section">
         <h2 className="text-xl font-semibold text-gray-900">Changelog</h2>
         <ul className="mt-4 list-disc space-y-1 pl-6 text-sm text-gray-700">
           {meta.changelog.map((entry) => (
