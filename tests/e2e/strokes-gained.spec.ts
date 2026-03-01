@@ -41,21 +41,24 @@ test.describe("Strokes Gained Benchmarker", () => {
     await submitRound(page);
 
     // Verify radar chart rendered (Nivo renders SVG) — scope to results container
+    const sgResults = page.locator('[data-testid="sg-results"]');
+    await expect(sgResults.locator("svg").first()).toBeVisible();
+
+    // Verify peer-average reference ring rendered inside the chart
     await expect(
-      page.locator('[data-testid="sg-results"] svg').first()
+      sgResults.locator('[data-testid="peer-average-ring"]').first()
     ).toBeVisible();
 
     // Verify SG categories in summary list (scoped to avoid duplicate radar axis labels)
-    const results = page.locator('[data-testid="sg-results"] ul');
+    const results = sgResults.locator("ul");
     await expect(results.getByText("Off the Tee")).toBeVisible();
     await expect(results.getByText("Approach")).toBeVisible();
     await expect(results.getByText("Around the Green")).toBeVisible();
     await expect(results.getByText("Putting")).toBeVisible();
 
-    // Verify bracket label in results summary
-    const sgResults = page.locator('[data-testid="sg-results"]');
+    // Verify bracket label in results summary (exact text)
     await expect(
-      sgResults.getByText(/Compared to 10.15 HCP/)
+      sgResults.getByText("Compared to 10\u201315 HCP")
     ).toBeVisible();
   });
 
