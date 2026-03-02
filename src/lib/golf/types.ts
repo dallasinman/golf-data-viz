@@ -31,10 +31,10 @@ export interface RoundInput {
   courseRating: number;
   slopeRating: number;
 
-  // Per-round aggregate stats
-  fairwaysHit: number;
+  // Per-round aggregate stats (fairwaysHit and GIR optional — user may not track)
+  fairwaysHit?: number;
   fairwayAttempts: number;
-  greensInRegulation: number;
+  greensInRegulation?: number;
   totalPutts: number;
   penaltyStrokes: number;
 
@@ -60,6 +60,8 @@ export interface StrokesGainedResult {
   categories: Record<StrokesGainedCategory, number>;
   /** Which handicap bracket the comparison is against */
   benchmarkBracket: HandicapBracket;
+  /** Categories that could not be calculated due to missing input data. Value is 0, excluded from total. */
+  skippedCategories: StrokesGainedCategory[];
 }
 
 /** Benchmark data for a single handicap bracket */
@@ -136,4 +138,6 @@ export interface BenchmarkMeta {
 export interface RadarChartDatum {
   category: string;
   player: number;
+  /** True when the category was skipped due to missing input data */
+  skipped?: boolean;
 }

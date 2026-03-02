@@ -12,7 +12,7 @@ import { z } from "zod";
  * Optional integer field that handles form input edge cases:
  * - "" → undefined (blank field means "not tracked")
  * - null/undefined → undefined
- * - NaN/Infinity → undefined
+ * - non-numeric strings ("abc") → NaN → rejected by pipe
  * - valid string numbers → coerced to number
  *
  * Uses z.pipe to keep proper TypeScript inference for react-hook-form.
@@ -24,7 +24,9 @@ const optionalInt = (max: number) =>
     .transform((val): number | undefined => {
       if (val === "" || val === undefined || val === null) return undefined;
       const n = Number(val);
-      if (!Number.isFinite(n)) return undefined;
+      // Non-finite values (NaN from "abc", Infinity) pass through as NaN
+      // so the downstream z.number() pipe rejects them
+      if (!Number.isFinite(n)) return NaN;
       return n;
     })
     .pipe(z.number().int().min(0).max(max).optional());
@@ -72,9 +74,9 @@ export const roundInputSchema = z
       .int()
       .min(55, "Slope must be 55–155")
       .max(155, "Slope must be 55–155"),
-    fairwaysHit: z.coerce.number().int().min(0).max(14),
+    fairwaysHit: optionalInt(14),
     fairwayAttempts: z.coerce.number().int().min(0).max(14),
-    greensInRegulation: z.coerce.number().int().min(0).max(18),
+    greensInRegulation: optionalInt(18),
     totalPutts: z.coerce
       .number()
       .int()
@@ -108,10 +110,14 @@ export const roundInputSchema = z
       path: ["triplePlus"],
     }
   )
-  .refine((data) => data.fairwaysHit <= data.fairwayAttempts, {
-    message: "Fairways hit can't exceed fairway attempts",
-    path: ["fairwaysHit"],
-  })
+  .refine(
+    (data) =>
+      data.fairwaysHit == null || data.fairwaysHit <= data.fairwayAttempts,
+    {
+      message: "Fairways hit can't exceed fairway attempts",
+      path: ["fairwaysHit"],
+    }
+  )
   .refine(
     (data) =>
       data.upAndDownConverted == null ||

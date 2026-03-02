@@ -33,13 +33,17 @@ interface ResultsSummaryProps {
 }
 
 export function ResultsSummary({ result, benchmarkMeta }: ResultsSummaryProps) {
+  const skippedSet = new Set(result.skippedCategories);
+
   const entries = CATEGORY_ORDER.map((key) => ({
     key,
     label: CATEGORY_LABELS[key],
     value: result.categories[key],
+    skipped: skippedSet.has(key),
   }));
 
-  const sorted = [...entries].sort((a, b) => b.value - a.value);
+  const activeEntries = entries.filter((e) => !e.skipped);
+  const sorted = [...activeEntries].sort((a, b) => b.value - a.value);
   const strength = sorted[0];
   const weakness = sorted[sorted.length - 1];
 
@@ -60,19 +64,23 @@ export function ResultsSummary({ result, benchmarkMeta }: ResultsSummaryProps) {
 
       {/* Per-category breakdown */}
       <ul className="space-y-3">
-        {entries.map(({ key, label, value }) => (
+        {entries.map(({ key, label, value, skipped }) => (
           <li
             key={key}
             className="flex items-center justify-between rounded-md border border-gray-200 px-4 py-3"
           >
             <span className="text-sm font-medium text-gray-800">{label}</span>
-            <span
-              className={`text-sm font-semibold ${
-                value >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {formatSG(value)}
-            </span>
+            {skipped ? (
+              <span className="text-sm italic text-gray-400">Not Tracked</span>
+            ) : (
+              <span
+                className={`text-sm font-semibold ${
+                  value >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {formatSG(value)}
+              </span>
+            )}
           </li>
         ))}
       </ul>
@@ -89,27 +97,29 @@ export function ResultsSummary({ result, benchmarkMeta }: ResultsSummaryProps) {
         </span>
       </div>
 
-      {/* Strength & Weakness callouts */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-md bg-green-50 px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-green-700">
-            Biggest Strength
-          </p>
-          <p className="mt-1 text-sm font-semibold text-green-800">
-            {strength.label}
-          </p>
-          <p className="text-sm text-green-600">{formatSG(strength.value)}</p>
+      {/* Strength & Weakness callouts (need at least 2 active categories) */}
+      {strength && weakness && activeEntries.length >= 2 && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-md bg-green-50 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-green-700">
+              Biggest Strength
+            </p>
+            <p className="mt-1 text-sm font-semibold text-green-800">
+              {strength.label}
+            </p>
+            <p className="text-sm text-green-600">{formatSG(strength.value)}</p>
+          </div>
+          <div className="rounded-md bg-red-50 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-red-700">
+              Biggest Weakness
+            </p>
+            <p className="mt-1 text-sm font-semibold text-red-800">
+              {weakness.label}
+            </p>
+            <p className="text-sm text-red-600">{formatSG(weakness.value)}</p>
+          </div>
         </div>
-        <div className="rounded-md bg-red-50 px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-red-700">
-            Biggest Weakness
-          </p>
-          <p className="mt-1 text-sm font-semibold text-red-800">
-            {weakness.label}
-          </p>
-          <p className="text-sm text-red-600">{formatSG(weakness.value)}</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

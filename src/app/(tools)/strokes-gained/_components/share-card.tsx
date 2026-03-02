@@ -42,10 +42,12 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
     const bracketLabel =
       BRACKET_LABELS[result.benchmarkBracket] ?? result.benchmarkBracket;
 
+    const skippedSet = new Set(result.skippedCategories);
     const entries = CATEGORY_ORDER.map((key) => ({
       key,
       label: CATEGORY_LABELS[key],
       value: result.categories[key],
+      skipped: skippedSet.has(key),
     }));
 
     return (
@@ -87,7 +89,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
 
         {/* Category rows */}
         <div className="mt-4 space-y-2">
-          {entries.map(({ key, label, value }) => (
+          {entries.map(({ key, label, value, skipped }) => (
             <div
               key={key}
               className="flex items-center justify-between rounded-md bg-gray-50 px-4 py-2"
@@ -95,13 +97,17 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
               <span className="text-sm font-medium text-gray-700">
                 {label}
               </span>
-              <span
-                className={`text-sm font-semibold ${
-                  value >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {formatSG(value)}
-              </span>
+              {skipped ? (
+                <span className="text-sm italic text-gray-400">Not Tracked</span>
+              ) : (
+                <span
+                  className={`text-sm font-semibold ${
+                    value >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {formatSG(value)}
+                </span>
+              )}
             </div>
           ))}
         </div>

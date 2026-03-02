@@ -78,9 +78,11 @@ export async function GET(request: NextRequest) {
   const meta = getBenchmarkMeta();
   const trustLabel = `Estimated SG Proxy${meta.provisional ? " (provisional)" : ""} · Benchmarks v${meta.version}`;
 
+  const skippedSet = new Set(result.skippedCategories);
   const entries = CATEGORY_ORDER.map((key) => ({
     label: CATEGORY_LABELS[key],
     value: result.categories[key],
+    skipped: skippedSet.has(key),
   }));
 
   return new ImageResponse(
@@ -144,7 +146,7 @@ export async function GET(request: NextRequest) {
             marginTop: 56,
           }}
         >
-          {entries.map(({ label, value }) => (
+          {entries.map(({ label, value, skipped }) => (
             <div
               key={label}
               style={{
@@ -161,15 +163,28 @@ export async function GET(request: NextRequest) {
               >
                 {label}
               </div>
-              <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 600,
-                  color: value >= 0 ? "#16a34a" : "#dc2626",
-                }}
-              >
-                {formatSG(value)}
-              </div>
+              {skipped ? (
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 400,
+                    fontStyle: "italic",
+                    color: "#9ca3af",
+                  }}
+                >
+                  Not Tracked
+                </div>
+              ) : (
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 600,
+                    color: value >= 0 ? "#16a34a" : "#dc2626",
+                  }}
+                >
+                  {formatSG(value)}
+                </div>
+              )}
             </div>
           ))}
         </div>

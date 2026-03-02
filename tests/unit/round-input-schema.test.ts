@@ -259,6 +259,45 @@ describe("roundInputSchema", () => {
     }
   });
 
+  // === Optional fairwaysHit / greensInRegulation ===
+  it("treats empty string fairwaysHit as undefined, not 0", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      fairwaysHit: "",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.fairwaysHit).toBeUndefined();
+    }
+  });
+
+  it("treats empty string greensInRegulation as undefined, not 0", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      greensInRegulation: "",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.greensInRegulation).toBeUndefined();
+    }
+  });
+
+  it("accepts valid round with both fairwaysHit and GIR missing", () => {
+    const input = validInput();
+    delete input.fairwaysHit;
+    delete input.greensInRegulation;
+    const result = roundInputSchema.safeParse(input);
+    expect(result.success).toBe(true);
+  });
+
+  it("fairwaysHit <= fairwayAttempts refinement passes when fairwaysHit is undefined", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      fairwaysHit: undefined,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("coerces string numbers for optional fields", () => {
     const result = roundInputSchema.safeParse({
       ...validInput(),
@@ -271,5 +310,29 @@ describe("roundInputSchema", () => {
       expect(result.data.upAndDownAttempts).toBe(8);
       expect(result.data.threePutts).toBe(2);
     }
+  });
+
+  it("rejects non-numeric string for fairwaysHit", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      fairwaysHit: "abc",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects non-numeric string for greensInRegulation", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      greensInRegulation: "xyz",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects non-numeric string for other optionalInt fields", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      threePutts: "notanumber",
+    });
+    expect(result.success).toBe(false);
   });
 });

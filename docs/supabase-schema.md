@@ -27,9 +27,9 @@ Primary table for round data. Stores raw input from the form and calculated SG r
 | `handicap_index` | `numeric(3,1)` | No | — | Player's handicap at time of round |
 | `course_rating` | `numeric(3,1)` | No | — | Course rating |
 | `slope_rating` | `smallint` | No | — | Slope rating |
-| `fairways_hit` | `smallint` | No | — | Fairways hit |
+| `fairways_hit` | `smallint` | Yes | `null` | Fairways hit (optional — not all scorecards track this) |
 | `fairway_attempts` | `smallint` | No | — | Fairway holes (driveable par 4s/5s) |
-| `greens_in_regulation` | `smallint` | No | — | GIR count |
+| `greens_in_regulation` | `smallint` | Yes | `null` | GIR count (optional — not all scorecards track this) |
 | `total_putts` | `smallint` | No | — | Total putts |
 | `penalty_strokes` | `smallint` | No | — | Penalty strokes |
 | `eagles` | `smallint` | No | — | Eagle count |

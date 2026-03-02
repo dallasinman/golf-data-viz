@@ -39,14 +39,18 @@ export async function generateMetadata({
   const benchmark = getBracketForHandicap(input.handicapIndex);
   const result = calculateStrokesGained(input, benchmark);
 
+  const skippedSet = new Set(result.skippedCategories);
   const categoryHighlights = (
     Object.keys(CATEGORY_LABELS) as StrokesGainedCategory[]
   )
+    .filter((key) => !skippedSet.has(key))
     .map((key) => `${CATEGORY_LABELS[key]} ${formatSG(result.categories[key])}`)
     .join(", ");
 
   const title = `SG Breakdown: ${formatSG(result.total)} total — ${input.course}`;
-  const description = `Shot ${input.score} at ${input.course}. ${categoryHighlights}.`;
+  const description = categoryHighlights
+    ? `Shot ${input.score} at ${input.course}. ${categoryHighlights}.`
+    : `Shot ${input.score} at ${input.course}.`;
 
   return {
     title,

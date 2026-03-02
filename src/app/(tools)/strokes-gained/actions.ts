@@ -1,17 +1,18 @@
 "use server";
 
-import type { RoundInput, StrokesGainedResult } from "@/lib/golf/types";
+import type { RoundInput } from "@/lib/golf/types";
 import { toRoundInsert } from "@/lib/golf/round-mapper";
 import { roundInputSchema } from "@/lib/golf/schemas";
 import { createClient } from "@/lib/supabase/server";
+import { getBracketForHandicap } from "@/lib/golf/benchmarks";
+import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
 
 export type SaveRoundResult =
   | { success: true }
   | { success: false; error: string };
 
 export async function saveRound(
-  input: RoundInput,
-  sg: StrokesGainedResult
+  input: RoundInput
 ): Promise<SaveRoundResult> {
   try {
     // Server-side validation: reject tampered payloads before touching DB
@@ -23,6 +24,10 @@ export async function saveRound(
       console.error("[saveRound] Validation failed:", message);
       return { success: false, error: message };
     }
+
+    // Recalculate SG server-side — never trust client-supplied values
+    const bracket = getBracketForHandicap(parsed.data.handicapIndex);
+    const sg = calculateStrokesGained(parsed.data as RoundInput, bracket);
 
     const supabase = await createClient();
     const row = toRoundInsert(parsed.data as RoundInput, sg);
