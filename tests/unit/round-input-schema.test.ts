@@ -311,4 +311,28 @@ describe("roundInputSchema", () => {
       expect(result.data.threePutts).toBe(2);
     }
   });
+
+  it("rejects non-numeric string for fairwaysHit", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      fairwaysHit: "abc",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects non-numeric string for greensInRegulation", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      greensInRegulation: "xyz",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects non-numeric string for other optionalInt fields", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      threePutts: "notanumber",
+    });
+    expect(result.success).toBe(false);
+  });
 });

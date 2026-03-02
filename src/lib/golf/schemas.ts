@@ -12,7 +12,7 @@ import { z } from "zod";
  * Optional integer field that handles form input edge cases:
  * - "" → undefined (blank field means "not tracked")
  * - null/undefined → undefined
- * - NaN/Infinity → undefined
+ * - non-numeric strings ("abc") → NaN → rejected by pipe
  * - valid string numbers → coerced to number
  *
  * Uses z.pipe to keep proper TypeScript inference for react-hook-form.
@@ -24,7 +24,9 @@ const optionalInt = (max: number) =>
     .transform((val): number | undefined => {
       if (val === "" || val === undefined || val === null) return undefined;
       const n = Number(val);
-      if (!Number.isFinite(n)) return undefined;
+      // Non-finite values (NaN from "abc", Infinity) pass through as NaN
+      // so the downstream z.number() pipe rejects them
+      if (!Number.isFinite(n)) return NaN;
       return n;
     })
     .pipe(z.number().int().min(0).max(max).optional());
