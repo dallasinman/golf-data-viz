@@ -20,7 +20,7 @@ test("error boundary renders and logs to console on route error", async ({
 
   // Dev mode: logError passes the full error through to console.error.
   // This proves the boundary fires and wires to logError in a real browser.
-  // Production sanitization (digest-only output) is covered by unit tests
-  // in tests/unit/log-error.test.ts.
+  // Production sanitization (digest-only output) is covered by integration
+  // tests in tests/unit/error-boundary-production.test.tsx.
   expect(errors.some((e) => e.includes("Test error for E2E"))).toBe(true);
 });
