@@ -33,6 +33,9 @@ export async function generateMetadata({
       title: "Strokes Gained Benchmarker",
       description:
         "See where you gain and lose strokes vs your handicap peers.",
+      alternates: {
+        canonical: "/strokes-gained",
+      },
     };
   }
 
@@ -55,6 +58,13 @@ export async function generateMetadata({
   return {
     title,
     description,
+    alternates: {
+      canonical: "/strokes-gained",
+    },
+    robots: {
+      index: false,
+      follow: false,
+    },
     openGraph: {
       title,
       description,

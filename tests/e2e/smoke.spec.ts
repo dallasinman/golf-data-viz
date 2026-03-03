@@ -31,3 +31,64 @@ test("strokes-gained page loads", async ({ page }) => {
   await expect(page.locator("h1")).toContainText("Strokes Gained");
   await expect(page.locator('button[type="submit"]')).toBeVisible();
 });
+
+test("dark-mode OS preference still renders light theme", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    colorScheme: "dark",
+  });
+  const page = await context.newPage();
+  await page.goto("/");
+
+  // Body background should remain white (not dark)
+  const bgColor = await page.evaluate(() =>
+    getComputedStyle(document.body).backgroundColor
+  );
+  // rgb(255, 255, 255) = white
+  expect(bgColor).toBe("rgb(255, 255, 255)");
+
+  // Hero headline should be readable (dark text on light bg)
+  const headline = page.getByTestId("hero-headline");
+  await expect(headline).toBeVisible();
+
+  await context.close();
+});
+
+test("site header with logo and nav links visible on all pages", async ({
+  page,
+}) => {
+  for (const path of ["/", "/strokes-gained", "/methodology"]) {
+    await page.goto(path);
+    await expect(page.getByTestId("site-header")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Golf Data Viz/i })
+    ).toBeVisible();
+  }
+});
+
+test("404 page shows branded not-found message", async ({ page }) => {
+  await page.goto("/this-page-does-not-exist");
+  await expect(page.getByText("Page not found")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Go Home/i })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Benchmark a Round/i })
+  ).toBeVisible();
+});
+
+test("robots.txt is publicly available", async ({ request }) => {
+  const res = await request.get("/robots.txt");
+  expect(res.status()).toBe(200);
+  const body = await res.text();
+  expect(body).toContain("User-Agent: *");
+  expect(body).toContain("Sitemap: ");
+});
+
+test("sitemap.xml is publicly available", async ({ request }) => {
+  const res = await request.get("/sitemap.xml");
+  expect(res.status()).toBe(200);
+  const body = await res.text();
+  expect(body).toContain("<urlset");
+  expect(body).toContain("<loc>");
+  expect(body).toContain("/strokes-gained");
+});
