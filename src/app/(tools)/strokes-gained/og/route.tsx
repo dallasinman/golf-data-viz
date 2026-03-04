@@ -10,6 +10,25 @@ export const runtime = "edge";
 
 const SIZE = { width: 1200, height: 630 };
 
+// ─── Color tokens (Satori requires inline hex — see globals.css :root for source of truth) ───
+// brand-900: #0f3d22  │  cream-50: #fefcf3  │  gold-500: #b8860b
+// data-positive: #16a34a  │  data-negative: #dc2626
+// neutral-800: #292524  │  neutral-400: #a8a29e
+
+// Module-scope: loaded once, cached for all requests.
+// Wrapped in try/catch so vitest (which can't fetch file:// URLs) falls back gracefully.
+function loadFont(relativePath: string): Promise<ArrayBuffer> {
+  return fetch(new URL(relativePath, import.meta.url))
+    .then((res) => res.arrayBuffer())
+    .catch(() => new ArrayBuffer(0));
+}
+
+const fontData = Promise.all([
+  loadFont("../../../../assets/fonts/DMSerifDisplay-Regular.ttf"),
+  loadFont("../../../../assets/fonts/DMSans-Medium.ttf"),
+  loadFont("../../../../assets/fonts/DMSans-SemiBold.ttf"),
+]);
+
 const CATEGORY_LABELS: Record<StrokesGainedCategory, string> = {
   "off-the-tee": "Off the Tee",
   approach: "Approach",
@@ -34,6 +53,18 @@ function truncateText(value: string, max: number): string {
 }
 
 export async function GET(request: NextRequest) {
+  const [dmSerifRegular, dmSansMedium, dmSansSemiBold] = await fontData;
+
+  // Only include fonts that loaded successfully (empty in vitest where file:// fetch fails)
+  const fontDefs: { name: string; data: ArrayBuffer; weight: 400 | 500 | 600; style: "normal" }[] = [
+    { name: "DM Serif Display", data: dmSerifRegular, weight: 400, style: "normal" },
+    { name: "DM Sans", data: dmSansMedium, weight: 500, style: "normal" },
+    { name: "DM Sans", data: dmSansSemiBold, weight: 600, style: "normal" },
+  ];
+  const loadedFonts = fontDefs.filter((f) => f.data.byteLength > 0);
+  // When no custom fonts loaded (e.g. vitest), omit `fonts` so ImageResponse uses its default
+  const fontOption = loadedFonts.length > 0 ? { fonts: loadedFonts } : {};
+
   const payload = request.nextUrl.searchParams.get("d") ?? undefined;
   const input = payload ? decodeRound(payload) : null;
 
@@ -45,32 +76,61 @@ export async function GET(request: NextRequest) {
           style={{
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
             width: "100%",
             height: "100%",
-            backgroundColor: "#f9fafb",
-            fontFamily: "system-ui, sans-serif",
+            backgroundColor: "#0f3d22",
+            fontFamily: "DM Sans",
           }}
         >
-          <div style={{ fontSize: 56, fontWeight: 700, color: "#111827" }}>
-            Strokes Gained Benchmarker
-          </div>
+          {/* Main content */}
           <div
             style={{
-              fontSize: 28,
-              color: "#6b7280",
-              marginTop: 16,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              flex: 1,
+              padding: 64,
             }}
           >
-            See where you gain and lose strokes vs your handicap peers
+            <div
+              style={{
+                fontSize: 56,
+                fontWeight: 400,
+                color: "#fefcf3",
+                fontFamily: "DM Serif Display",
+              }}
+            >
+              Strokes Gained Benchmarker
+            </div>
+            <div
+              style={{
+                fontSize: 28,
+                color: "#a8d5ba",
+                marginTop: 16,
+                fontWeight: 500,
+              }}
+            >
+              See where you gain and lose strokes vs your handicap peers
+            </div>
           </div>
-          <div style={{ fontSize: 20, color: "#d1d5db", marginTop: 48 }}>
-            golfdataviz.com
+          {/* Gold separator + watermark */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              paddingBottom: 32,
+            }}
+          >
+            <div style={{ width: 120, height: 1, backgroundColor: "#b8860b", opacity: 0.6 }} />
+            <div style={{ fontSize: 18, color: "#b8860b", marginTop: 16 }}>
+              golfdataviz.com
+            </div>
           </div>
         </div>
       ),
-      { ...SIZE }
+      { ...SIZE, ...fontOption }
     );
   }
 
@@ -98,125 +158,158 @@ export async function GET(request: NextRequest) {
           flexDirection: "column",
           width: "100%",
           height: "100%",
-          backgroundColor: "#ffffff",
-          padding: 64,
-          fontFamily: "system-ui, sans-serif",
+          fontFamily: "DM Sans",
         }}
       >
-        {/* Header row */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              maxWidth: 820,
-              paddingRight: 24,
-            }}
-          >
-            <div style={{ fontSize: 44, fontWeight: 700, color: "#111827" }}>
-              {courseName}
-            </div>
-            <div style={{ fontSize: 24, color: "#6b7280", marginTop: 8 }}>
-              {`Shot ${input.score} · vs ${bracketLabel}`}
-            </div>
-            <div style={{ fontSize: 14, color: "#9ca3af", marginTop: 6, fontStyle: "italic" }}>
-              {trustLabel}
-            </div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              minWidth: 180,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 52,
-                fontWeight: 700,
-                color: result.total >= 0 ? "#16a34a" : "#dc2626",
-              }}
-            >
-              {formatSG(result.total)}
-            </div>
-            <div style={{ fontSize: 18, color: "#9ca3af" }}>Total SG</div>
-          </div>
-        </div>
-
-        {/* Category bars */}
+        {/* Dark green header band */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 20,
-            marginTop: 56,
+            backgroundColor: "#0f3d22",
+            padding: "40px 64px 32px",
           }}
         >
-          {entries.map(({ label, value, skipped }) => (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
             <div
-              key={label}
               style={{
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                backgroundColor: "#f9fafb",
-                borderRadius: 12,
-                padding: "20px 32px",
+                flexDirection: "column",
+                maxWidth: 820,
+                paddingRight: 24,
               }}
             >
               <div
-                style={{ fontSize: 28, fontWeight: 500, color: "#374151" }}
+                style={{
+                  fontSize: 44,
+                  fontWeight: 400,
+                  color: "#fefcf3",
+                  fontFamily: "DM Serif Display",
+                }}
               >
-                {label}
+                {courseName}
               </div>
-              {skipped ? (
-                <div
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 400,
-                    fontStyle: "italic",
-                    color: "#9ca3af",
-                  }}
-                >
-                  Not Tracked
-                </div>
-              ) : (
-                <div
-                  style={{
-                    fontSize: 28,
-                    fontWeight: 600,
-                    color: value >= 0 ? "#16a34a" : "#dc2626",
-                  }}
-                >
-                  {formatSG(value)}
-                </div>
-              )}
+              <div style={{ fontSize: 22, color: "#a8d5ba", marginTop: 8, fontWeight: 500 }}>
+                {`Shot ${input.score} · vs ${bracketLabel}`}
+              </div>
+              <div style={{ fontSize: 14, color: "#7cb899", marginTop: 6, fontStyle: "italic", fontWeight: 500 }}>
+                {trustLabel}
+              </div>
             </div>
-          ))}
+            {/* Total SG circular badge */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                minWidth: 130,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  border: `3px solid ${result.total >= 0 ? "#16a34a" : "#dc2626"}`,
+                  backgroundColor: result.total >= 0 ? "rgba(22, 163, 74, 0.15)" : "rgba(220, 38, 38, 0.15)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 600,
+                    color: result.total >= 0 ? "#4ade80" : "#fca5a5",
+                  }}
+                >
+                  {formatSG(result.total)}
+                </div>
+              </div>
+              <div style={{ fontSize: 14, color: "#7cb899", marginTop: 6 }}>
+                Total SG
+              </div>
+            </div>
+          </div>
+          {/* Gold separator */}
+          <div style={{ height: 1, backgroundColor: "#b8860b", marginTop: 20, opacity: 0.5 }} />
         </div>
 
-        {/* Watermark */}
+        {/* White body with category rows */}
         <div
           style={{
             display: "flex",
-            justifyContent: "center",
-            marginTop: "auto",
-            paddingTop: 24,
+            flexDirection: "column",
+            flex: 1,
+            backgroundColor: "#ffffff",
+            padding: "28px 64px 24px",
           }}
         >
-          <div style={{ fontSize: 18, color: "#d1d5db" }}>
-            Golf Data Viz · golfdataviz.com
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            {entries.map(({ label, value, skipped }, i) => (
+              <div
+                key={label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  backgroundColor: i % 2 === 0 ? "#ffffff" : "#fefcf3",
+                  borderRadius: 10,
+                  padding: "16px 28px",
+                  borderLeft: skipped ? "none" : `4px solid ${value >= 0 ? "#16a34a" : "#dc2626"}`,
+                }}
+              >
+                <div style={{ fontSize: 26, fontWeight: 500, color: "#292524" }}>
+                  {label}
+                </div>
+                {skipped ? (
+                  <div style={{ fontSize: 26, fontWeight: 500, fontStyle: "italic", color: "#a8a29e" }}>
+                    Not Tracked
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      fontSize: 26,
+                      fontWeight: 600,
+                      color: value >= 0 ? "#16a34a" : "#dc2626",
+                    }}
+                  >
+                    {formatSG(value)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Gold watermark */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: "auto",
+              paddingTop: 16,
+            }}
+          >
+            <div style={{ fontSize: 16, color: "#b8860b" }}>
+              Golf Data Viz · golfdataviz.com
+            </div>
           </div>
         </div>
       </div>
     ),
-    { ...SIZE }
+    { ...SIZE, ...fontOption }
   );
 }

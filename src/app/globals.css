@@ -1,20 +1,154 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════
+   Golf Data Viz — Brand Design Tokens
+   Aesthetic: "Editorial Golf Analytics"
+   Augusta-inspired greens, warm cream neutrals,
+   editorial serif typography, restrained motion.
+   ═══════════════════════════════════════════════ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Primary greens (Augusta-inspired) */
+  --brand-green-950: #0a1f13;
+  --brand-green-900: #0f3d22;
+  --brand-green-800: #14532d;
+  --brand-green-700: #166534;
+  --brand-green-600: #16a34a;
+  --brand-green-100: #dcfce7;
+  --brand-green-50: #f0fdf4;
+
+  /* Warm cream / gold accents */
+  --brand-cream-50: #fefcf3;
+  --brand-cream-100: #fdf6e3;
+  --brand-cream-200: #f5e6c8;
+  --brand-gold-500: #b8860b;
+  --brand-gold-600: #996515;
+
+  /* Warm neutrals (stone scale) */
+  --neutral-950: #1c1917;
+  --neutral-800: #292524;
+  --neutral-600: #57534e;
+  --neutral-400: #a8a29e;
+  --neutral-200: #e7e5e4;
+  --neutral-100: #f5f5f4;
+  --neutral-50: #fafaf9;
+
+  /* Data visualization */
+  --data-positive: #16a34a;
+  --data-negative: #dc2626;
+  --data-neutral: #94a3b8;
+  --data-chart-fill: #166534;
+
+  /* Semantic */
+  --background: var(--brand-cream-50);
+  --foreground: var(--neutral-950);
+  --card-bg: #ffffff;
+  --card-border: var(--neutral-200);
+
   color-scheme: light;
 }
 
+/* Register as Tailwind v4 theme colors */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Brand greens */
+  --color-brand-950: var(--brand-green-950);
+  --color-brand-900: var(--brand-green-900);
+  --color-brand-800: var(--brand-green-800);
+  --color-brand-700: var(--brand-green-700);
+  --color-brand-600: var(--brand-green-600);
+  --color-brand-100: var(--brand-green-100);
+  --color-brand-50: var(--brand-green-50);
+
+  /* Cream / gold */
+  --color-cream-50: var(--brand-cream-50);
+  --color-cream-100: var(--brand-cream-100);
+  --color-cream-200: var(--brand-cream-200);
+  --color-accent-500: var(--brand-gold-500);
+  --color-accent-600: var(--brand-gold-600);
+
+  /* Neutrals */
+  --color-neutral-950: var(--neutral-950);
+  --color-neutral-800: var(--neutral-800);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-200: var(--neutral-200);
+  --color-neutral-100: var(--neutral-100);
+  --color-neutral-50: var(--neutral-50);
+
+  /* Data */
+  --color-data-positive: var(--data-positive);
+  --color-data-negative: var(--data-negative);
+  --color-data-neutral: var(--data-neutral);
+
+  /* Card */
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
+
+  /* Fonts */
+  --font-display: var(--font-dm-serif-display);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════
+   Animations
+   ═══════════════════════════════════════════════ */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.5s ease-out both;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+
+/* ═══════════════════════════════════════════════
+   Grain texture overlay
+   ═══════════════════════════════════════════════ */
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ═══════════════════════════════════════════════
+   Reduced motion — accessibility
+   ═══════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
