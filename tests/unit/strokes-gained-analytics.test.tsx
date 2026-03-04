@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const { mockTrackEvent } = vi.hoisted(() => ({
@@ -75,8 +75,12 @@ vi.mock("@/lib/golf/share-codec", () => ({
   encodeRound: vi.fn(() => "encoded-test-data"),
 }));
 
-vi.mock("../../../src/app/(tools)/strokes-gained/actions", () => ({
-  saveRound: vi.fn(() => Promise.resolve({ success: true })),
+const { mockSaveRound } = vi.hoisted(() => ({
+  mockSaveRound: vi.fn(() => Promise.resolve({ success: true })),
+}));
+
+vi.mock("@/app/(tools)/strokes-gained/actions", () => ({
+  saveRound: mockSaveRound,
 }));
 
 // Mock html-to-image (not available in jsdom)
@@ -89,6 +93,55 @@ vi.mock("@/lib/capture", () => ({
 vi.mock("@/components/charts/radar-chart", () => ({
   RadarChart: () => <div data-testid="mock-radar-chart" />,
 }));
+
+// Mock RoundInputForm: provides a simple submit trigger for testing
+const { mockOnSubmit } = vi.hoisted(() => ({
+  mockOnSubmit: { current: null as ((data: unknown) => void) | null },
+}));
+
+vi.mock(
+  "@/app/(tools)/strokes-gained/_components/round-input-form",
+  () => ({
+    RoundInputForm: ({
+      onSubmit,
+    }: {
+      onSubmit: (data: unknown) => void;
+      initialValues?: unknown;
+      isCalculating?: boolean;
+    }) => {
+      mockOnSubmit.current = onSubmit;
+      return (
+        <button
+          data-testid="mock-submit"
+          type="button"
+          onClick={() =>
+            onSubmit({
+              handicapIndex: 12,
+              course: "Test Course",
+              date: "2025-06-01",
+              courseRating: 72,
+              slopeRating: 130,
+              score: 87,
+              fairwaysHit: 6,
+              fairwayAttempts: 14,
+              greensInRegulation: 5,
+              totalPutts: 33,
+              penaltyStrokes: 1,
+              eagles: 0,
+              birdies: 1,
+              pars: 6,
+              bogeys: 7,
+              doubleBogeys: 3,
+              triplePlus: 1,
+            })
+          }
+        >
+          Submit
+        </button>
+      );
+    },
+  })
+);
 
 import StrokesGainedClient from "@/app/(tools)/strokes-gained/_components/strokes-gained-client";
 
@@ -119,6 +172,8 @@ describe("StrokesGainedClient analytics instrumentation", () => {
 
   beforeEach(() => {
     mockTrackEvent.mockClear();
+    mockSaveRound.mockClear();
+    mockSaveRound.mockResolvedValue({ success: true });
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
 
@@ -165,5 +220,160 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     expect(mockTrackEvent).toHaveBeenCalledWith("copy_link_clicked", {
       has_share_param: expect.any(Boolean),
     });
+  });
+});
+
+describe("Copy Link error handling", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  beforeEach(() => {
+    mockTrackEvent.mockClear();
+    mockSaveRound.mockClear();
+    mockSaveRound.mockResolvedValue({ success: true });
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  it("shows 'Copied!' when clipboard API succeeds", async () => {
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn(() => Promise.resolve()) },
+    });
+
+    render(<StrokesGainedClient initialInput={mockInput} />);
+    const copyBtn = screen.getByTestId("copy-link");
+    await userEvent.click(copyBtn);
+
+    expect(copyBtn).toHaveTextContent("Copied!");
+  });
+
+  it("shows 'Copied!' via execCommand fallback when clipboard API throws", async () => {
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn(() => Promise.reject(new Error("Not allowed"))),
+      },
+    });
+    // execCommand may not exist in jsdom — define it
+    document.execCommand = vi.fn(() => true);
+
+    render(<StrokesGainedClient initialInput={mockInput} />);
+    const copyBtn = screen.getByTestId("copy-link");
+    await userEvent.click(copyBtn);
+
+    expect(copyBtn).toHaveTextContent("Copied!");
+  });
+
+  it("shows 'Failed to copy' when both clipboard and execCommand fail", async () => {
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn(() => Promise.reject(new Error("Not allowed"))),
+      },
+    });
+    document.execCommand = vi.fn(() => false);
+
+    render(<StrokesGainedClient initialInput={mockInput} />);
+    const copyBtn = screen.getByTestId("copy-link");
+    await userEvent.click(copyBtn);
+
+    expect(copyBtn).toHaveTextContent("Failed to copy");
+  });
+});
+
+describe("Save feedback", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  beforeEach(() => {
+    mockTrackEvent.mockClear();
+    mockSaveRound.mockClear();
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  it("shows green 'Round saved' banner on success", async () => {
+    mockSaveRound.mockResolvedValue({ success: true });
+
+    render(<StrokesGainedClient />);
+
+    // Click the mock submit button to trigger handleFormSubmit → saveRound
+    await userEvent.click(screen.getByTestId("mock-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("save-success")).toHaveTextContent(
+        "Round saved."
+      );
+    });
+  });
+
+  it("shows neutral 'Cloud save unavailable' notice for save_unavailable error", async () => {
+    mockSaveRound.mockResolvedValue({
+      success: false,
+      error: "save_unavailable",
+    });
+
+    render(<StrokesGainedClient />);
+    await userEvent.click(screen.getByTestId("mock-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("save-error")).toHaveTextContent(
+        /Cloud save unavailable/
+      );
+    });
+  });
+
+  it("shows amber error banner for other save errors", async () => {
+    mockSaveRound.mockResolvedValue({
+      success: false,
+      error: "check constraint violated",
+    });
+
+    render(<StrokesGainedClient />);
+    await userEvent.click(screen.getByTestId("mock-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("save-error")).toHaveTextContent(
+        /Round could not be saved/
+      );
+    });
+  });
+
+  it("only applies the latest save response (race condition guard)", async () => {
+    let resolveFirst!: (v: { success: boolean }) => void;
+    let resolveSecond!: (
+      v: { success: true } | { success: false; error: string }
+    ) => void;
+
+    const firstPromise = new Promise<{ success: boolean }>((r) => {
+      resolveFirst = r;
+    });
+    const secondPromise = new Promise<
+      { success: true } | { success: false; error: string }
+    >((r) => {
+      resolveSecond = r;
+    });
+
+    mockSaveRound
+      .mockReturnValueOnce(firstPromise)
+      .mockReturnValueOnce(secondPromise);
+
+    render(<StrokesGainedClient />);
+
+    // First submit
+    await userEvent.click(screen.getByTestId("mock-submit"));
+    // Second submit (supersedes first)
+    await userEvent.click(screen.getByTestId("mock-submit"));
+
+    // Resolve second (latest) first
+    resolveSecond({ success: true });
+    await waitFor(() => {
+      expect(screen.getByTestId("save-success")).toBeInTheDocument();
+    });
+
+    // Resolve first (stale) — should be ignored since requestId doesn't match
+    resolveFirst({ success: false });
+
+    // Success banner should still be showing, no error
+    expect(screen.getByTestId("save-success")).toBeInTheDocument();
+    expect(screen.queryByTestId("save-error")).not.toBeInTheDocument();
   });
 });

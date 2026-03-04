@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { trackEvent } from "@/lib/analytics/client";
 import type {
   RoundInput,
@@ -48,13 +48,32 @@ export default function StrokesGainedClient({
   const [lastInput, setLastInput] = useState<RoundInput | null>(
     initialInput ?? null
   );
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<{
+    type: "config" | "runtime";
+    message: string;
+  } | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const formStartedRef = useRef(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const saveRequestIdRef = useRef(0);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      if (saveSuccessTimerRef.current)
+        clearTimeout(saveSuccessTimerRef.current);
+    };
+  }, []);
 
   function handleFormSubmit(input: RoundInput) {
     setIsCalculating(true);
@@ -66,7 +85,12 @@ export default function StrokesGainedClient({
     setResult(sgResult);
     setChartData(radar);
     setLastInput(input);
+
+    // Clear stale feedback from previous submit
     setSaveError(null);
+    setSaveSuccess(false);
+    if (saveSuccessTimerRef.current)
+      clearTimeout(saveSuccessTimerRef.current);
 
     trackEvent("calculation_completed", {
       benchmark_bracket: sgResult.benchmarkBracket,
@@ -83,21 +107,42 @@ export default function StrokesGainedClient({
       setTimeout(() => setIsCalculating(false), 300);
     });
 
+    // Request scoping: only apply the result from the latest submit
+    const requestId = ++saveRequestIdRef.current;
+
     // Save to DB in background — surface errors to user
     saveRound(input)
       .then((res) => {
-        if (!res.success) {
-          console.error("[StrokesGained] Save failed:", res.error);
-          setSaveError(
-            "Round could not be saved. Your results are still shown below."
+        if (requestId !== saveRequestIdRef.current) return;
+        if (res.success) {
+          setSaveSuccess(true);
+          saveSuccessTimerRef.current = setTimeout(
+            () => setSaveSuccess(false),
+            3000
           );
+        } else if (res.error === "save_unavailable") {
+          setSaveError({
+            type: "config",
+            message:
+              "Cloud save unavailable — your results are still shown below.",
+          });
+        } else {
+          console.error("[StrokesGained] Save failed:", res.error);
+          setSaveError({
+            type: "runtime",
+            message:
+              "Round could not be saved. Your results are still shown below.",
+          });
         }
       })
       .catch((err) => {
+        if (requestId !== saveRequestIdRef.current) return;
         console.error("[StrokesGained] Save transport error:", err);
-        setSaveError(
-          "Round could not be saved. Your results are still shown below."
-        );
+        setSaveError({
+          type: "runtime",
+          message:
+            "Round could not be saved. Your results are still shown below.",
+        });
       });
 
     // Smooth scroll to results
@@ -128,10 +173,43 @@ export default function StrokesGainedClient({
     trackEvent("copy_link_clicked", {
       has_share_param: window.location.search.includes("d="),
     });
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopyFailed(false);
+      setCopied(true);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: hidden textarea + execCommand
+      const textarea = document.createElement("textarea");
+      textarea.value = window.location.href;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      try {
+        textarea.select();
+        const ok = document.execCommand("copy");
+        if (!ok) throw new Error("execCommand returned false");
+        setCopyFailed(false);
+        setCopied(true);
+        copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+      } catch {
+        setCopied(false);
+        setCopyFailed(true);
+        copyTimerRef.current = setTimeout(() => setCopyFailed(false), 2000);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
   }, []);
+
+  const copyButtonText = copyFailed
+    ? "Failed to copy"
+    : copied
+      ? "Copied!"
+      : "Copy Link";
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -159,17 +237,47 @@ export default function StrokesGainedClient({
         />
       </div>
 
+      {saveSuccess && (
+        <div
+          data-testid="save-success"
+          role="status"
+          className="mt-6 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-5 w-5 shrink-0"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Round saved.
+        </div>
+      )}
+
       {saveError && (
         <div
           data-testid="save-error"
           role="alert"
-          className="mt-6 flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          className={`mt-6 flex items-center justify-between rounded-md px-4 py-3 text-sm ${
+            saveError.type === "config"
+              ? "border border-neutral-200 bg-neutral-50 text-neutral-600"
+              : "border border-amber-200 bg-amber-50 text-amber-800"
+          }`}
         >
-          <span>{saveError}</span>
+          <span>{saveError.message}</span>
           <button
             type="button"
             onClick={() => setSaveError(null)}
-            className="ml-4 font-medium text-amber-600 hover:text-amber-800"
+            className={`ml-4 font-medium ${
+              saveError.type === "config"
+                ? "text-neutral-500 hover:text-neutral-700"
+                : "text-amber-600 hover:text-amber-800"
+            }`}
           >
             Dismiss
           </button>
@@ -208,9 +316,11 @@ export default function StrokesGainedClient({
               type="button"
               data-testid="copy-link"
               onClick={handleCopyLink}
-              className="rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-all duration-200 hover:border-brand-800/30 hover:bg-cream-50"
+              className={`rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-medium transition-all duration-200 hover:border-brand-800/30 hover:bg-cream-50 ${
+                copyFailed ? "text-red-600" : "text-neutral-800"
+              }`}
             >
-              {copied ? "Copied!" : "Copy Link"}
+              {copyButtonText}
             </button>
           </div>
 
