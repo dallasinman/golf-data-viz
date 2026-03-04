@@ -48,7 +48,10 @@ export default function StrokesGainedClient({
   const [lastInput, setLastInput] = useState<RoundInput | null>(
     initialInput ?? null
   );
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<{
+    type: "config" | "runtime";
+    message: string;
+  } | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -118,22 +121,28 @@ export default function StrokesGainedClient({
             3000
           );
         } else if (res.error === "save_unavailable") {
-          setSaveError(
-            "Cloud save unavailable — your results are still shown below."
-          );
+          setSaveError({
+            type: "config",
+            message:
+              "Cloud save unavailable — your results are still shown below.",
+          });
         } else {
           console.error("[StrokesGained] Save failed:", res.error);
-          setSaveError(
-            "Round could not be saved. Your results are still shown below."
-          );
+          setSaveError({
+            type: "runtime",
+            message:
+              "Round could not be saved. Your results are still shown below.",
+          });
         }
       })
       .catch((err) => {
         if (requestId !== saveRequestIdRef.current) return;
         console.error("[StrokesGained] Save transport error:", err);
-        setSaveError(
-          "Round could not be saved. Your results are still shown below."
-        );
+        setSaveError({
+          type: "runtime",
+          message:
+            "Round could not be saved. Your results are still shown below.",
+        });
       });
 
     // Smooth scroll to results
@@ -174,15 +183,14 @@ export default function StrokesGainedClient({
       copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback: hidden textarea + execCommand
+      const textarea = document.createElement("textarea");
+      textarea.value = window.location.href;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
       try {
-        const textarea = document.createElement("textarea");
-        textarea.value = window.location.href;
-        textarea.style.position = "fixed";
-        textarea.style.left = "-9999px";
-        document.body.appendChild(textarea);
         textarea.select();
         const ok = document.execCommand("copy");
-        document.body.removeChild(textarea);
         if (!ok) throw new Error("execCommand returned false");
         setCopyFailed(false);
         setCopied(true);
@@ -191,6 +199,8 @@ export default function StrokesGainedClient({
         setCopied(false);
         setCopyFailed(true);
         copyTimerRef.current = setTimeout(() => setCopyFailed(false), 2000);
+      } finally {
+        document.body.removeChild(textarea);
       }
     }
   }, []);
@@ -254,17 +264,17 @@ export default function StrokesGainedClient({
           data-testid="save-error"
           role="alert"
           className={`mt-6 flex items-center justify-between rounded-md px-4 py-3 text-sm ${
-            saveError.startsWith("Cloud save unavailable")
+            saveError.type === "config"
               ? "border border-neutral-200 bg-neutral-50 text-neutral-600"
               : "border border-amber-200 bg-amber-50 text-amber-800"
           }`}
         >
-          <span>{saveError}</span>
+          <span>{saveError.message}</span>
           <button
             type="button"
             onClick={() => setSaveError(null)}
             className={`ml-4 font-medium ${
-              saveError.startsWith("Cloud save unavailable")
+              saveError.type === "config"
                 ? "text-neutral-500 hover:text-neutral-700"
                 : "text-amber-600 hover:text-amber-800"
             }`}
