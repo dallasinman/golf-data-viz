@@ -45,8 +45,8 @@ test("dark-mode OS preference still renders light theme", async ({
   const bgColor = await page.evaluate(() =>
     getComputedStyle(document.body).backgroundColor
   );
-  // rgb(255, 255, 255) = white
-  expect(bgColor).toBe("rgb(255, 255, 255)");
+  // rgb(254, 252, 243) = brand cream-50 (#fefcf3)
+  expect(bgColor).toBe("rgb(254, 252, 243)");
 
   // Hero headline should be readable (dark text on light bg)
   const headline = page.getByTestId("hero-headline");
