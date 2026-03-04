@@ -25,6 +25,7 @@ function firePageView(pathname: string) {
 export function GA4PageView() {
   const pathname = usePathname();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const gtagUnavailableRef = useRef(false);
 
   useEffect(() => {
     // Clean up any pending poll from a previous pathname change
@@ -36,8 +37,11 @@ export function GA4PageView() {
     try {
       if (typeof window === "undefined") return;
 
-      // No GA4 configured — skip entirely (avoids polling for ad-blocked/no-ID envs)
+      // No GA4 configured — skip entirely
       if (!process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID) return;
+
+      // Previous poll timed out — gtag is blocked, don't poll again
+      if (gtagUnavailableRef.current) return;
 
       // gtag already available — fire immediately
       if (typeof window.gtag === "function") {
@@ -55,6 +59,7 @@ export function GA4PageView() {
         } else if (Date.now() - start >= MAX_WAIT_MS) {
           clearInterval(intervalRef.current!);
           intervalRef.current = null;
+          gtagUnavailableRef.current = true;
         }
       }, POLL_MS);
     } catch {

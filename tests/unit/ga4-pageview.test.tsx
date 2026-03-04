@@ -127,6 +127,24 @@ describe("GA4PageView component", () => {
     expect(mockGtag).not.toHaveBeenCalled();
   });
 
+  it("does not re-poll on subsequent route changes after initial timeout (ad-blocker)", () => {
+    delete (window as unknown as Record<string, unknown>).gtag;
+
+    const { rerender } = render(<GA4PageView />);
+
+    // First route: poll times out after 5s
+    vi.advanceTimersByTime(6000);
+    expect(mockGtag).not.toHaveBeenCalled();
+
+    // Navigate to a new page — should skip polling entirely
+    mockUsePathname.mockReturnValue("/methodology");
+    rerender(<GA4PageView />);
+
+    // Even after waiting the full timeout again, no polling occurred
+    vi.advanceTimersByTime(6000);
+    expect(mockGtag).not.toHaveBeenCalled();
+  });
+
   it("skips polling entirely when GA4 measurement ID is not configured", () => {
     vi.stubEnv("NEXT_PUBLIC_GA4_MEASUREMENT_ID", "");
     delete (window as unknown as Record<string, unknown>).gtag;
