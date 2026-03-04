@@ -1,3 +1,5 @@
+import { captureMonitoringException } from "@/lib/monitoring/sentry";
+
 /**
  * Environment-aware error logger for Next.js error boundaries.
  *
@@ -6,6 +8,11 @@
  * to avoid exposing internal details in the browser console.
  */
 export function logError(error: Error & { digest?: string }): void {
+  captureMonitoringException(error, {
+    source: "error-boundary",
+    digest: error.digest,
+  });
+
   if (process.env.NODE_ENV === "production") {
     console.error(
       error.digest

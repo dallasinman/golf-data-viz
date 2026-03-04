@@ -1,0 +1,31 @@
+name: Uptime Checks
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+env:
+  BASE_URL: ${{ vars.PRODUCTION_BASE_URL }}
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe critical public routes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE="${BASE_URL:-https://golfdataviz.com}"
+          PAYLOAD="eyJjb3Vyc2UiOiJQYWNpZmljYSBTaGFycCBQYXJrIiwiZGF0ZSI6IjIwMjYtMDItMjgiLCJzY29yZSI6ODcsImhhbmRpY2FwSW5kZXgiOjE0LjMsImNvdXJzZVJhdGluZyI6NzIsInNsb3BlUmF0aW5nIjoxMzAsImZhaXJ3YXlzSGl0Ijo3LCJmYWlyd2F5QXR0ZW1wdHMiOjE0LCJncmVlbnNJblJlZ3VsYXRpb24iOjYsInRvdGFsUHV0dHMiOjMzLCJwZW5hbHR5U3Ryb2tlcyI6MiwiZWFnbGVzIjowLCJiaXJkaWVzIjoxLCJwYXJzIjo3LCJib2dleXMiOjcsImRvdWJsZUJvZ2V5cyI6MiwidHJpcGxlUGx1cyI6MX0"
+
+          echo "Checking ${BASE}/"
+          curl -fsS --max-time 20 "${BASE}/" >/dev/null
+
+          echo "Checking ${BASE}/strokes-gained"
+          curl -fsS --max-time 20 "${BASE}/strokes-gained" >/dev/null
+
+          echo "Checking ${BASE}/strokes-gained/og"
+          curl -fsS --max-time 20 "${BASE}/strokes-gained/og?d=${PAYLOAD}" >/dev/null

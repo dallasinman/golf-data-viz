@@ -1,10 +1,20 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+
+const { mockCaptureMonitoringException } = vi.hoisted(() => ({
+  mockCaptureMonitoringException: vi.fn(),
+}));
+
+vi.mock("@/lib/monitoring/sentry", () => ({
+  captureMonitoringException: mockCaptureMonitoringException,
+}));
+
 import { logError } from "@/lib/log-error";
 
 describe("logError", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
+    mockCaptureMonitoringException.mockReset();
   });
 
   it("logs the full error object in development", () => {
@@ -15,6 +25,10 @@ describe("logError", () => {
     logError(error);
 
     expect(spy).toHaveBeenCalledWith(error);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(error, {
+      source: "error-boundary",
+      digest: undefined,
+    });
   });
 
   it("logs only the digest in production when digest is present", () => {
@@ -27,6 +41,10 @@ describe("logError", () => {
     logError(error);
 
     expect(spy).toHaveBeenCalledWith("Application error (digest: abc123)");
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(error, {
+      source: "error-boundary",
+      digest: "abc123",
+    });
   });
 
   it("logs a generic message in production when digest is absent", () => {
@@ -37,6 +55,10 @@ describe("logError", () => {
     logError(error);
 
     expect(spy).toHaveBeenCalledWith("Application error");
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(error, {
+      source: "error-boundary",
+      digest: undefined,
+    });
   });
 
   it("does not leak error message or stack in production", () => {
