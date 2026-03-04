@@ -209,6 +209,9 @@ test.describe("Strokes Gained Benchmarker", () => {
       .getByText(/Estimated SG Proxy \(provisional\).*Benchmarks v/)
       .first();
     await expect(trustLabel).toBeVisible();
+    await expect(
+      sgResults.getByText(/encoded \(reversible\) form/i)
+    ).toBeVisible();
 
     // Benchmarks link navigates to methodology page (first = visible summary)
     const benchmarksLink = sgResults

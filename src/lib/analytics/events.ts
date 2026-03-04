@@ -5,6 +5,7 @@ export type AnalyticsEvent =
   | "download_png_clicked"
   | "copy_link_clicked"
   | "shared_round_viewed"
+  | "round_saved"
   | "round_save_failed";
 
 export type AnalyticsEventProps = {
@@ -18,7 +19,10 @@ export type AnalyticsEventProps = {
   download_png_clicked: { has_share_param: boolean };
   copy_link_clicked: { has_share_param: boolean };
   shared_round_viewed: { referrer: string; utm_source: string };
-  round_save_failed: { error_type: "config" | "runtime" | "network" };
+  round_saved: Record<string, never>;
+  round_save_failed: {
+    error_type: "config" | "runtime" | "network" | "rate_limited";
+  };
 };
 
 /**

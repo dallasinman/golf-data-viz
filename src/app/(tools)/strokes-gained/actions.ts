@@ -3,29 +3,49 @@
 import type { RoundInput } from "@/lib/golf/types";
 import { toRoundInsert } from "@/lib/golf/round-mapper";
 import { roundInputSchema } from "@/lib/golf/schemas";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { SupabaseConfigError } from "@/lib/supabase/errors";
 import { getBracketForHandicap } from "@/lib/golf/benchmarks";
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, extractClientIp } from "@/lib/rate-limit";
+import { captureMonitoringException } from "@/lib/monitoring/sentry";
 import { headers } from "next/headers";
+
+export type SaveRoundErrorCode =
+  | "RATE_LIMITED"
+  | "SAVE_DISABLED"
+  | "VALIDATION"
+  | "DB_ERROR"
+  | "UNEXPECTED";
 
 export type SaveRoundResult =
   | { success: true }
-  | { success: false; error: string };
+  | { success: false; code: SaveRoundErrorCode; message: string };
+
+const SAVE_DISABLED_MESSAGE =
+  "Cloud save unavailable — your results are still shown below.";
+const RATE_LIMITED_MESSAGE = "Too many requests. Please try again shortly.";
+const DB_ERROR_MESSAGE = "Round could not be saved.";
+const UNEXPECTED_MESSAGE = "An unexpected error occurred.";
+
+function fail(code: SaveRoundErrorCode, message: string): SaveRoundResult {
+  return { success: false, code, message };
+}
 
 export async function saveRound(
   input: RoundInput
 ): Promise<SaveRoundResult> {
   try {
+    if (process.env.ENABLE_ROUND_SAVE !== "true") {
+      return fail("SAVE_DISABLED", SAVE_DISABLED_MESSAGE);
+    }
+
     // Rate limiting: sliding window per IP
     const hdrs = await headers();
-    const ip = hdrs.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
-    if (!checkRateLimit(ip)) {
-      return {
-        success: false,
-        error: "Too many requests. Please try again shortly.",
-      };
+    const ip = extractClientIp(hdrs);
+    const rateLimitDecision = await checkRateLimit(ip);
+    if (!rateLimitDecision.allowed) {
+      return fail("RATE_LIMITED", RATE_LIMITED_MESSAGE);
     }
 
     // Server-side validation: reject tampered payloads before touching DB
@@ -35,39 +55,44 @@ export async function saveRound(
         .map((i) => i.message)
         .join("; ");
       console.error("[saveRound] Validation failed:", message);
-      return { success: false, error: message };
+      return fail("VALIDATION", message);
     }
 
     // Recalculate SG server-side — never trust client-supplied values
     const bracket = getBracketForHandicap(parsed.data.handicapIndex);
     const sg = calculateStrokesGained(parsed.data as RoundInput, bracket);
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const row = toRoundInsert(parsed.data as RoundInput, sg);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
     const { error } = await supabase
       .from("rounds")
-      .insert({ ...row, user_id: user?.id ?? null });
+      .insert({ ...row, user_id: null });
 
     if (error) {
       console.error("[saveRound] Supabase error:", error.message);
-      return { success: false, error: "Round could not be saved" };
+      captureMonitoringException(new Error(error.message), {
+        source: "saveRound",
+        code: "DB_ERROR",
+      });
+      return fail("DB_ERROR", DB_ERROR_MESSAGE);
     }
 
     return { success: true };
   } catch (err) {
     if (err instanceof SupabaseConfigError) {
       console.error("[saveRound] Supabase config error:", err.message);
-      return { success: false, error: "save_unavailable" };
+      captureMonitoringException(err, {
+        source: "saveRound",
+        code: "DB_ERROR",
+      });
+      return fail("DB_ERROR", DB_ERROR_MESSAGE);
     }
     console.error("[saveRound] Unexpected error:", err);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
+    captureMonitoringException(err, {
+      source: "saveRound",
+      code: "UNEXPECTED",
+    });
+    return fail("UNEXPECTED", UNEXPECTED_MESSAGE);
   }
 }
