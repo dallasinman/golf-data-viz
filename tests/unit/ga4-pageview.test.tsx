@@ -19,6 +19,7 @@ describe("GA4PageView component", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.stubEnv("NEXT_PUBLIC_GA4_MEASUREMENT_ID", "G-TEST123");
     mockGtag = vi.fn();
     (window as unknown as Record<string, unknown>).gtag = mockGtag;
     mockUsePathname.mockReturnValue("/strokes-gained");
@@ -27,6 +28,7 @@ describe("GA4PageView component", () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
+    vi.unstubAllEnvs();
     delete (window as unknown as Record<string, unknown>).gtag;
   });
 
@@ -122,6 +124,20 @@ describe("GA4PageView component", () => {
     (window as unknown as Record<string, unknown>).gtag = mockGtag;
     vi.advanceTimersByTime(200);
 
+    expect(mockGtag).not.toHaveBeenCalled();
+  });
+
+  it("skips polling entirely when GA4 measurement ID is not configured", () => {
+    vi.stubEnv("NEXT_PUBLIC_GA4_MEASUREMENT_ID", "");
+    delete (window as unknown as Record<string, unknown>).gtag;
+
+    render(<GA4PageView />);
+
+    // Simulate gtag appearing (e.g. injected by another script)
+    (window as unknown as Record<string, unknown>).gtag = mockGtag;
+    vi.advanceTimersByTime(6000);
+
+    // Should never have been called — no polling started
     expect(mockGtag).not.toHaveBeenCalled();
   });
 });

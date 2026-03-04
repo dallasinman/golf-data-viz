@@ -36,6 +36,9 @@ export function GA4PageView() {
     try {
       if (typeof window === "undefined") return;
 
+      // No GA4 configured — skip entirely (avoids polling for ad-blocked/no-ID envs)
+      if (!process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID) return;
+
       // gtag already available — fire immediately
       if (typeof window.gtag === "function") {
         firePageView(pathname);
