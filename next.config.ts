@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const csp = [
-  "default-src 'self'",
+  "default-src 'self' blob:",
   "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
