@@ -114,4 +114,88 @@ describe("assessRoundTrust", () => {
     expect(result.status).toBe("trusted");
     expect(result.reasons).toContain("high_score_low_putts");
   });
+
+  it("trusts a baseline round with 18 pars and score 72", () => {
+    const result = assessRoundTrust(
+      makeRound({
+        score: 72,
+        eagles: 0,
+        birdies: 0,
+        pars: 18,
+        bogeys: 0,
+        doubleBogeys: 0,
+        triplePlus: 0,
+      })
+    );
+
+    expect(result.status).toBe("trusted");
+    expect(result.reasons).toEqual([]);
+  });
+
+  it("trusts a par-3/executive-style low score when breakdown is consistent", () => {
+    const result = assessRoundTrust(
+      makeRound({
+        score: 58,
+        handicapIndex: 2,
+        courseRating: 60,
+        slopeRating: 155,
+        eagles: 0,
+        birdies: 0,
+        pars: 18,
+        bogeys: 0,
+        doubleBogeys: 0,
+        triplePlus: 0,
+      })
+    );
+
+    expect(result.status).toBe("trusted");
+    expect(result.reasons).toEqual([]);
+  });
+
+  it("trusts a scratch-like round (hcp 0, score 68) when plausible", () => {
+    const result = assessRoundTrust(
+      makeRound({
+        score: 68,
+        handicapIndex: 0,
+        eagles: 0,
+        birdies: 4,
+        pars: 14,
+        bogeys: 0,
+        doubleBogeys: 0,
+        triplePlus: 0,
+      })
+    );
+
+    expect(result.status).toBe("trusted");
+    expect(result.reasons).toEqual([]);
+  });
+
+  it("quarantines when scoring distribution does not cover 18 holes", () => {
+    const result = assessRoundTrust(
+      makeRound({
+        score: 87,
+        eagles: 0,
+        birdies: 1,
+        pars: 7,
+        bogeys: 7,
+        doubleBogeys: 1,
+        triplePlus: 1, // totals 17
+      })
+    );
+
+    expect(result.status).toBe("quarantined");
+    expect(result.reasons).toContain("scoring_hole_count_mismatch");
+  });
+
+  it("quarantines when rating/slope inputs are invalid for differential checks", () => {
+    const result = assessRoundTrust(
+      ({
+        ...makeRound(),
+        courseRating: 0,
+      } as unknown) as Parameters<typeof assessRoundTrust>[0]
+    );
+
+    expect(result.status).toBe("quarantined");
+    expect(result.reasons).toContain("invalid_rating_or_slope");
+  });
 });

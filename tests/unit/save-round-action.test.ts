@@ -232,6 +232,7 @@ describe("saveRound server action", () => {
     const insertedRow = mockInsert.mock.calls[0][0];
     expect(insertedRow.trust_status).toBe("trusted");
     expect(insertedRow.trust_reasons).toEqual([]);
+    expect(insertedRow.trust_scored_at).toEqual(expect.any(String));
   });
 
   it("writes quarantined trust metadata when trust rules flag anomalies", async () => {

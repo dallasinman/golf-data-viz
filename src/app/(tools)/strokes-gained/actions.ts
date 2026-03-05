@@ -75,13 +75,13 @@ export async function saveRound(
     }
 
     // Recalculate SG server-side — never trust client-supplied values
-    const sanitized = parsed.data as RoundInput;
-    const bracket = getBracketForHandicap(sanitized.handicapIndex);
-    const sg = calculateStrokesGained(sanitized, bracket);
-    const trust = assessRoundTrust(sanitized);
+    const validatedInput = parsed.data as RoundInput;
+    const bracket = getBracketForHandicap(validatedInput.handicapIndex);
+    const sg = calculateStrokesGained(validatedInput, bracket);
+    const trust = assessRoundTrust(validatedInput);
 
     const supabase = createAdminClient();
-    const row = toRoundInsert(sanitized, sg);
+    const row = toRoundInsert(validatedInput, sg);
 
     const { error } = await supabase
       .from("rounds")
@@ -90,6 +90,7 @@ export async function saveRound(
         user_id: null,
         trust_status: trust.status,
         trust_reasons: trust.reasons,
+        trust_scored_at: new Date().toISOString(),
       });
 
     if (error) {

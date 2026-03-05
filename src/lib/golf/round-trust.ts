@@ -7,10 +7,21 @@ export interface RoundTrustAssessment {
   reasons: string[];
 }
 
-const MIN_COURSE_PAR = 67;
+const MIN_COURSE_PAR = 54;
 const MAX_COURSE_PAR = 74;
 const PUTT_FLOOR = 14;
 const DIFFERENTIAL_GAP_THRESHOLD = 20;
+
+function getScoringHoleCount(input: RoundInput): number {
+  return (
+    input.eagles +
+    input.birdies +
+    input.pars +
+    input.bogeys +
+    input.doubleBogeys +
+    input.triplePlus
+  );
+}
 
 function getScoringBreakdownToPar(input: RoundInput): number {
   return (
@@ -23,6 +34,14 @@ function getScoringBreakdownToPar(input: RoundInput): number {
 }
 
 function getDifferential(input: RoundInput): number {
+  if (
+    !Number.isFinite(input.courseRating) ||
+    !Number.isFinite(input.slopeRating) ||
+    input.courseRating <= 0 ||
+    input.slopeRating <= 0
+  ) {
+    return Number.NaN;
+  }
   return ((input.score - input.courseRating) * 113) / input.slopeRating;
 }
 
@@ -35,6 +54,11 @@ function getDifferential(input: RoundInput): number {
 export function assessRoundTrust(input: RoundInput): RoundTrustAssessment {
   const hardReasons: string[] = [];
   const softReasons: string[] = [];
+
+  const holeCount = getScoringHoleCount(input);
+  if (holeCount !== 18) {
+    hardReasons.push("scoring_hole_count_mismatch");
+  }
 
   const toPar = getScoringBreakdownToPar(input);
   const minScore = MIN_COURSE_PAR + toPar;
@@ -51,9 +75,14 @@ export function assessRoundTrust(input: RoundInput): RoundTrustAssessment {
     hardReasons.push("putts_extremely_low");
   }
 
-  const differentialGap = Math.abs(getDifferential(input) - input.handicapIndex);
-  if (differentialGap > DIFFERENTIAL_GAP_THRESHOLD) {
-    softReasons.push("differential_handicap_gap");
+  const differential = getDifferential(input);
+  if (!Number.isFinite(differential)) {
+    hardReasons.push("invalid_rating_or_slope");
+  } else {
+    const differentialGap = Math.abs(differential - input.handicapIndex);
+    if (differentialGap > DIFFERENTIAL_GAP_THRESHOLD) {
+      softReasons.push("differential_handicap_gap");
+    }
   }
 
   const scoringSpikes = input.birdies + input.eagles;

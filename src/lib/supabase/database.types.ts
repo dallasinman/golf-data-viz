@@ -65,6 +65,7 @@ export type Database = {
           total_putts: number
           triple_plus: number
           trust_reasons: string[]
+          trust_scored_at: string | null
           trust_status: string
           up_and_down_attempts: number | null
           up_and_down_converted: number | null
@@ -100,6 +101,7 @@ export type Database = {
           total_putts: number
           triple_plus: number
           trust_reasons?: string[]
+          trust_scored_at?: string | null
           trust_status?: string
           up_and_down_attempts?: number | null
           up_and_down_converted?: number | null
@@ -135,6 +137,7 @@ export type Database = {
           total_putts?: number
           triple_plus?: number
           trust_reasons?: string[]
+          trust_scored_at?: string | null
           trust_status?: string
           up_and_down_attempts?: number | null
           up_and_down_converted?: number | null

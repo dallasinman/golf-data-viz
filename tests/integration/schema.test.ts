@@ -332,6 +332,18 @@ describe("Schema constraints (local Supabase)", () => {
       if (data?.id) insertedIds.push(data.id);
     });
 
+    it("defaults trust_scored_at to null when omitted", async () => {
+      const { data, error } = await admin
+        .from("rounds")
+        .insert(validRound())
+        .select("id, trust_scored_at")
+        .single();
+
+      expect(error).toBeNull();
+      expect(data?.trust_scored_at).toBeNull();
+      if (data?.id) insertedIds.push(data.id);
+    });
+
     it("rejects invalid trust_status values", async () => {
       const { error } = await admin
         .from("rounds")
