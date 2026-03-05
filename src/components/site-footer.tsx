@@ -12,16 +12,16 @@ export function SiteFooter() {
         <p className="text-xs text-neutral-400">
           &copy; {COPYRIGHT_YEAR} Golf Data Viz
         </p>
-        <nav className="flex gap-4">
+        <nav aria-label="Footer" className="flex gap-4">
           <Link
             href="/methodology"
-            className="text-xs text-neutral-500 transition-colors hover:text-neutral-700"
+            className="text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-700"
           >
             Methodology
           </Link>
           <Link
             href="/privacy"
-            className="text-xs text-neutral-500 transition-colors hover:text-neutral-700"
+            className="text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-700"
           >
             Privacy
           </Link>

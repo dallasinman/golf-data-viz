@@ -22,11 +22,14 @@ test.describe("Privacy policy page", () => {
     await expect(page.getByText("Effective")).toBeVisible();
   });
 
-  test("privacy link exists in site footer", async ({ page }) => {
+  test("privacy link in site footer navigates to /privacy", async ({ page }) => {
     await page.goto("/");
     const footer = page.getByTestId("site-footer");
     await expect(footer).toBeVisible();
     const privacyLink = footer.locator('a[href="/privacy"]');
     await expect(privacyLink).toBeVisible();
+    await privacyLink.click();
+    await expect(page).toHaveURL("/privacy");
+    await expect(page.locator("h1")).toContainText("Privacy Policy");
   });
 });
