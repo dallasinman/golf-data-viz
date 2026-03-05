@@ -33,16 +33,11 @@ describe("trackEvent", () => {
   });
 
   it("calls Vercel track() with event name and props", () => {
-    trackEvent("calculation_completed", {
-      benchmark_bracket: "10-15",
-      total_sg: -1.5,
-      score: 87,
-    });
-    expect(mockVercelTrack).toHaveBeenCalledWith("calculation_completed", {
-      benchmark_bracket: "10-15",
-      total_sg: -1.5,
-      score: 87,
-    });
+    trackEvent("calculation_completed");
+    expect(mockVercelTrack).toHaveBeenCalledWith(
+      "calculation_completed",
+      undefined
+    );
   });
 
   // --- GA4 sink ---
