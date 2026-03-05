@@ -13,6 +13,7 @@ interface RoundInputFormProps {
     data: RoundInput,
     options?: { saveToCloud: boolean }
   ) => void;
+  onSavePreferenceChange?: (saveToCloud: boolean) => void;
   initialValues?: Partial<RoundInput> | null;
   isCalculating?: boolean;
   saveEnabled?: boolean;
@@ -57,6 +58,7 @@ const inputClass =
 
 export function RoundInputForm({
   onSubmit,
+  onSavePreferenceChange,
   initialValues,
   isCalculating,
   saveEnabled = true,
@@ -67,6 +69,10 @@ export function RoundInputForm({
   useEffect(() => {
     setSaveToCloud(false);
   }, [initialValues, saveEnabled]);
+
+  useEffect(() => {
+    onSavePreferenceChange?.(saveToCloud);
+  }, [onSavePreferenceChange, saveToCloud]);
 
   const {
     register,
@@ -435,7 +441,9 @@ export function RoundInputForm({
               type="checkbox"
               className="mt-0.5 h-4 w-4 rounded border-cream-300 text-brand-800 focus:ring-brand-800/30"
               checked={saveToCloud}
-              onChange={(event) => setSaveToCloud(event.target.checked)}
+              onChange={(event) => {
+                setSaveToCloud(event.target.checked);
+              }}
             />
             <span>Save this round anonymously to improve future benchmarks.</span>
           </label>

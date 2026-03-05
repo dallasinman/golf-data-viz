@@ -52,4 +52,27 @@ describe("RoundInputForm save consent", () => {
       "https://www.cloudflare.com/website-terms/"
     );
   });
+
+  it("reports the save opt-in state upward as the checkbox changes", async () => {
+    const user = userEvent.setup();
+    const onSavePreferenceChange = vi.fn();
+
+    render(
+      <RoundInputForm
+        onSubmit={onSubmit}
+        saveEnabled
+        onSavePreferenceChange={onSavePreferenceChange}
+      />
+    );
+
+    expect(onSavePreferenceChange).toHaveBeenCalledWith(false);
+
+    await user.click(
+      screen.getByLabelText(
+        "Save this round anonymously to improve future benchmarks."
+      )
+    );
+
+    expect(onSavePreferenceChange).toHaveBeenLastCalledWith(true);
+  });
 });

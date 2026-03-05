@@ -61,6 +61,7 @@ export default function StrokesGainedClient({
     type: "config" | "runtime" | "rate_limited" | "verification";
     message: string;
   } | null>(null);
+  const [saveOptInSelected, setSaveOptInSelected] = useState(false);
   const [savePhase, setSavePhase] = useState<null | "verifying" | "saving">(
     null
   );
@@ -353,13 +354,14 @@ export default function StrokesGainedClient({
       >
         <RoundInputForm
           onSubmit={handleFormSubmit}
+          onSavePreferenceChange={setSaveOptInSelected}
           initialValues={initialInput}
           isCalculating={isCalculating}
           saveEnabled={saveEnabled}
         />
       </div>
 
-      {saveEnabled && turnstileSiteKey && (
+      {saveEnabled && turnstileSiteKey && saveOptInSelected && (
         <TurnstileWidget ref={turnstileRef} siteKey={turnstileSiteKey} />
       )}
 

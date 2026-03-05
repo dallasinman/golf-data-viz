@@ -118,44 +118,56 @@ vi.mock("@/components/security/turnstile-widget", async () => {
 
 vi.mock(
   "@/app/(tools)/strokes-gained/_components/round-input-form",
-  () => ({
+  async () => {
+    const React = await import("react");
+
+    return {
     RoundInputForm: ({
       onSubmit,
+      onSavePreferenceChange,
     }: {
       onSubmit: (data: unknown, options?: { saveToCloud: boolean }) => void;
-    }) => (
-      <button
-        data-testid="mock-submit"
-        type="button"
-        onClick={() =>
-          onSubmit(
-            {
-              handicapIndex: 12,
-              course: "Test Course",
-              date: "2025-06-01",
-              courseRating: 72,
-              slopeRating: 130,
-              score: 87,
-              fairwaysHit: 6,
-              fairwayAttempts: 14,
-              greensInRegulation: 5,
-              totalPutts: 33,
-              penaltyStrokes: 1,
-              eagles: 0,
-              birdies: 1,
-              pars: 6,
-              bogeys: 7,
-              doubleBogeys: 3,
-              triplePlus: 1,
-            },
-            { saveToCloud: true }
-          )
-        }
-      >
-        Submit
-      </button>
-    ),
-  })
+      onSavePreferenceChange?: (saveToCloud: boolean) => void;
+    }) => {
+      React.useEffect(() => {
+        onSavePreferenceChange?.(true);
+      }, [onSavePreferenceChange]);
+
+      return (
+        <button
+          data-testid="mock-submit"
+          type="button"
+          onClick={() =>
+            onSubmit(
+              {
+                handicapIndex: 12,
+                course: "Test Course",
+                date: "2025-06-01",
+                courseRating: 72,
+                slopeRating: 130,
+                score: 87,
+                fairwaysHit: 6,
+                fairwayAttempts: 14,
+                greensInRegulation: 5,
+                totalPutts: 33,
+                penaltyStrokes: 1,
+                eagles: 0,
+                birdies: 1,
+                pars: 6,
+                bogeys: 7,
+                doubleBogeys: 3,
+                triplePlus: 1,
+              },
+              { saveToCloud: true }
+            )
+          }
+        >
+          Submit
+        </button>
+      );
+    },
+    };
+  }
 );
 
 import StrokesGainedClient from "@/app/(tools)/strokes-gained/_components/strokes-gained-client";

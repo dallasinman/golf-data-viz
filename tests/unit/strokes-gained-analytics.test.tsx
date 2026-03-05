@@ -9,10 +9,12 @@ const {
   mockTrackEvent,
   mockSaveRound,
   mockTurnstileExecute,
+  mockInitialSavePreference,
 } = vi.hoisted(() => ({
   mockTrackEvent: vi.fn(),
   mockSaveRound: vi.fn(() => Promise.resolve({ success: true })),
   mockTurnstileExecute: vi.fn(() => Promise.resolve("turnstile-token")),
+  mockInitialSavePreference: { current: true },
 }));
 
 vi.mock("@/lib/analytics/client", () => ({
@@ -119,44 +121,56 @@ vi.mock("@/components/security/turnstile-widget", async () => {
 
 vi.mock(
   "@/app/(tools)/strokes-gained/_components/round-input-form",
-  () => ({
+  async () => {
+    const React = await import("react");
+
+    return {
     RoundInputForm: ({
       onSubmit,
+      onSavePreferenceChange,
     }: {
       onSubmit: (data: unknown, options?: { saveToCloud: boolean }) => void;
-    }) => (
-      <button
-        data-testid="mock-submit"
-        type="button"
-        onClick={() =>
-          onSubmit(
-            {
-              handicapIndex: 12,
-              course: "Test Course",
-              date: "2025-06-01",
-              courseRating: 72,
-              slopeRating: 130,
-              score: 87,
-              fairwaysHit: 6,
-              fairwayAttempts: 14,
-              greensInRegulation: 5,
-              totalPutts: 33,
-              penaltyStrokes: 1,
-              eagles: 0,
-              birdies: 1,
-              pars: 6,
-              bogeys: 7,
-              doubleBogeys: 3,
-              triplePlus: 1,
-            },
-            { saveToCloud: true }
-          )
-        }
-      >
-        Submit
-      </button>
-    ),
-  })
+      onSavePreferenceChange?: (saveToCloud: boolean) => void;
+    }) => {
+      React.useEffect(() => {
+        onSavePreferenceChange?.(mockInitialSavePreference.current);
+      }, [onSavePreferenceChange]);
+
+      return (
+        <button
+          data-testid="mock-submit"
+          type="button"
+          onClick={() =>
+            onSubmit(
+              {
+                handicapIndex: 12,
+                course: "Test Course",
+                date: "2025-06-01",
+                courseRating: 72,
+                slopeRating: 130,
+                score: 87,
+                fairwaysHit: 6,
+                fairwayAttempts: 14,
+                greensInRegulation: 5,
+                totalPutts: 33,
+                penaltyStrokes: 1,
+                eagles: 0,
+                birdies: 1,
+                pars: 6,
+                bogeys: 7,
+                doubleBogeys: 3,
+                triplePlus: 1,
+              },
+              { saveToCloud: true }
+            )
+          }
+        >
+          Submit
+        </button>
+      );
+    },
+    };
+  }
 );
 
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
@@ -201,9 +215,18 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     mockTrackEvent.mockClear();
     mockSaveRound.mockClear();
     mockTurnstileExecute.mockClear();
+    mockInitialSavePreference.current = true;
     mockSaveRound.mockResolvedValue({ success: true });
     mockTurnstileExecute.mockResolvedValue("turnstile-token");
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  it("does not mount Turnstile before anonymous save is opted into", () => {
+    mockInitialSavePreference.current = false;
+
+    renderClient();
+
+    expect(screen.queryByTestId("mock-turnstile-widget")).toBeNull();
   });
 
   it("fires form_started once on first focus into form area", () => {
