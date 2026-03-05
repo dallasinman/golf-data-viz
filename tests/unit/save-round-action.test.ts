@@ -1,95 +1,208 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { RoundInput } from "@/lib/golf/types";
 import { makeRound } from "../fixtures/factories";
 
-// --- Mock Supabase ---
+const {
+  mockInsert,
+  mockCreateAdminClient,
+  mockCheckRateLimit,
+  mockCaptureMonitoringException,
+} = vi.hoisted(() => ({
+  mockInsert: vi.fn(),
+  mockCreateAdminClient: vi.fn(),
+  mockCheckRateLimit: vi.fn(),
+  mockCaptureMonitoringException: vi.fn(),
+}));
 
-const { mockInsert, mockGetUser, mockCreateClient, mockCheckRateLimit } =
-  vi.hoisted(() => ({
-    mockInsert: vi.fn(),
-    mockGetUser: vi.fn(),
-    mockCreateClient: vi.fn(),
-    mockCheckRateLimit: vi.fn(),
-  }));
-
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: mockCreateClient,
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: mockCreateAdminClient,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: mockCheckRateLimit,
+  extractClientIp: vi.fn(() => "1.2.3.4"),
+}));
+
+vi.mock("@/lib/monitoring/sentry", () => ({
+  captureMonitoringException: mockCaptureMonitoringException,
 }));
 
 vi.mock("next/headers", () => ({
   headers: vi.fn(async () => new Map([["x-forwarded-for", "1.2.3.4"]])),
 }));
 
-import { saveRound } from "@/app/(tools)/strokes-gained/actions";
 import { SupabaseConfigError } from "@/lib/supabase/errors";
-
-// --- Tests ---
+import { saveRound } from "@/app/(tools)/strokes-gained/actions";
 
 describe("saveRound server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: rate limit allows
-    mockCheckRateLimit.mockReturnValue(true);
-    // Default: createClient resolves normally
-    mockCreateClient.mockResolvedValue({
+    vi.stubEnv("ENABLE_ROUND_SAVE", "true");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockCheckRateLimit.mockResolvedValue({ allowed: true });
+    mockCreateAdminClient.mockReturnValue({
       from: vi.fn(() => ({
         insert: mockInsert,
       })),
-      auth: {
-        getUser: mockGetUser,
-      },
     });
-    // Default: anonymous user (no session)
-    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
-    // Default: successful insert
     mockInsert.mockResolvedValue({ error: null });
   });
 
-  it("returns { success: true } on successful insert", async () => {
-    const result = await saveRound(makeRound());
-    expect(result).toEqual({ success: true });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
   });
 
-  it("returns { success: false, error } when Supabase returns an error", async () => {
+  it("fails closed when ENABLE_ROUND_SAVE is not set to true", async () => {
+    vi.stubEnv("ENABLE_ROUND_SAVE", "false");
+
+    const result = await saveRound(makeRound());
+
+    expect(result).toEqual({
+      success: false,
+      code: "SAVE_DISABLED",
+      message: "Cloud save unavailable — your results are still shown below.",
+    });
+    expect(mockCreateAdminClient).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("returns success on successful admin insert", async () => {
+    const result = await saveRound(makeRound());
+    expect(result).toEqual({ success: true });
+    expect(mockCreateAdminClient).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns DB_ERROR when Supabase insert reports an error", async () => {
     mockInsert.mockResolvedValue({
       error: { message: "check constraint violated", code: "23514" },
     });
 
     const result = await saveRound(makeRound());
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error).toBe("Round could not be saved");
-    }
+
+    expect(result).toEqual({
+      success: false,
+      code: "DB_ERROR",
+      message: "Round could not be saved.",
+    });
   });
 
-  it("returns { success: false, error } when insert throws", async () => {
+  it("returns UNEXPECTED when insert throws", async () => {
     mockInsert.mockRejectedValue(new Error("Network failure"));
 
     const result = await saveRound(makeRound());
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error).toBe("An unexpected error occurred");
-    }
+
+    expect(result).toEqual({
+      success: false,
+      code: "UNEXPECTED",
+      message: "An unexpected error occurred.",
+    });
   });
 
-  it("returns save_unavailable when createClient throws SupabaseConfigError", async () => {
-    mockCreateClient.mockRejectedValue(
-      new SupabaseConfigError("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY")
-    );
+  it("returns VALIDATION when server-side schema validation fails", async () => {
+    const invalidRound = makeRound({ score: 999 });
 
-    const result = await saveRound(makeRound());
-    expect(result).toEqual({ success: false, error: "save_unavailable" });
+    const result = await saveRound(invalidRound);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.code).toBe("VALIDATION");
+      expect(result.message).toMatch(/score/i);
+    }
     expect(mockInsert).not.toHaveBeenCalled();
   });
 
-  it("passes mapped snake_case data to supabase insert", async () => {
-    await saveRound(
-      makeRound({ course: "Pebble Beach", date: "2026-01-15" })
+  it("returns VALIDATION when scoring breakdown does not sum to 18 holes", async () => {
+    const invalidRound = makeRound({
+      eagles: 1,
+      birdies: 1,
+      pars: 6,
+      bogeys: 7,
+      doubleBogeys: 1,
+      triplePlus: 1,
+    });
+
+    const result = await saveRound(invalidRound);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.code).toBe("VALIDATION");
+      expect(result.message).toMatch(/18|hole|sum/i);
+    }
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("returns RATE_LIMITED when request exceeds limit", async () => {
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, reason: "minute" });
+
+    const result = await saveRound(makeRound());
+
+    expect(result).toEqual({
+      success: false,
+      code: "RATE_LIMITED",
+      message: "Too many requests. Please try again shortly.",
+    });
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("captures sampled monitoring event when rate limited", async () => {
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, reason: "minute" });
+    vi.spyOn(Math, "random").mockReturnValue(0.05);
+
+    const result = await saveRound(makeRound());
+
+    expect(result).toEqual({
+      success: false,
+      code: "RATE_LIMITED",
+      message: "Too many requests. Please try again shortly.",
+    });
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        source: "saveRound",
+        code: "RATE_LIMITED",
+        reason: "minute",
+      })
     );
+  });
+
+  it("does not capture monitoring event when rate-limited sample is skipped", async () => {
+    mockCheckRateLimit.mockResolvedValue({ allowed: false, reason: "hour" });
+    vi.spyOn(Math, "random").mockReturnValue(0.99);
+
+    const result = await saveRound(makeRound());
+
+    expect(result).toEqual({
+      success: false,
+      code: "RATE_LIMITED",
+      message: "Too many requests. Please try again shortly.",
+    });
+    expect(mockCaptureMonitoringException).not.toHaveBeenCalled();
+  });
+
+  it("returns SAVE_DISABLED when admin client config is missing", async () => {
+    mockCreateAdminClient.mockImplementation(() => {
+      throw new SupabaseConfigError("Missing config");
+    });
+
+    const result = await saveRound(makeRound());
+
+    expect(result).toEqual({
+      success: false,
+      code: "SAVE_DISABLED",
+      message: "Cloud save unavailable — your results are still shown below.",
+    });
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(
+      expect.any(SupabaseConfigError),
+      expect.objectContaining({
+        source: "saveRound",
+        code: "SAVE_DISABLED",
+      })
+    );
+  });
+
+  it("writes mapped snake_case payload through admin client", async () => {
+    await saveRound(makeRound({ course: "Pebble Beach", date: "2026-01-15" }));
 
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -99,65 +212,6 @@ describe("saveRound server action", () => {
         user_id: null,
       })
     );
-  });
-
-  it("sets user_id from auth.getUser() when authenticated", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: { id: "user-abc-123" } },
-      error: null,
-    });
-
-    await saveRound(makeRound());
-
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: "user-abc-123",
-      })
-    );
-  });
-
-  it("explicitly sets user_id to null when anonymous", async () => {
-    mockGetUser.mockResolvedValue({
-      data: { user: null },
-      error: null,
-    });
-
-    await saveRound(makeRound());
-
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user_id: null,
-      })
-    );
-  });
-
-  it("rejects invalid input with server-side Zod validation", async () => {
-    const invalidRound = makeRound({
-      score: 999, // out of range (50-150)
-    });
-
-    const result = await saveRound(invalidRound);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error).toMatch(/score/i);
-    }
-    // Should not reach Supabase
-    expect(mockInsert).not.toHaveBeenCalled();
-  });
-
-  it("rejects input where scoring breakdown does not total 18", async () => {
-    const invalidRound = makeRound({
-      eagles: 0,
-      birdies: 1,
-      pars: 7,
-      bogeys: 7,
-      doubleBogeys: 2,
-      triplePlus: 0, // sums to 17, not 18
-    });
-
-    const result = await saveRound(invalidRound);
-    expect(result.success).toBe(false);
-    expect(mockInsert).not.toHaveBeenCalled();
   });
 
   it("maps blank FIR/GIR to null in DB insert", async () => {
@@ -172,24 +226,11 @@ describe("saveRound server action", () => {
     expect(insertedRow.greens_in_regulation).toBeNull();
   });
 
-  it("rejects when rate limited", async () => {
-    mockCheckRateLimit.mockReturnValue(false);
-    const result = await saveRound(makeRound());
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error).toBe(
-        "Too many requests. Please try again shortly."
-      );
-    }
-    expect(mockInsert).not.toHaveBeenCalled();
-  });
-
   it("inserts parsed.data (coerced/sanitized), not raw input", async () => {
-    // Simulate form-like payload with string numbers and blank optional
     const rawInput = {
       course: "Test Course",
       date: "2026-02-26",
-      score: "87" as unknown as number, // string, schema will coerce to number
+      score: "87" as unknown as number,
       handicapIndex: "14.3" as unknown as number,
       courseRating: "72.0" as unknown as number,
       slopeRating: "130" as unknown as number,
@@ -204,18 +245,16 @@ describe("saveRound server action", () => {
       bogeys: "7" as unknown as number,
       doubleBogeys: "2" as unknown as number,
       triplePlus: "1" as unknown as number,
-      threePutts: "" as unknown as number, // blank → schema coerces to undefined → mapper maps to null
+      threePutts: "" as unknown as number,
     } as RoundInput;
 
     await saveRound(rawInput);
 
-    // The insert should receive coerced numbers, not strings
     const insertedRow = mockInsert.mock.calls[0][0];
     expect(typeof insertedRow.score).toBe("number");
     expect(insertedRow.score).toBe(87);
     expect(typeof insertedRow.handicap_index).toBe("number");
     expect(insertedRow.handicap_index).toBe(14.3);
-    // Blank optional should become null (not empty string)
     expect(insertedRow.three_putts).toBeNull();
   });
 });

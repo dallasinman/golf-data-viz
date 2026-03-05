@@ -51,12 +51,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run build
       - name: Functional E2E tests
         run: npx playwright test --project=functional
         env:
           CI: true
+          PLAYWRIGHT_USE_PROD_SERVER: true
       - name: Visual regression tests
         run: npx playwright test --project=visual
         env:

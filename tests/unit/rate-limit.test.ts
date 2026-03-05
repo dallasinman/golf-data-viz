@@ -1,72 +1,232 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { checkRateLimit, _getStore } from "@/lib/rate-limit";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+const { mockCaptureMonitoringException } = vi.hoisted(() => ({
+  mockCaptureMonitoringException: vi.fn(),
+}));
+
+vi.mock("@/lib/monitoring/sentry", () => ({
+  captureMonitoringException: mockCaptureMonitoringException,
+}));
+
+import {
+  checkRateLimit,
+  extractClientIp,
+  hashRateLimitKey,
+  InMemoryRateLimitStore,
+  _resetRateLimitStore,
+} from "@/lib/rate-limit";
 
 describe("rate limiter", () => {
   beforeEach(() => {
-    _getStore().clear();
     vi.useRealTimers();
+    vi.unstubAllEnvs();
+    vi.stubEnv("RATE_LIMIT_SALT", "test-salt-value-1234");
+    vi.stubEnv("NODE_ENV", "test");
+    vi.clearAllMocks();
+    _resetRateLimitStore();
   });
 
-  it("allows requests under the limit", () => {
-    for (let i = 0; i < 10; i++) {
-      expect(checkRateLimit("1.2.3.4")).toBe(true);
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("extracts client IP using the expected header precedence", () => {
+    const headers = {
+      get(name: string) {
+        if (name === "x-vercel-forwarded-for") return "3.3.3.3";
+        if (name === "x-forwarded-for") return "2.2.2.2";
+        if (name === "cf-connecting-ip") return "1.1.1.1";
+        return null;
+      },
+    };
+
+    expect(extractClientIp(headers)).toBe("3.3.3.3");
+  });
+
+  it("falls back to x-forwarded-for and then cf-connecting-ip", () => {
+    const headers = {
+      get(name: string) {
+        if (name === "x-forwarded-for") return "2.2.2.2, 2.2.2.3";
+        if (name === "cf-connecting-ip") return "1.1.1.1";
+        return null;
+      },
+    };
+
+    expect(extractClientIp(headers)).toBe("2.2.2.2");
+  });
+
+  it("returns unknown when no client IP headers are present", () => {
+    const headers = { get: () => null };
+    expect(extractClientIp(headers)).toBe("unknown");
+  });
+
+  it("hashes IP keys with the RATE_LIMIT_SALT", () => {
+    const hashed = hashRateLimitKey("1.2.3.4");
+    expect(hashed).not.toBe("1.2.3.4");
+    expect(hashed).toHaveLength(64);
+  });
+
+  it("fails closed in production when RATE_LIMIT_SALT is missing", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RATE_LIMIT_SALT", "");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const decision = await checkRateLimit("1.2.3.4", new InMemoryRateLimitStore());
+    expect(decision).toEqual({ allowed: false, reason: "minute" });
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("fails closed in production when RATE_LIMIT_SALT is too short", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RATE_LIMIT_SALT", "short");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const decision = await checkRateLimit("1.2.3.4", new InMemoryRateLimitStore());
+    expect(decision).toEqual({ allowed: false, reason: "minute" });
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("uses deterministic fallback salt in non-production when missing", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("RATE_LIMIT_SALT", "");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const hashedOne = hashRateLimitKey("1.2.3.4");
+    const hashedTwo = hashRateLimitKey("1.2.3.4");
+
+    expect(hashedOne).toHaveLength(64);
+    expect(hashedOne).toBe(hashedTwo);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        source: "rate-limit",
+        code: "RATE_LIMIT_SALT_FALLBACK",
+      })
+    );
+  });
+
+  it("uses deterministic fallback salt in non-production when too short", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("RATE_LIMIT_SALT", "tiny");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const hashed = hashRateLimitKey("1.2.3.4");
+
+    expect(hashed).toHaveLength(64);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        source: "rate-limit",
+        code: "RATE_LIMIT_SALT_FALLBACK",
+      })
+    );
+  });
+
+  it("blocks the 6th request within a minute", async () => {
+    const store = new InMemoryRateLimitStore();
+    for (let i = 0; i < 5; i++) {
+      const decision = await checkRateLimit("1.2.3.4", store);
+      expect(decision).toEqual({ allowed: true });
     }
+
+    const blocked = await checkRateLimit("1.2.3.4", store);
+    expect(blocked).toEqual({ allowed: false, reason: "minute" });
   });
 
-  it("blocks the 11th request within the window", () => {
-    for (let i = 0; i < 10; i++) {
-      checkRateLimit("1.2.3.4");
-    }
-    expect(checkRateLimit("1.2.3.4")).toBe(false);
-  });
-
-  it("tracks IPs independently", () => {
-    for (let i = 0; i < 10; i++) {
-      checkRateLimit("1.1.1.1");
-    }
-    expect(checkRateLimit("1.1.1.1")).toBe(false);
-    expect(checkRateLimit("2.2.2.2")).toBe(true);
-  });
-
-  it("resets after the window expires", () => {
+  it("resets the minute window after 60 seconds", async () => {
     vi.useFakeTimers();
-    for (let i = 0; i < 10; i++) {
-      checkRateLimit("1.2.3.4");
-    }
-    expect(checkRateLimit("1.2.3.4")).toBe(false);
+    const store = new InMemoryRateLimitStore();
 
-    // Advance past the 60s window
+    for (let i = 0; i < 6; i++) {
+      await checkRateLimit("1.2.3.4", store);
+    }
+    expect(await checkRateLimit("1.2.3.4", store)).toEqual({
+      allowed: false,
+      reason: "minute",
+    });
+
     vi.advanceTimersByTime(61_000);
-    expect(checkRateLimit("1.2.3.4")).toBe(true);
-    vi.useRealTimers();
+    expect(await checkRateLimit("1.2.3.4", store)).toEqual({ allowed: true });
   });
 
-  it("falls back gracefully for missing x-forwarded-for (empty key)", () => {
-    for (let i = 0; i < 10; i++) {
-      checkRateLimit("");
-    }
-    // Empty string still gets rate limited
-    expect(checkRateLimit("")).toBe(false);
-  });
-
-  it("handles the 'unknown' fallback key", () => {
-    for (let i = 0; i < 10; i++) {
-      checkRateLimit("unknown");
-    }
-    expect(checkRateLimit("unknown")).toBe(false);
-  });
-
-  it("cleanup removes stale entries from the store", () => {
+  it("blocks the 31st request within an hour", async () => {
     vi.useFakeTimers();
-    checkRateLimit("stale-ip");
-    expect(_getStore().size).toBe(1);
+    const store = new InMemoryRateLimitStore();
 
-    // Advance past window + buffer
-    vi.advanceTimersByTime(120_000);
-    // Trigger cleanup by making a new request
-    checkRateLimit("fresh-ip");
-    expect(_getStore().has("stale-ip")).toBe(false);
-    expect(_getStore().has("fresh-ip")).toBe(true);
-    vi.useRealTimers();
+    for (let i = 0; i < 30; i++) {
+      const decision = await checkRateLimit("1.2.3.4", store);
+      expect(decision).toEqual({ allowed: true });
+      vi.advanceTimersByTime(61_000);
+    }
+
+    const blocked = await checkRateLimit("1.2.3.4", store);
+    expect(blocked).toEqual({ allowed: false, reason: "hour" });
+  });
+
+  it("tracks IPs independently", async () => {
+    const store = new InMemoryRateLimitStore();
+    for (let i = 0; i < 6; i++) {
+      await checkRateLimit("1.1.1.1", store);
+    }
+
+    expect(await checkRateLimit("1.1.1.1", store)).toEqual({
+      allowed: false,
+      reason: "minute",
+    });
+    expect(await checkRateLimit("2.2.2.2", store)).toEqual({ allowed: true });
+  });
+
+  it("uses fixed-window KV pipeline commands with request timeout", async () => {
+    vi.stubEnv("KV_REST_API_URL", "https://example.upstash.io");
+    vi.stubEnv("KV_REST_API_TOKEN", "test-token");
+    _resetRateLimitStore();
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ result: "OK" }, { result: 1 }],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await checkRateLimit("1.2.3.4");
+
+    expect(result).toEqual({ allowed: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const [firstUrl, firstInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(firstUrl).toBe("https://example.upstash.io/pipeline");
+    expect(firstInit.signal).toBeInstanceOf(AbortSignal);
+
+    const commands = JSON.parse(String(firstInit.body)) as unknown[][];
+    expect(commands).toHaveLength(2);
+    expect(commands[0][0]).toBe("SET");
+    expect(commands[0][2]).toBe(0);
+    expect(commands[0][3]).toBe("EX");
+    expect(commands[0][5]).toBe("NX");
+    expect(commands[1][0]).toBe("INCR");
+  });
+
+  it("warns and captures once when falling back to in-memory store", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("KV_REST_API_URL", "");
+    vi.stubEnv("KV_REST_API_TOKEN", "");
+    vi.stubEnv("RATE_LIMIT_SALT", "prod-salt-value-1234");
+    _resetRateLimitStore();
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const first = await checkRateLimit("1.2.3.4");
+    const second = await checkRateLimit("1.2.3.4");
+
+    expect(first).toEqual({ allowed: true });
+    expect(second).toEqual({ allowed: true });
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        source: "rate-limit",
+        code: "RATE_LIMIT_IN_MEMORY_FALLBACK",
+      })
+    );
   });
 });

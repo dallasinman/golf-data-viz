@@ -72,15 +72,13 @@ describe("Schema constraints (local Supabase)", () => {
     });
   });
 
-  describe("RLS: insert policy blocks user_id spoofing", () => {
-    it("allows anonymous insert with user_id = NULL", async () => {
-      // Don't chain .select() — anon can INSERT but can't SELECT back
-      // (the SELECT RLS policy requires auth.uid() = user_id, which fails for NULL)
+  describe("RLS and grants: direct public writes are blocked", () => {
+    it("rejects anonymous insert with user_id = NULL", async () => {
       const { error } = await anon
         .from("rounds")
         .insert(validRound({ user_id: null }));
 
-      expect(error).toBeNull();
+      expect(error).not.toBeNull();
     });
 
     it("rejects anonymous insert with a fake user_id", async () => {

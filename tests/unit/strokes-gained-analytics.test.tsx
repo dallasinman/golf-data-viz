@@ -303,12 +303,14 @@ describe("Save feedback", () => {
         "Round saved."
       );
     });
+    expect(mockTrackEvent).toHaveBeenCalledWith("round_saved");
   });
 
-  it("shows neutral 'Cloud save unavailable' notice for save_unavailable error", async () => {
+  it("shows neutral 'Cloud save unavailable' notice for SAVE_DISABLED", async () => {
     mockSaveRound.mockResolvedValue({
       success: false,
-      error: "save_unavailable",
+      code: "SAVE_DISABLED",
+      message: "Cloud save unavailable — your results are still shown below.",
     });
 
     render(<StrokesGainedClient />);
@@ -324,7 +326,8 @@ describe("Save feedback", () => {
   it("shows amber error banner for other save errors", async () => {
     mockSaveRound.mockResolvedValue({
       success: false,
-      error: "check constraint violated",
+      code: "DB_ERROR",
+      message: "Round could not be saved.",
     });
 
     render(<StrokesGainedClient />);

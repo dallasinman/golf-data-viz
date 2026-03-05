@@ -147,10 +147,11 @@ describe("round_save_failed analytics event", () => {
     vi.restoreAllMocks();
   });
 
-  it('fires with error_type "config" when save returns save_unavailable', async () => {
+  it('fires with error_type "config" when save returns SAVE_DISABLED', async () => {
     mockSaveRound.mockResolvedValue({
       success: false,
-      error: "save_unavailable",
+      code: "SAVE_DISABLED",
+      message: "Cloud save unavailable — your results are still shown below.",
     });
 
     render(<StrokesGainedClient />);
@@ -166,7 +167,8 @@ describe("round_save_failed analytics event", () => {
   it('fires with error_type "runtime" on other server errors', async () => {
     mockSaveRound.mockResolvedValue({
       success: false,
-      error: "check constraint violated",
+      code: "DB_ERROR",
+      message: "Round could not be saved.",
     });
 
     render(<StrokesGainedClient />);
@@ -188,6 +190,23 @@ describe("round_save_failed analytics event", () => {
     await waitFor(() => {
       expect(mockTrackEvent).toHaveBeenCalledWith("round_save_failed", {
         error_type: "network",
+      });
+    });
+  });
+
+  it('fires with error_type "rate_limited" when save returns RATE_LIMITED', async () => {
+    mockSaveRound.mockResolvedValue({
+      success: false,
+      code: "RATE_LIMITED",
+      message: "Too many requests. Please try again shortly.",
+    });
+
+    render(<StrokesGainedClient />);
+    await userEvent.click(screen.getByTestId("mock-submit"));
+
+    await waitFor(() => {
+      expect(mockTrackEvent).toHaveBeenCalledWith("round_save_failed", {
+        error_type: "rate_limited",
       });
     });
   });

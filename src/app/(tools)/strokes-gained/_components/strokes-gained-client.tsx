@@ -49,7 +49,7 @@ export default function StrokesGainedClient({
     initialInput ?? null
   );
   const [saveError, setSaveError] = useState<{
-    type: "config" | "runtime";
+    type: "config" | "runtime" | "rate_limited";
     message: string;
   } | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -138,25 +138,31 @@ export default function StrokesGainedClient({
       .then((res) => {
         if (requestId !== saveRequestIdRef.current) return;
         if (res.success) {
+          trackEvent("round_saved");
           setSaveSuccess(true);
           saveSuccessTimerRef.current = setTimeout(
             () => setSaveSuccess(false),
             3000
           );
-        } else if (res.error === "save_unavailable") {
+        } else if (res.code === "SAVE_DISABLED") {
           trackEvent("round_save_failed", { error_type: "config" });
           setSaveError({
             type: "config",
             message:
               "Cloud save unavailable — your results are still shown below.",
           });
+        } else if (res.code === "RATE_LIMITED") {
+          trackEvent("round_save_failed", { error_type: "rate_limited" });
+          setSaveError({
+            type: "rate_limited",
+            message: res.message,
+          });
         } else {
-          console.error("[StrokesGained] Save failed:", res.error);
+          console.error("[StrokesGained] Save failed:", res.code, res.message);
           trackEvent("round_save_failed", { error_type: "runtime" });
           setSaveError({
             type: "runtime",
-            message:
-              "Round could not be saved. Your results are still shown below.",
+            message: "Round could not be saved. Your results are still shown below.",
           });
         }
       })
@@ -349,6 +355,10 @@ export default function StrokesGainedClient({
               {copyButtonText}
             </button>
           </div>
+          <p className="text-xs text-neutral-500">
+            Shared links include your entered round stats in encoded (reversible)
+            form.
+          </p>
 
           {/* Off-screen share card for PNG capture */}
           <div className="fixed left-[-9999px] top-0" aria-hidden="true">
