@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
+import { captureMonitoringException } from "@/lib/monitoring/sentry";
 
 const MINUTE_WINDOW_SECONDS = 60;
 const HOUR_WINDOW_SECONDS = 60 * 60;
 const MAX_REQUESTS_PER_MINUTE = 5;
 const MAX_REQUESTS_PER_HOUR = 30;
 const KV_FETCH_TIMEOUT_MS = 3000;
+const MIN_RATE_LIMIT_SALT_LENGTH = 16;
+const DEV_FALLBACK_SALT = "dev-rate-limit-fallback-salt";
 
 type RateLimitReason = "minute" | "hour";
 
@@ -83,6 +86,47 @@ class VercelKvRateLimitStore implements RateLimitStore {
 }
 
 let defaultStore: RateLimitStore | null = null;
+let hasWarnedInMemoryFallback = false;
+let hasWarnedSaltFallback = false;
+
+function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+function warnSaltFallbackOnce(reason: "missing" | "too_short"): string {
+  if (!hasWarnedSaltFallback) {
+    hasWarnedSaltFallback = true;
+    const nodeEnv = process.env.NODE_ENV ?? "unknown";
+    console.warn(
+      `[rate-limit] RATE_LIMIT_SALT ${reason}; using non-production fallback salt`
+    );
+    captureMonitoringException(new Error("Rate limit salt fallback active"), {
+      source: "rate-limit",
+      code: "RATE_LIMIT_SALT_FALLBACK",
+      reason,
+      min_length: MIN_RATE_LIMIT_SALT_LENGTH,
+      node_env: nodeEnv,
+    });
+  }
+
+  return DEV_FALLBACK_SALT;
+}
+
+function warnInMemoryFallbackOnce(): void {
+  if (hasWarnedInMemoryFallback || !isProductionRuntime()) return;
+
+  hasWarnedInMemoryFallback = true;
+  console.warn(
+    "[rate-limit] KV credentials missing; falling back to in-memory store in production"
+  );
+  captureMonitoringException(
+    new Error("Rate limiter fell back to in-memory store in production"),
+    {
+      source: "rate-limit",
+      code: "RATE_LIMIT_IN_MEMORY_FALLBACK",
+    }
+  );
+}
 
 function getDefaultStore(): RateLimitStore {
   if (defaultStore) return defaultStore;
@@ -94,6 +138,7 @@ function getDefaultStore(): RateLimitStore {
     return defaultStore;
   }
 
+  warnInMemoryFallbackOnce();
   defaultStore = new InMemoryRateLimitStore();
   return defaultStore;
 }
@@ -117,10 +162,23 @@ export function extractClientIp(headers: HeaderReader): string {
 }
 
 export function hashRateLimitKey(ip: string): string {
-  const salt = process.env.RATE_LIMIT_SALT?.trim();
+  const configuredSalt = process.env.RATE_LIMIT_SALT?.trim();
+
+  let salt = configuredSalt;
   if (!salt) {
-    throw new Error("RATE_LIMIT_SALT is required");
+    if (isProductionRuntime()) {
+      throw new Error("RATE_LIMIT_SALT is required in production");
+    }
+    salt = warnSaltFallbackOnce("missing");
+  } else if (salt.length < MIN_RATE_LIMIT_SALT_LENGTH) {
+    if (isProductionRuntime()) {
+      throw new Error(
+        `RATE_LIMIT_SALT must be at least ${MIN_RATE_LIMIT_SALT_LENGTH} characters in production`
+      );
+    }
+    salt = warnSaltFallbackOnce("too_short");
   }
+
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }
 
@@ -157,4 +215,6 @@ export async function checkRateLimit(
 /** Exposed for tests only */
 export function _resetRateLimitStore() {
   defaultStore = null;
+  hasWarnedInMemoryFallback = false;
+  hasWarnedSaltFallback = false;
 }

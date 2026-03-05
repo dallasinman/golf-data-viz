@@ -1,4 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+const { mockCaptureMonitoringException } = vi.hoisted(() => ({
+  mockCaptureMonitoringException: vi.fn(),
+}));
+
+vi.mock("@/lib/monitoring/sentry", () => ({
+  captureMonitoringException: mockCaptureMonitoringException,
+}));
+
 import {
   checkRateLimit,
   extractClientIp,
@@ -11,7 +20,9 @@ describe("rate limiter", () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
-    vi.stubEnv("RATE_LIMIT_SALT", "test-salt");
+    vi.stubEnv("RATE_LIMIT_SALT", "test-salt-value-1234");
+    vi.stubEnv("NODE_ENV", "test");
+    vi.clearAllMocks();
     _resetRateLimitStore();
   });
 
@@ -55,12 +66,60 @@ describe("rate limiter", () => {
     expect(hashed).toHaveLength(64);
   });
 
-  it("fails closed when RATE_LIMIT_SALT is missing", async () => {
+  it("fails closed in production when RATE_LIMIT_SALT is missing", async () => {
+    vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("RATE_LIMIT_SALT", "");
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const decision = await checkRateLimit("1.2.3.4", new InMemoryRateLimitStore());
     expect(decision).toEqual({ allowed: false, reason: "minute" });
     expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("fails closed in production when RATE_LIMIT_SALT is too short", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RATE_LIMIT_SALT", "short");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const decision = await checkRateLimit("1.2.3.4", new InMemoryRateLimitStore());
+    expect(decision).toEqual({ allowed: false, reason: "minute" });
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it("uses deterministic fallback salt in non-production when missing", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("RATE_LIMIT_SALT", "");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const hashedOne = hashRateLimitKey("1.2.3.4");
+    const hashedTwo = hashRateLimitKey("1.2.3.4");
+
+    expect(hashedOne).toHaveLength(64);
+    expect(hashedOne).toBe(hashedTwo);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        source: "rate-limit",
+        code: "RATE_LIMIT_SALT_FALLBACK",
+      })
+    );
+  });
+
+  it("uses deterministic fallback salt in non-production when too short", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("RATE_LIMIT_SALT", "tiny");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const hashed = hashRateLimitKey("1.2.3.4");
+
+    expect(hashed).toHaveLength(64);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        source: "rate-limit",
+        code: "RATE_LIMIT_SALT_FALLBACK",
+      })
+    );
   });
 
   it("blocks the 6th request within a minute", async () => {
@@ -144,5 +203,30 @@ describe("rate limiter", () => {
     expect(commands[0][3]).toBe("EX");
     expect(commands[0][5]).toBe("NX");
     expect(commands[1][0]).toBe("INCR");
+  });
+
+  it("warns and captures once when falling back to in-memory store", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("KV_REST_API_URL", "");
+    vi.stubEnv("KV_REST_API_TOKEN", "");
+    vi.stubEnv("RATE_LIMIT_SALT", "prod-salt-value-1234");
+    _resetRateLimitStore();
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const first = await checkRateLimit("1.2.3.4");
+    const second = await checkRateLimit("1.2.3.4");
+
+    expect(first).toEqual({ allowed: true });
+    expect(second).toEqual({ allowed: true });
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureMonitoringException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        source: "rate-limit",
+        code: "RATE_LIMIT_IN_MEMORY_FALLBACK",
+      })
+    );
   });
 });

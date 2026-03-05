@@ -31,6 +31,11 @@ The scheduled GitHub Action `.github/workflows/uptime-checks.yml` probes:
 Set repo variable `PRODUCTION_BASE_URL` to override the default `https://golfdataviz.com`.
 Set repo secret `UPTIME_ALERT_SLACK_WEBHOOK` to receive failure alerts.
 
+## Rate Limiting Config
+
+1. Set `RATE_LIMIT_SALT` to a random value with at least 16 characters in production.
+2. Keep `KV_REST_API_URL` and `KV_REST_API_TOKEN` configured in production to avoid in-memory fallback.
+
 ## Launch-Day Verification
 
 1. Trigger uptime workflow manually (`workflow_dispatch`) and confirm green.
