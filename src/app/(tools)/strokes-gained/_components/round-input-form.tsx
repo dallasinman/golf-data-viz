@@ -32,7 +32,14 @@ function FormField({
     <div className="space-y-1">
       <label className="block space-y-1">
         <span className="block text-sm font-medium text-neutral-800">{label}</span>
-        {hint && <p className="text-xs text-neutral-400">{hint}</p>}
+        <p
+          className={`min-h-5 text-xs ${
+            hint ? "text-neutral-400" : "text-transparent"
+          }`}
+          aria-hidden={!hint}
+        >
+          {hint ?? "\u00A0"}
+        </p>
         {children}
       </label>
       {error && <p className="text-xs text-red-600">{error}</p>}
@@ -156,7 +163,7 @@ export function RoundInputForm({ onSubmit, initialValues, isCalculating }: Round
           <input
             type="text"
             className={inputClass}
-            placeholder="e.g., Pacifica Sharp Park"
+            placeholder="e.g., Pebble Beach"
             {...register("course")}
           />
         </FormField>
