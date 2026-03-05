@@ -644,4 +644,31 @@ describe("GIR estimation", () => {
     const result = calculateStrokesGained(round, benchmark);
     expect(result.skippedCategories).toEqual([]);
   });
+
+  it("ATG scramble rate is capped at 100% when estimated GIR produces more scramble pars than missed greens", () => {
+    // 18 pars with estimated GIR ~12 → only 6 missed greens,
+    // but pars - GIR*0.9 = 18 - 10.8 = 7.2 scramble pars uncapped.
+    // Without the cap this would produce scrambleRate > 1.0 and inflated ATG.
+    const round = makeRound({
+      pars: 18,
+      eagles: 0,
+      birdies: 0,
+      bogeys: 0,
+      doubleBogeys: 0,
+      triplePlus: 0,
+      score: 72,
+    });
+    delete round.greensInRegulation;
+    delete round.upAndDownAttempts;
+    delete round.upAndDownConverted;
+    const benchmark = getBracketForHandicap(14.3);
+    const result = calculateStrokesGained(round, benchmark);
+
+    // ATG should be positive (scramble rate = 100% vs peer ~25%) but bounded.
+    // Max ATG = (1.0 - peerScramble) * 5.0 ≈ (1.0 - 0.25) * 5.0 = 3.75
+    // Without the cap it would be ~4.0+ from a >100% scramble rate.
+    expect(result.categories["around-the-green"]).toBeLessThanOrEqual(
+      (1.0 - benchmark.upAndDownPercentage / 100) * 5.0 + 0.01
+    );
+  });
 });

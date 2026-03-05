@@ -85,7 +85,11 @@ function calcATG(input: RoundInput, benchmark: BracketBenchmark): number {
 
   // Estimate pars made on GIR (≈90% par rate on GIR for mid-HCP)
   const estimatedParsOnGIR = input.greensInRegulation * 0.9;
-  const scramblePars = Math.max(0, input.pars - estimatedParsOnGIR);
+  // Cap scramble pars to missed greens — can't scramble more than you missed
+  const scramblePars = Math.min(
+    missedGreens,
+    Math.max(0, input.pars - estimatedParsOnGIR)
+  );
   const playerScrambleRate = scramblePars / missedGreens;
   const peerScrambleRate = benchmark.upAndDownPercentage / 100;
 
