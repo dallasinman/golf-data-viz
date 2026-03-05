@@ -226,6 +226,36 @@ describe("saveRound server action", () => {
     expect(insertedRow.greens_in_regulation).toBeNull();
   });
 
+  it("writes trusted trust metadata for a typical round", async () => {
+    await saveRound(makeRound());
+
+    const insertedRow = mockInsert.mock.calls[0][0];
+    expect(insertedRow.trust_status).toBe("trusted");
+    expect(insertedRow.trust_reasons).toEqual([]);
+    // trust_scored_at is stamped by the database (trigger/default), not app clock.
+    expect(insertedRow.trust_scored_at).toBeUndefined();
+  });
+
+  it("writes quarantined trust metadata when trust rules flag anomalies", async () => {
+    const anomalousRound = makeRound({
+      handicapIndex: 54,
+      score: 80,
+      eagles: 0,
+      birdies: 4,
+      pars: 4,
+      bogeys: 7,
+      doubleBogeys: 2,
+      triplePlus: 1,
+    });
+
+    await saveRound(anomalousRound);
+
+    const insertedRow = mockInsert.mock.calls[0][0];
+    expect(insertedRow.trust_status).toBe("quarantined");
+    expect(insertedRow.trust_reasons).toContain("differential_handicap_gap");
+    expect(insertedRow.trust_reasons).toContain("high_hcp_scoring_spike");
+  });
+
   it("inserts parsed.data (coerced/sanitized), not raw input", async () => {
     const rawInput = {
       course: "Test Course",

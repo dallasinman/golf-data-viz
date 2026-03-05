@@ -9,6 +9,7 @@ import { getBracketForHandicap } from "@/lib/golf/benchmarks";
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
 import { checkRateLimit, extractClientIp } from "@/lib/rate-limit";
 import { captureMonitoringException } from "@/lib/monitoring/sentry";
+import { assessRoundTrust } from "@/lib/golf/round-trust";
 import { headers } from "next/headers";
 
 export type SaveRoundErrorCode =
@@ -74,15 +75,22 @@ export async function saveRound(
     }
 
     // Recalculate SG server-side — never trust client-supplied values
-    const bracket = getBracketForHandicap(parsed.data.handicapIndex);
-    const sg = calculateStrokesGained(parsed.data as RoundInput, bracket);
+    const validatedInput = parsed.data as RoundInput;
+    const bracket = getBracketForHandicap(validatedInput.handicapIndex);
+    const sg = calculateStrokesGained(validatedInput, bracket);
+    const trust = assessRoundTrust(validatedInput);
 
     const supabase = createAdminClient();
-    const row = toRoundInsert(parsed.data as RoundInput, sg);
+    const row = toRoundInsert(validatedInput, sg);
 
     const { error } = await supabase
       .from("rounds")
-      .insert({ ...row, user_id: null });
+      .insert({
+        ...row,
+        user_id: null,
+        trust_status: trust.status,
+        trust_reasons: trust.reasons,
+      });
 
     if (error) {
       console.error("[saveRound] Supabase error:", error.message);
