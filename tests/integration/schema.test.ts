@@ -306,4 +306,38 @@ describe("Schema constraints (local Supabase)", () => {
       expect(error!.message).toContain("chk_sand_saves");
     });
   });
+
+  describe("round trust defaults and constraints", () => {
+    it("defaults trust_status to pending when omitted", async () => {
+      const { data, error } = await admin
+        .from("rounds")
+        .insert(validRound())
+        .select("id, trust_status")
+        .single();
+
+      expect(error).toBeNull();
+      expect(data?.trust_status).toBe("pending");
+      if (data?.id) insertedIds.push(data.id);
+    });
+
+    it("defaults trust_reasons to empty array when omitted", async () => {
+      const { data, error } = await admin
+        .from("rounds")
+        .insert(validRound())
+        .select("id, trust_reasons")
+        .single();
+
+      expect(error).toBeNull();
+      expect(data?.trust_reasons).toEqual([]);
+      if (data?.id) insertedIds.push(data.id);
+    });
+
+    it("rejects invalid trust_status values", async () => {
+      const { error } = await admin
+        .from("rounds")
+        .insert(validRound({ trust_status: "invalid-status" }));
+
+      expect(error).not.toBeNull();
+    });
+  });
 });
