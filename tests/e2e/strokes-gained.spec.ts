@@ -68,6 +68,37 @@ async function fillRound(page: import("@playwright/test").Page) {
 }
 
 test.describe("Strokes Gained Benchmarker", () => {
+  test("course info row stays in a two-column desktop layout", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/strokes-gained");
+
+    await page.fill('[name="date"]', "2026-03-05");
+    await page.fill('[name="courseRating"]', "72.0");
+    await page.fill('[name="slopeRating"]', "130");
+
+    const courseInfoRow = page.getByTestId("course-info-row");
+    await expect(courseInfoRow).toBeVisible();
+
+    const children = courseInfoRow.locator(":scope > *");
+    await expect(children).toHaveCount(2);
+
+    const leftBox = await children.nth(0).boundingBox();
+    const rightBox = await children.nth(1).boundingBox();
+
+    expect(leftBox).toBeTruthy();
+    expect(rightBox).toBeTruthy();
+
+    if (!leftBox || !rightBox) {
+      throw new Error("Expected desktop course info inputs to have bounding boxes");
+    }
+
+    expect(rightBox.x).toBeGreaterThan(leftBox.x + leftBox.width / 2);
+    expect(Math.abs(rightBox.y - leftBox.y)).toBeLessThan(8);
+    expect(rightBox.y).toBeLessThan(leftBox.y + leftBox.height);
+  });
+
   test("form shows compact trust module and save consent defaults to unchecked", async ({
     page,
   }) => {

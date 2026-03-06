@@ -16,7 +16,10 @@ export default async function Home({ searchParams }: HomePageProps) {
       {/* Hero */}
       <section className="relative overflow-hidden px-4 py-24 sm:py-32">
         <ContourBg className="text-brand-900" />
-        <div className="relative mx-auto max-w-4xl">
+        <div
+          data-testid="hero-content"
+          className="relative mx-auto max-w-4xl"
+        >
           <p className="animate-fade-up text-sm font-semibold uppercase tracking-[0.22em] text-brand-800">
             Free post-round benchmark
           </p>
