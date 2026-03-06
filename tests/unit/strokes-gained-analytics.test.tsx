@@ -219,6 +219,7 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     mockSaveRound.mockResolvedValue({ success: true });
     mockTurnstileExecute.mockResolvedValue("turnstile-token");
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    window.history.pushState({}, "", "/strokes-gained?utm_source=reddit&d=encoded");
   });
 
   it("does not mount Turnstile before anonymous save is opted into", () => {
@@ -229,13 +230,39 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     expect(screen.queryByTestId("mock-turnstile-widget")).toBeNull();
   });
 
+  it("renders the compact trust module with links and common questions", async () => {
+    const user = userEvent.setup();
+
+    renderClient();
+
+    expect(screen.getByText("Beta")).toBeVisible();
+    expect(screen.getByText("Peer proxy")).toBeVisible();
+    expect(screen.getByText("Private")).toBeVisible();
+    expect(screen.getByText("Open")).toBeVisible();
+    expect(
+      screen.queryByText(
+        "This is a peer-compared SG proxy built from round-level inputs, not shot-level tracking."
+      )
+    ).toBeNull();
+
+    await user.click(screen.getByText("Common questions"));
+
+    expect(
+      screen.getByRole("link", { name: "Methodology" })
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Privacy" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "GitHub" })).toBeVisible();
+  });
+
   it("fires form_started once on first focus into form area", () => {
     renderClient();
 
     const formWrapper = screen.getByTestId("form-wrapper");
     fireEvent.focusIn(formWrapper);
 
-    expect(mockTrackEvent).toHaveBeenCalledWith("form_started");
+    expect(mockTrackEvent).toHaveBeenCalledWith("form_started", {
+      utm_source: "reddit",
+    });
     expect(mockTrackEvent).toHaveBeenCalledTimes(1);
 
     fireEvent.focusIn(formWrapper);
@@ -253,7 +280,18 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     await userEvent.click(screen.getByTestId("download-png"));
 
     expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked", {
-      has_share_param: expect.any(Boolean),
+      has_share_param: true,
+      utm_source: "reddit",
+    });
+  });
+
+  it("fires calculation_completed with utm attribution on submit", async () => {
+    renderClient();
+
+    await userEvent.click(screen.getByTestId("mock-submit"));
+
+    expect(mockTrackEvent).toHaveBeenCalledWith("calculation_completed", {
+      utm_source: "reddit",
     });
   });
 
@@ -285,8 +323,9 @@ describe("StrokesGainedClient analytics instrumentation", () => {
   });
 
   it("fires copy_link_clicked when copy button is clicked", async () => {
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn(() => Promise.resolve()) },
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn(() => Promise.resolve()) },
+      configurable: true,
     });
 
     renderClient({ initialInput: mockInput });
@@ -294,7 +333,8 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     await userEvent.click(screen.getByTestId("copy-link"));
 
     expect(mockTrackEvent).toHaveBeenCalledWith("copy_link_clicked", {
-      has_share_param: expect.any(Boolean),
+      has_share_param: true,
+      utm_source: "reddit",
     });
   });
 });
@@ -310,8 +350,9 @@ describe("Copy Link error handling", () => {
   });
 
   it("shows 'Copied!' when clipboard API succeeds", async () => {
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn(() => Promise.resolve()) },
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn(() => Promise.resolve()) },
+      configurable: true,
     });
 
     renderClient({ initialInput: mockInput });
@@ -322,10 +363,11 @@ describe("Copy Link error handling", () => {
   });
 
   it("shows 'Copied!' via execCommand fallback when clipboard API throws", async () => {
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
         writeText: vi.fn(() => Promise.reject(new Error("Not allowed"))),
       },
+      configurable: true,
     });
     document.execCommand = vi.fn(() => true);
 
@@ -337,10 +379,11 @@ describe("Copy Link error handling", () => {
   });
 
   it("shows 'Failed to copy' when both clipboard and execCommand fail", async () => {
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
         writeText: vi.fn(() => Promise.reject(new Error("Not allowed"))),
       },
+      configurable: true,
     });
     document.execCommand = vi.fn(() => false);
 
