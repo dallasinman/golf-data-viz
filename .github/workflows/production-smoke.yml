@@ -1,0 +1,26 @@
+name: Production Smoke
+
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Run production smoke tests
+        env:
+          CI: true
+          PLAYWRIGHT_SKIP_WEBSERVER: "true"
+          PLAYWRIGHT_BASE_URL: ${{ vars.PRODUCTION_BASE_URL || 'https://golfdataviz.com' }}
+        shell: bash
+        run: npx playwright test --project=production-chromium --project=production-webkit

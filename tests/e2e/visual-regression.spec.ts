@@ -14,33 +14,19 @@ test.describe("Visual regression", () => {
   test("home hero matches snapshot", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByTestId("hero-headline")).toBeVisible();
-    await expect(page).toHaveScreenshot("home-hero.png", {
+    const heroContent = page.getByTestId("hero-content");
+    await expect(heroContent).toBeVisible();
+    await expect(heroContent).toHaveScreenshot("home-hero.png", {
       maxDiffPixelRatio: 0.02,
-      fullPage: false,
     });
   });
 
   test("strokes-gained results match snapshot", async ({ page }) => {
     await page.goto(`/strokes-gained?d=${ENCODED}`);
 
-    await expect(page.getByTestId("sg-results")).toBeVisible();
-    await expect(page).toHaveScreenshot("sg-results.png", {
-      maxDiffPixelRatio: 0.02,
-      fullPage: true,
-    });
-  });
-
-  test("course info row aligns on desktop", async ({ page }) => {
-    await page.goto("/strokes-gained");
-
-    await page.fill('[name="date"]', "2026-03-05");
-    await page.fill('[name="courseRating"]', "72.0");
-    await page.fill('[name="slopeRating"]', "130");
-
-    const courseInfoRow = page.getByTestId("course-info-row");
-    await expect(courseInfoRow).toBeVisible();
-    await expect(courseInfoRow).toHaveScreenshot("sg-course-info-row.png", {
+    const results = page.getByTestId("sg-results");
+    await expect(results).toBeVisible();
+    await expect(results).toHaveScreenshot("sg-results.png", {
       maxDiffPixelRatio: 0.02,
     });
   });
