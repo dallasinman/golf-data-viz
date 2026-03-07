@@ -34,11 +34,12 @@ function assertDirection(total: number, expected: string, label: string) {
 }
 
 describe("Methodology page fixture directions", () => {
-  CALIBRATION_FIXTURES.forEach((fixture) => {
-    it(`${fixture.label}: SG direction matches declared expectation`, () => {
+  it.each(CALIBRATION_FIXTURES)(
+    "$label: SG direction matches declared expectation",
+    (fixture) => {
       const benchmark = getInterpolatedBenchmark(fixture.input.handicapIndex);
       const result = calculateStrokesGainedV3(fixture.input, benchmark);
       assertDirection(result.total, fixture.expected, fixture.label);
-    });
-  });
+    },
+  );
 });
