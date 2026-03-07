@@ -2,7 +2,7 @@
   "version": "seed-1.0.0",
   "updatedAt": "2026-03-06",
   "status": "seeded",
-  "statusNote": "Seeded from Phase 1 heuristic weights. Not yet empirically calibrated. Serves as initial baseline for shadow-mode validation.",
+  "statusNote": "Seeded from heuristic analysis. Not yet empirically calibrated. Serves as the initial baseline coefficient set for the current methodology.",
   "profiles": {
     "full": { "ottFir": 6.0, "ottPenalty": 0.8, "approach": 8.0, "aroundTheGreen": 5.0, "putting": 4.0 },
     "gir-estimated": { "ottFir": 6.0, "ottPenalty": 0.8, "approach": 6.5, "aroundTheGreen": 4.0, "putting": 4.0 },
