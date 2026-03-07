@@ -7,6 +7,55 @@ import { RoundInputForm } from "@/app/(tools)/strokes-gained/_components/round-i
 
 afterEach(cleanup);
 
+describe("RoundInputForm plus handicap toggle", () => {
+  const onSubmit = vi.fn();
+
+  it("toggle defaults to HCP", () => {
+    render(<RoundInputForm onSubmit={onSubmit} saveEnabled={false} />);
+    const toggle = screen.getByTestId("plus-handicap-toggle");
+    expect(toggle.textContent).toBe("HCP");
+  });
+
+  it("clicking toggle changes label to +", async () => {
+    const user = userEvent.setup();
+    render(<RoundInputForm onSubmit={onSubmit} saveEnabled={false} />);
+    const toggle = screen.getByTestId("plus-handicap-toggle");
+    await user.click(toggle);
+    expect(toggle.textContent).toBe("+");
+  });
+
+  it("plus toggle on shows Plus HCP badge", async () => {
+    const user = userEvent.setup();
+    render(<RoundInputForm onSubmit={onSubmit} saveEnabled={false} />);
+    const toggle = screen.getByTestId("plus-handicap-toggle");
+    await user.click(toggle);
+
+    // Type a handicap value
+    const hcpInput = document.querySelector<HTMLInputElement>('input[name="handicapIndex"]')!;
+    await user.clear(hcpInput);
+    await user.type(hcpInput, "2.3");
+    // Trigger blur to update watch
+    await user.tab();
+
+    expect(screen.getByText("Plus HCP")).toBeVisible();
+  });
+
+  it("rehydrates from -2.3 with + toggle and 2.3 value", () => {
+    render(
+      <RoundInputForm
+        onSubmit={onSubmit}
+        saveEnabled={false}
+        initialValues={{ handicapIndex: -2.3 } as never}
+      />
+    );
+    const toggle = screen.getByTestId("plus-handicap-toggle");
+    expect(toggle.textContent).toBe("+");
+
+    const hcpInput = document.querySelector<HTMLInputElement>('input[name="handicapIndex"]')!;
+    expect(hcpInput).toHaveValue(2.3);
+  });
+});
+
 describe("RoundInputForm save consent", () => {
   const onSubmit = vi.fn();
 

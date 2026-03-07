@@ -7,6 +7,7 @@ import type {
   RadarChartDatum,
 } from "@/lib/golf/types";
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/golf/constants";
+import { formatHandicap } from "@/lib/golf/format";
 import { RadarChart } from "@/components/charts/radar-chart";
 import { ConfidenceBadge } from "./confidence-badge";
 
@@ -53,7 +54,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
                 {courseName}
               </h2>
               <p className="mt-1 text-sm text-brand-100">
-                Shot {score} &middot; vs {bracketLabel}
+                Shot {score} &middot; {formatHandicap(result.benchmarkHandicap)} HCP &middot; vs {bracketLabel}
                 {result.totalAnchorMode === "course_adjusted" && " \u00b7 Course-Adjusted"}
                 {result.totalAnchorMode === "course_neutral" && " \u00b7 Course-Neutral"}
               </p>

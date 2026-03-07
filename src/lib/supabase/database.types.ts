@@ -38,6 +38,7 @@ export type Database = {
         Row: {
           benchmark_bracket: string | null
           benchmark_handicap: number | null
+          benchmark_interpolation_mode: string | null
           benchmark_version: string | null
           birdies: number
           bogeys: number
@@ -82,6 +83,7 @@ export type Database = {
         Insert: {
           benchmark_bracket?: string | null
           benchmark_handicap?: number | null
+          benchmark_interpolation_mode?: string | null
           benchmark_version?: string | null
           birdies: number
           bogeys: number
@@ -126,6 +128,7 @@ export type Database = {
         Update: {
           benchmark_bracket?: string | null
           benchmark_handicap?: number | null
+          benchmark_interpolation_mode?: string | null
           benchmark_version?: string | null
           birdies?: number
           bogeys?: number

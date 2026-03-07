@@ -126,6 +126,31 @@ describe("toRoundInsert", () => {
     expectTypeOf(row).toMatchTypeOf<TablesInsert<"rounds">>();
   });
 
+  it("maps handicapIndex -2.3 for plus handicap round", () => {
+    const round = makeRound({ handicapIndex: -2.3 });
+    const sg = makeSGResult({
+      benchmarkBracket: "plus",
+      benchmarkHandicap: -2.3,
+      benchmarkInterpolationMode: "scratch_clamped",
+    });
+    const row = toRoundInsert(round, sg);
+    expect(row.handicap_index).toBe(-2.3);
+    expect(row.benchmark_interpolation_mode).toBe("scratch_clamped");
+    expect(row.benchmark_bracket).toBe("plus");
+  });
+
+  it("maps benchmark_interpolation_mode to standard for positive handicap", () => {
+    const sg = makeSGResult({ benchmarkInterpolationMode: "standard" });
+    const row = toRoundInsert(makeRound(), sg);
+    expect(row.benchmark_interpolation_mode).toBe("standard");
+  });
+
+  it("maps undefined benchmarkInterpolationMode to null", () => {
+    const sg = makeSGResult();
+    const row = toRoundInsert(makeRound(), sg);
+    expect(row.benchmark_interpolation_mode).toBeNull();
+  });
+
   it("passes through fields with identical names", () => {
     const round = makeRound({
       score: 92,

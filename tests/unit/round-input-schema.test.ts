@@ -43,12 +43,39 @@ describe("roundInputSchema", () => {
   });
 
   // === Field-level validation ===
-  it("rejects handicap below 0", () => {
+  it("rejects handicap below -9.9", () => {
     const result = roundInputSchema.safeParse({
       ...validInput(),
-      handicapIndex: -1,
+      handicapIndex: -10,
     });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts plus handicap -2.3", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      handicapIndex: -2.3,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts plus handicap -9.9", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      handicapIndex: -9.9,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("coerces string '-2.3' to -2.3", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      handicapIndex: "-2.3",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.handicapIndex).toBe(-2.3);
+    }
   });
 
   it("rejects handicap above 54", () => {

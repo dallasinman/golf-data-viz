@@ -61,10 +61,12 @@ export const roundInputSchema = z
       .int()
       .min(50, "Score must be 50–150")
       .max(150, "Score must be 50–150"),
+    // Negative range (-9.9) is exercised by share-codec decode and direct callers.
+    // The form UI stores the absolute value and negates on submit.
     handicapIndex: z.coerce
       .number()
-      .min(0, "Handicap must be 0–54")
-      .max(54, "Handicap must be 0–54"),
+      .min(-9.9, "Plus handicap is capped at +9.9")
+      .max(54, "Handicap must be between +9.9 and 54"),
     courseRating: z.coerce
       .number()
       .min(60, "Course rating must be 60–80")

@@ -48,6 +48,7 @@ export function toRoundInsert(
     methodology_version: sg.methodologyVersion,
     benchmark_version: sg.benchmarkVersion,
     benchmark_handicap: sg.benchmarkHandicap,
+    benchmark_interpolation_mode: sg.benchmarkInterpolationMode ?? null,
 
     // Phase 2 fields
     calibration_version: sg.calibrationVersion ?? null,

@@ -122,6 +122,21 @@ export function ResultsSummary({ result, benchmarkMeta }: ResultsSummaryProps) {
           data. Results are less reliable than other brackets.
         </p>
       )}
+      {(result.benchmarkBracket === "plus" || result.benchmarkInterpolationMode === "scratch_clamped") && (
+        <div data-testid="plus-handicap-disclosure" className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 space-y-1">
+          <p>
+            Category benchmarks use scratch (0 HCP) peer data. Total SG
+            reflects your plus handicap. Elite-specific category benchmarks
+            are not yet available in this version.
+          </p>
+          {result.estimatedCategories && result.estimatedCategories.length > 0 && (
+            <p>
+              Some categories were estimated using standard assumptions,
+              which may be less reliable for plus-handicap rounds.
+            </p>
+          )}
+        </div>
+      )}
       <p className="text-xs italic text-neutral-400">
         Proxy SG (scorecard-based){" "}
         {benchmarkMeta.provisional && (

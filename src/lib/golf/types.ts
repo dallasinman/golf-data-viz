@@ -7,6 +7,7 @@
 
 /** Handicap bracket for peer benchmarking */
 export type HandicapBracket =
+  | "plus"
   | "0-5"
   | "5-10"
   | "10-15"
@@ -93,6 +94,8 @@ export interface StrokesGainedResult {
   methodologyVersion: string;
   /** Version of the benchmark data used (e.g., "1.0.0") */
   benchmarkVersion: string;
+  /** How the benchmark was interpolated for this result */
+  benchmarkInterpolationMode?: "standard" | "scratch_clamped" | "elite_interpolated" | "elite_clamped";
   /** Exact handicap index used for interpolation */
   benchmarkHandicap: number;
   /** Diagnostic values computed but not included in totals */

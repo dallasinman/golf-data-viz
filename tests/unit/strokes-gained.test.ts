@@ -784,6 +784,22 @@ describe("confidence levels", () => {
   });
 });
 
+describe("plus handicap", () => {
+  it("sets benchmarkInterpolationMode to scratch_clamped for negative handicap", () => {
+    const round = makeRound({ handicapIndex: -2.3, score: 71 });
+    const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+    const result = calculateStrokesGained(round, benchmark);
+    expect(result.benchmarkInterpolationMode).toBe("scratch_clamped");
+    expect(result.benchmarkBracket).toBe("plus");
+  });
+
+  it("sets benchmarkInterpolationMode to standard for positive handicap", () => {
+    const benchmark = getInterpolatedBenchmark(14.3);
+    const result = calculateStrokesGained(makeRound(), benchmark);
+    expect(result.benchmarkInterpolationMode).toBe("standard");
+  });
+});
+
 describe("methodology version stamp", () => {
   it("methodologyVersion is present on every result", () => {
     const benchmark = getInterpolatedBenchmark(14.3);

@@ -490,6 +490,19 @@ export default function MethodologyPage() {
         </div>
       </section>
 
+      {/* Plus Handicap section */}
+      <section className="mt-10">
+        <h2 className="font-display text-xl tracking-tight text-neutral-950">
+          Plus Handicaps
+        </h2>
+        <p className="mt-2 text-sm text-neutral-600">
+          Plus handicaps are supported. In this version, category benchmarks
+          for plus-handicap rounds use the scratch (0 HCP) peer benchmark,
+          while total SG continues to reflect the entered plus handicap.
+          Elite-specific category benchmarks are not yet available.
+        </p>
+      </section>
+
       {/* M7: Section 4: Assumptions & Limitations — updated language */}
       <section className="mt-10">
         <h2 className="font-display text-xl tracking-tight text-neutral-950">

@@ -15,6 +15,7 @@ export const CALIBRATION_VERSION = "seed-1.0.0" as const;
 
 /** Short display labels for handicap brackets (e.g., "10–15 HCP"). */
 export const BRACKET_LABELS: Record<HandicapBracket, string> = {
+  plus: "Plus HCP",
   "0-5": "0–5 HCP",
   "5-10": "5–10 HCP",
   "10-15": "10–15 HCP",

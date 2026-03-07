@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { roundInputSchema, type RoundInputFormData } from "@/lib/golf/schemas";
 import { getBracketForHandicap } from "@/lib/golf/benchmarks";
+import { BRACKET_LABELS } from "@/lib/golf/constants";
 import type { RoundInput } from "@/lib/golf/types";
 
 interface RoundInputFormProps {
@@ -65,6 +66,9 @@ export function RoundInputForm({
 }: RoundInputFormProps) {
   const [showOptional, setShowOptional] = useState(false);
   const [saveToCloud, setSaveToCloud] = useState(false);
+  const [isPlusHandicap, setIsPlusHandicap] = useState(
+    initialValues?.handicapIndex != null && initialValues.handicapIndex < 0
+  );
 
   useEffect(() => {
     setSaveToCloud(false);
@@ -92,16 +96,23 @@ export function RoundInputForm({
       doubleBogeys: 0,
       triplePlus: 0,
       ...initialValues,
+      // Rehydration: show absolute value when plus handicap
+      ...(initialValues?.handicapIndex != null && initialValues.handicapIndex < 0
+        ? { handicapIndex: Math.abs(initialValues.handicapIndex) }
+        : {}),
     },
     mode: "onBlur",
   });
 
   const handicapValue = watch("handicapIndex");
   const bracketLabel = (() => {
-    const hcp = Number(handicapValue);
-    if (!Number.isFinite(hcp) || hcp < 0 || hcp > 54) return null;
+    const absHcp = Math.abs(Number(handicapValue));
+    if (!Number.isFinite(absHcp)) return null;
+    const previewHandicap = isPlusHandicap && absHcp > 0 ? -absHcp : absHcp;
+    if (previewHandicap < -9.9 || previewHandicap > 54) return null;
     try {
-      return getBracketForHandicap(hcp).bracket;
+      const bracket = getBracketForHandicap(previewHandicap);
+      return BRACKET_LABELS[bracket.bracket];
     } catch {
       return null;
     }
@@ -125,7 +136,9 @@ export function RoundInputForm({
     (Number(triples) || 0);
 
   function handleFormSubmit(data: RoundInputFormData) {
-    onSubmit(data, { saveToCloud });
+    const absHcp = Math.abs(data.handicapIndex);
+    const handicapIndex = isPlusHandicap && absHcp > 0 ? -absHcp : absHcp;
+    onSubmit({ ...data, handicapIndex }, { saveToCloud });
   }
 
   return (
@@ -141,22 +154,38 @@ export function RoundInputForm({
           <div className="flex-1">
             <FormField
               label="Handicap Index"
-              hint="Your official USGA index (GHIN, TheGrint, etc.)"
+              hint="Standard handicaps enter as 14.3. Plus handicaps use the + toggle and enter 2.3."
               error={errors.handicapIndex?.message}
             >
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.1"
-                className={inputClass}
-                {...register("handicapIndex")}
-              />
+              <div className="flex">
+                <button
+                  type="button"
+                  data-testid="plus-handicap-toggle"
+                  aria-label={isPlusHandicap ? "Switch to standard handicap" : "Switch to plus handicap"}
+                  onClick={() => setIsPlusHandicap((prev) => !prev)}
+                  className={`shrink-0 rounded-l-lg border-2 border-r-0 px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    isPlusHandicap
+                      ? "border-brand-800 bg-brand-800 text-white"
+                      : "border-cream-200 bg-cream-100 text-neutral-600 hover:border-cream-200/80"
+                  }`}
+                >
+                  {isPlusHandicap ? "+" : "HCP"}
+                </button>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.1"
+                  min="0"
+                  className={`${inputClass} rounded-l-none`}
+                  {...register("handicapIndex")}
+                />
+              </div>
             </FormField>
           </div>
           {bracketLabel && (
             <div className="pb-2">
               <span className="inline-block rounded-md bg-brand-900 px-3 py-1 font-mono text-xs font-medium tracking-wide text-cream-50">
-                {bracketLabel} bracket
+                {bracketLabel}
               </span>
             </div>
           )}

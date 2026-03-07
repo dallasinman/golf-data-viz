@@ -69,6 +69,15 @@ describe("share-codec", () => {
     });
   });
 
+  describe("plus handicap round-trip", () => {
+    it("round-trips with handicapIndex: -2.3", () => {
+      const input = makeRound({ handicapIndex: -2.3 });
+      const encoded = encodeRound(input);
+      const decoded = decodeRound(encoded);
+      expect(decoded).toEqual(input);
+    });
+  });
+
   describe("non-ASCII course names", () => {
     it("round-trips en-dash in course name", () => {
       const input = makeRound({ course: "TPC Sawgrass – Stadium" });

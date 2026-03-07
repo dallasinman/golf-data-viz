@@ -15,7 +15,9 @@ export type AnalyticsEvent =
   | "result_viewed"
   | "reconciliation_applied"
   | "results_emphasis_impression"
-  | "category_detail_interacted";
+  | "category_detail_interacted"
+  | "plus_handicap_submitted"
+  | "plus_handicap_results_viewed";
 
 type EmptyPayload = Record<never, never>;
 
@@ -59,6 +61,16 @@ export type AnalyticsEventProps = {
     category: StrokesGainedCategory;
     interaction_type: "confidence_badge" | "methodology_tooltip";
     surface: "results_page";
+  };
+  plus_handicap_submitted: {
+    normalized_value: number;
+    is_plus_handicap: true;
+    benchmark_interpolation_mode: "scratch_clamped";
+  };
+  plus_handicap_results_viewed: {
+    normalized_value: number;
+    is_plus_handicap: true;
+    benchmark_interpolation_mode: "standard" | "scratch_clamped" | "elite_interpolated" | "elite_clamped";
   };
 };
 
