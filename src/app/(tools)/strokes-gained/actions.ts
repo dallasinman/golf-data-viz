@@ -8,6 +8,7 @@ import { SupabaseConfigError } from "@/lib/supabase/errors";
 import { getInterpolatedBenchmark } from "@/lib/golf/benchmarks";
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
+import { getSgPhase2Mode } from "@/lib/golf/phase2-mode";
 import { checkRateLimit, extractClientIp } from "@/lib/rate-limit";
 import { captureMonitoringException } from "@/lib/monitoring/sentry";
 import { assessRoundTrust } from "@/lib/golf/round-trust";
@@ -67,7 +68,6 @@ function isMissingPhase2SchemaError(error: SupabaseInsertError | null): boolean 
   );
 }
 
-import { getSgPhase2Mode } from "@/lib/golf/phase2-mode";
 export type { SgPhase2Mode } from "@/lib/golf/phase2-mode";
 export { getSgPhase2Mode };
 
@@ -151,14 +151,20 @@ export async function saveRound(
       trust_reasons: trust.reasons,
     };
 
-    let { error } = await supabase.from("rounds").insert(insertWithTrust);
+    let { error, data: insertedRows } = await supabase
+      .from("rounds")
+      .insert(insertWithTrust)
+      .select("id");
 
     // Backward-compat: retry without trust columns if schema is behind
     if (isMissingTrustSchemaError(error)) {
       console.warn(
         "[saveRound] Retrying insert without trust metadata because the DB schema is behind app code"
       );
-      ({ error } = await supabase.from("rounds").insert(baseInsert));
+      ({ error, data: insertedRows } = await supabase
+        .from("rounds")
+        .insert(baseInsert)
+        .select("id"));
     }
 
     // Backward-compat: retry without Phase 2 columns if schema is behind
@@ -174,7 +180,10 @@ export async function saveRound(
         reconciliation_flags: _rf,
         ...baseWithoutPhase2
       } = insertWithTrust;
-      ({ error } = await supabase.from("rounds").insert(baseWithoutPhase2));
+      ({ error, data: insertedRows } = await supabase
+        .from("rounds")
+        .insert(baseWithoutPhase2)
+        .select("id"));
     }
 
     if (error) {
@@ -186,11 +195,14 @@ export async function saveRound(
       return fail("DB_ERROR", DB_ERROR_MESSAGE);
     }
 
+    const roundId = insertedRows?.[0]?.id ?? null;
+
     // Shadow mode: compute V3, persist comparison record, log delta
     if (phase2Mode === "shadow") {
       try {
         const sgV3 = calculateStrokesGainedV3(validatedInput, benchmark);
         await supabase.from("sg_shadow_comparisons").insert({
+          round_id: roundId,
           v1_total: sgV1.total,
           v3_total: sgV3.total,
           v1_categories: sgV1.categories,

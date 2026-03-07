@@ -185,7 +185,6 @@ export type CalibrationInputPath = "full" | "gir-estimated" | "atg-fallback";
 export interface TotalAnchorResult {
   value: number;
   mode: TotalAnchorMode;
-  playerDifferential: number | null; // null for course-neutral
   peerExpectation: number; // course-aware expected score or benchmark avg
 }
 

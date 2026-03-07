@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { loadCalibrationConfig, getCalibrationVersion, detectInputPath, calibrateRawSignals } from "@/lib/golf/calibration";
+import { CALIBRATION_VERSION } from "@/lib/golf/constants";
 import { makeRound } from "../fixtures/factories";
 
 describe("loadCalibrationConfig", () => {
@@ -35,6 +36,10 @@ describe("loadCalibrationConfig", () => {
 describe("getCalibrationVersion", () => {
   it("returns the version string from JSON", () => {
     expect(getCalibrationVersion()).toBe("seed-1.0.0");
+  });
+
+  it("matches CALIBRATION_VERSION constant (single source of truth)", () => {
+    expect(getCalibrationVersion()).toBe(CALIBRATION_VERSION);
   });
 });
 

@@ -10,7 +10,7 @@ export const METHODOLOGY_VERSION = "2.0.0" as const;
 /** Phase 2 methodology version for the V3 pipeline. */
 export const METHODOLOGY_VERSION_V3 = "3.0.0" as const;
 
-/** Current calibration version — loaded from coefficients JSON. */
+/** Current calibration version — must match coefficients-seed-v1.json "version" field. */
 export const CALIBRATION_VERSION = "seed-1.0.0" as const;
 
 /** Short display labels for handicap brackets (e.g., "10–15 HCP"). */

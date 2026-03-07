@@ -293,10 +293,10 @@ export default function MethodologyPage() {
                 anchored to a course-adjusted peer expectation:
               </p>
               <p className="mt-2 font-mono text-xs text-neutral-700">
-                peerExpectation = courseRating + (handicapIndex &times; slopeRating / 113)
+                peerExpectation = courseRating + (handicapIndex {'\u00D7'} slopeRating / 113)
               </p>
               <p className="font-mono text-xs text-neutral-700">
-                totalSG = peerExpectation &minus; actualScore
+                totalSG = peerExpectation {'\u2212'} actualScore
               </p>
               <p className="mt-2 text-xs text-neutral-500">
                 Based on the standard USGA expected score formula.
@@ -312,7 +312,7 @@ export default function MethodologyPage() {
                 to a course-neutral estimate and labels it accordingly:
               </p>
               <p className="mt-2 font-mono text-xs text-neutral-700">
-                totalSG = benchmark.averageScore &minus; actualScore
+                totalSG = benchmark.averageScore {'\u2212'} actualScore
               </p>
               <p className="mt-2 text-xs text-neutral-500">
                 Course-neutral mode activates when course rating is 0 or slope
@@ -391,7 +391,7 @@ export default function MethodologyPage() {
             </p>
             <p className="text-xs italic text-neutral-500">
               Skipped categories (value = 0) are excluded from reconciliation.
-              Final categories sum to the total anchor within &plusmn;0.1.
+              Final categories sum to the total anchor within {'\u00B1'}0.1.
             </p>
           </div>
         </section>

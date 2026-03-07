@@ -28,7 +28,6 @@ describe("computeTotalAnchor", () => {
     const result = computeTotalAnchor(input, benchmark);
     expect(result.mode).toBe("course_adjusted");
     expect(result.value).toBeCloseTo(0, 1);
-    expect(result.playerDifferential).not.toBeNull();
     expect(result.peerExpectation).toBeCloseTo(87, 1);
   });
 
@@ -56,7 +55,6 @@ describe("computeTotalAnchor", () => {
     const benchmark = getInterpolatedBenchmark(input.handicapIndex);
     const result = computeTotalAnchor(input, benchmark);
     expect(result.mode).toBe("course_neutral");
-    expect(result.playerDifferential).toBeNull();
     expect(result.value).toBeCloseTo(benchmark.averageScore - 90, 1);
     expect(result.peerExpectation).toBe(benchmark.averageScore);
   });

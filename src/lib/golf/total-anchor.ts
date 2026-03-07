@@ -16,11 +16,9 @@ export function computeTotalAnchor(
     const peerExpectation =
       input.courseRating + (input.handicapIndex * input.slopeRating) / 113;
     const anchorValue = peerExpectation - input.score;
-    const playerDifferential = input.score - input.courseRating;
     return {
       value: anchorValue,
       mode: "course_adjusted",
-      playerDifferential,
       peerExpectation,
     };
   }
@@ -29,7 +27,6 @@ export function computeTotalAnchor(
   return {
     value: benchmark.averageScore - input.score,
     mode: "course_neutral",
-    playerDifferential: null,
     peerExpectation: benchmark.averageScore,
   };
 }

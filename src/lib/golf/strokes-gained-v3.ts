@@ -73,7 +73,7 @@ export function calculateStrokesGainedV3(
   };
 
   const rawCategoryValues: Record<StrokesGainedCategory, number> = {
-    "off-the-tee": rawSignals.firDelta,
+    "off-the-tee": rawSignals.firDelta + rawSignals.penaltyDelta,
     approach: rawSignals.approachDelta,
     "around-the-green": rawSignals.atgDelta,
     putting: rawSignals.puttingDelta,
