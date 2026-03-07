@@ -73,7 +73,9 @@ describe("saveRound server action", () => {
         insert: mockInsert,
       })),
     });
-    mockInsert.mockResolvedValue({ error: null });
+    mockInsert.mockReturnValue({
+      select: vi.fn().mockResolvedValue({ error: null, data: [{ id: "test-round-id" }] }),
+    });
   });
 
   afterEach(() => {
@@ -102,8 +104,11 @@ describe("saveRound server action", () => {
   });
 
   it("returns DB_ERROR when Supabase insert reports an error", async () => {
-    mockInsert.mockResolvedValue({
-      error: { message: "check constraint violated", code: "23514" },
+    mockInsert.mockReturnValue({
+      select: vi.fn().mockResolvedValue({
+        error: { message: "check constraint violated", code: "23514" },
+        data: null,
+      }),
     });
 
     const result = await saveRound(makeRound(), verification);
@@ -117,14 +122,19 @@ describe("saveRound server action", () => {
 
   it("retries without trust metadata when production schema is behind app code", async () => {
     mockInsert
-      .mockResolvedValueOnce({
-        error: {
-          message:
-            "Could not find the 'trust_reasons' column of 'rounds' in the schema cache",
-          code: "PGRST204",
-        },
+      .mockReturnValueOnce({
+        select: vi.fn().mockResolvedValue({
+          error: {
+            message:
+              "Could not find the 'trust_reasons' column of 'rounds' in the schema cache",
+            code: "PGRST204",
+          },
+          data: null,
+        }),
       })
-      .mockResolvedValueOnce({ error: null });
+      .mockReturnValueOnce({
+        select: vi.fn().mockResolvedValue({ error: null, data: [{ id: "test-round-id" }] }),
+      });
 
     const result = await saveRound(makeRound(), verification);
 
@@ -145,7 +155,9 @@ describe("saveRound server action", () => {
   });
 
   it("returns UNEXPECTED when insert throws", async () => {
-    mockInsert.mockRejectedValue(new Error("Network failure"));
+    mockInsert.mockReturnValue({
+      select: vi.fn().mockRejectedValue(new Error("Network failure")),
+    });
 
     const result = await saveRound(makeRound(), verification);
 
