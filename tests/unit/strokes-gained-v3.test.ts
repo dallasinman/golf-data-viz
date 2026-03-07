@@ -259,7 +259,7 @@ describe("calculateStrokesGainedV3", () => {
     });
   });
 
-  describe("Phase 1 parity with full-path coefficients", () => {
+  describe("V1 parity with full-path coefficients", () => {
     it("V3 categories are close to V1 when anchor is close to category sum", () => {
       // With standard course (slope=113, CR close to expected), the anchor
       // should be near the category sum, so reconciliation adjustments are small
