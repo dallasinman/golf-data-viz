@@ -188,6 +188,20 @@ export default function StrokesGainedClient({
       trackEvent("gir_estimated");
     }
 
+    // Plus handicap analytics
+    if (input.handicapIndex < 0) {
+      trackEvent("plus_handicap_submitted", {
+        normalized_value: input.handicapIndex,
+        is_plus_handicap: true,
+        benchmark_interpolation_mode: "scratch_clamped",
+      });
+      trackEvent("plus_handicap_results_viewed", {
+        normalized_value: input.handicapIndex,
+        is_plus_handicap: true,
+        benchmark_interpolation_mode: sgResult.benchmarkInterpolationMode ?? "scratch_clamped",
+      });
+    }
+
     // Phase 2 analytics
     trackEvent("result_viewed", {
       total_anchor_mode: sgResult.totalAnchorMode,

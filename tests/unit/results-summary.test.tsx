@@ -65,6 +65,44 @@ describe("Biggest Strength / Biggest Weakness callouts", () => {
   });
 });
 
+describe("Plus handicap disclosure", () => {
+  it("shows plus handicap disclosure for plus bracket", () => {
+    const result = makeSGResult({
+      benchmarkBracket: "plus",
+      benchmarkInterpolationMode: "scratch_clamped",
+    });
+
+    render(<ResultsSummary result={result} benchmarkMeta={meta} />);
+
+    expect(screen.getByTestId("plus-handicap-disclosure")).toBeVisible();
+    expect(
+      screen.getByText(/Category benchmarks use scratch \(0 HCP\) peer data/)
+    ).toBeVisible();
+  });
+
+  it("does not show plus disclosure for standard bracket", () => {
+    const result = makeSGResult({ benchmarkBracket: "10-15" });
+
+    render(<ResultsSummary result={result} benchmarkMeta={meta} />);
+
+    expect(screen.queryByTestId("plus-handicap-disclosure")).toBeNull();
+  });
+
+  it("shows estimation caveat when estimatedCategories present", () => {
+    const result = makeSGResult({
+      benchmarkBracket: "plus",
+      benchmarkInterpolationMode: "scratch_clamped",
+      estimatedCategories: ["approach"],
+    });
+
+    render(<ResultsSummary result={result} benchmarkMeta={meta} />);
+
+    expect(
+      screen.getByText(/Some categories were estimated/)
+    ).toBeVisible();
+  });
+});
+
 describe("Results trust cues", () => {
   it("shows a 30+ reliability warning only for the 30+ bracket", () => {
     const thirtyPlusResult = makeSGResult({ benchmarkBracket: "30+" });

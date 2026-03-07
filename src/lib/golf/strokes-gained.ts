@@ -206,6 +206,7 @@ export function calculateStrokesGained(
     methodologyVersion: METHODOLOGY_VERSION,
     benchmarkVersion: getBenchmarkVersion(),
     benchmarkHandicap: input.handicapIndex,
+    benchmarkInterpolationMode: input.handicapIndex < 0 ? "scratch_clamped" : "standard",
     diagnostics: {
       threePuttImpact: puttingResult.threePuttImpact,
     },

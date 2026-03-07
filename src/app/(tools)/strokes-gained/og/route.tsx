@@ -6,6 +6,7 @@ import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
 import { getSgPhase2Mode } from "@/lib/golf/phase2-mode";
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER, CONFIDENCE_COLORS_HEX, CONFIDENCE_LABELS } from "@/lib/golf/constants";
+import { formatHandicap } from "@/lib/golf/format";
 
 export const runtime = "edge";
 
@@ -193,7 +194,7 @@ export async function GET(request: NextRequest) {
                 {courseName}
               </div>
               <div style={{ fontSize: 22, color: "#a8d5ba", marginTop: 8, fontWeight: 500 }}>
-                {`Shot ${input.score} · vs ${bracketLabel}`}
+                {`Shot ${input.score} · ${formatHandicap(input.handicapIndex)} HCP · vs ${bracketLabel}`}
               </div>
               <div style={{ fontSize: 14, color: "#7cb899", marginTop: 6, fontStyle: "italic", fontWeight: 500 }}>
                 {trustLabel}

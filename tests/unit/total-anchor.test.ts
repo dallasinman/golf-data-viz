@@ -77,6 +77,17 @@ describe("computeTotalAnchor", () => {
     expect(courseAdjusted.value).toBeCloseTo(2, 1);
   });
 
+  it("course-adjusted: plus handicap -2.3, CR=72, slope=113, score=71 → positive anchor", () => {
+    const input = makeRound({ courseRating: 72.0, slopeRating: 113, handicapIndex: -2.3, score: 71 });
+    const benchmark = getInterpolatedBenchmark(input.handicapIndex);
+    const result = computeTotalAnchor(input, benchmark);
+    expect(result.mode).toBe("course_adjusted");
+    // peerExpectation = 72 + (-2.3 * 113/113) = 72 - 2.3 = 69.7
+    expect(result.peerExpectation).toBeCloseTo(69.7, 1);
+    // value = 69.7 - 71 = -1.3
+    expect(result.value).toBeCloseTo(-1.3, 1);
+  });
+
   it("positive value means player played better than expected", () => {
     const input = makeRound({ courseRating: 72.0, slopeRating: 113, handicapIndex: 15.0, score: 80 });
     const benchmark = getInterpolatedBenchmark(input.handicapIndex);

@@ -63,8 +63,8 @@ export const roundInputSchema = z
       .max(150, "Score must be 50–150"),
     handicapIndex: z.coerce
       .number()
-      .min(0, "Handicap must be 0–54")
-      .max(54, "Handicap must be 0–54"),
+      .min(-9.9, "Plus handicap is capped at +9.9")
+      .max(54, "Handicap must be between +9.9 and 54"),
     courseRating: z.coerce
       .number()
       .min(60, "Course rating must be 60–80")

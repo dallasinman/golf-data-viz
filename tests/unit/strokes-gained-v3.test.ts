@@ -155,6 +155,35 @@ describe("calculateStrokesGainedV3", () => {
     }
   });
 
+  describe("plus handicap metadata", () => {
+    it("sets benchmarkInterpolationMode to scratch_clamped for plus handicap", () => {
+      const round = makeRound({ handicapIndex: -2.3, score: 71, courseRating: 72, slopeRating: 113 });
+      const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+      const result = calculateStrokesGainedV3(round, benchmark);
+      expect(result.benchmarkBracket).toBe("plus");
+      expect(result.benchmarkInterpolationMode).toBe("scratch_clamped");
+      expect(result.benchmarkHandicap).toBe(-2.3);
+    });
+
+    it("sets benchmarkInterpolationMode to standard for positive handicap", () => {
+      const benchmark = getInterpolatedBenchmark(14.3);
+      const result = calculateStrokesGainedV3(makeRound(), benchmark);
+      expect(result.benchmarkInterpolationMode).toBe("standard");
+    });
+
+    it("categories sum to total within tolerance for plus handicap", () => {
+      const round = makeRound({ handicapIndex: -2.3, score: 71, courseRating: 72, slopeRating: 113 });
+      const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+      const result = calculateStrokesGainedV3(round, benchmark);
+      const sum =
+        result.categories["off-the-tee"] +
+        result.categories["approach"] +
+        result.categories["around-the-green"] +
+        result.categories["putting"];
+      expect(sum).toBeCloseTo(result.total, 1);
+    });
+  });
+
   describe("anchor mode labeling", () => {
     it("course-adjusted when CR and slope are valid", () => {
       const round = makeRound({ courseRating: 72.0, slopeRating: 130 });

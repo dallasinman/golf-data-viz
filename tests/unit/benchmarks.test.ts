@@ -100,9 +100,30 @@ describe("getBracketForHandicap", () => {
     expect(bracket.girPercentage).toBe(35);
   });
 
+  // Plus handicap
+  it("returns 'plus' for handicap -2.3", () => {
+    expect(getBracketForHandicap(-2.3).bracket).toBe("plus");
+  });
+
+  it("returns 'plus' for handicap -9.9", () => {
+    expect(getBracketForHandicap(-9.9).bracket).toBe("plus");
+  });
+
+  it("returns 'plus' for handicap -0.1", () => {
+    expect(getBracketForHandicap(-0.1).bracket).toBe("plus");
+  });
+
+  it("plus bracket returns scratch anchor values", () => {
+    const plus = getBracketForHandicap(-2.3);
+    const scratch = interpolateBenchmark(0);
+    expect(plus.averageScore).toBe(scratch.averageScore);
+    expect(plus.girPercentage).toBe(scratch.girPercentage);
+    expect(plus.puttsPerRound).toBe(scratch.puttsPerRound);
+  });
+
   // Error cases
-  it("throws RangeError for negative handicap", () => {
-    expect(() => getBracketForHandicap(-1)).toThrow(RangeError);
+  it("throws RangeError for handicap < -9.9", () => {
+    expect(() => getBracketForHandicap(-10)).toThrow(RangeError);
   });
 
   it("throws RangeError for handicap > 54", () => {
@@ -420,8 +441,22 @@ describe("interpolateBenchmark", () => {
     expect(at12.penaltiesPerRound).toBeLessThanOrEqual(at15.penaltiesPerRound);
   });
 
-  it("throws RangeError for negative handicap", () => {
-    expect(() => interpolateBenchmark(-1)).toThrow(RangeError);
+  it("returns scratch anchor values for plus handicap -2.3", () => {
+    const atMinus2 = interpolateBenchmark(-2.3);
+    const at0 = interpolateBenchmark(0);
+    expect(atMinus2.averageScore).toBe(at0.averageScore);
+    expect(atMinus2.handicapIndex).toBe(-2.3);
+  });
+
+  it("returns scratch anchor values for plus handicap -9.9", () => {
+    const atMinus9 = interpolateBenchmark(-9.9);
+    const at0 = interpolateBenchmark(0);
+    expect(atMinus9.averageScore).toBe(at0.averageScore);
+    expect(atMinus9.handicapIndex).toBe(-9.9);
+  });
+
+  it("throws RangeError for handicap < -9.9", () => {
+    expect(() => interpolateBenchmark(-10)).toThrow(RangeError);
   });
 
   it("throws RangeError for handicap > 54", () => {
@@ -452,5 +487,19 @@ describe("getInterpolatedBenchmark", () => {
     // The interpolated values should be valid and positive
     expect(interpolated.averageScore).toBeGreaterThan(0);
     expect(interpolated.girPercentage).toBeGreaterThan(0);
+  });
+
+  it("returns 'plus' bracket with scratch anchor metrics for -2.3", () => {
+    const result = getInterpolatedBenchmark(-2.3);
+    const scratch = interpolateBenchmark(0);
+    expect(result.bracket).toBe("plus");
+    expect(result.averageScore).toBe(scratch.averageScore);
+    expect(result.girPercentage).toBe(scratch.girPercentage);
+  });
+
+  it("uses '0-5' scoring distribution for plus bracket", () => {
+    const result = getInterpolatedBenchmark(-2.3);
+    expect(result.scoring).toBeDefined();
+    expect(result.scoring.birdiesPerRound).toBeGreaterThan(0);
   });
 });

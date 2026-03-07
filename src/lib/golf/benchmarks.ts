@@ -67,11 +67,12 @@ export function getCitationStatus(
 
 /** Map handicap index to bracket label. */
 function handicapToBracketLabel(index: number): HandicapBracket {
-  if (!Number.isFinite(index) || index < 0 || index > 54) {
+  if (!Number.isFinite(index) || index < -9.9 || index > 54) {
     throw new RangeError(
-      `Handicap index must be between 0 and 54, got ${index}`
+      `Handicap index must be between -9.9 and 54, got ${index}`
     );
   }
+  if (index < 0) return "plus";
   if (index < 5) return "0-5";
   if (index < 10) return "5-10";
   if (index < 15) return "10-15";
@@ -84,6 +85,30 @@ function handicapToBracketLabel(index: number): HandicapBracket {
 /** Get the benchmark for a given handicap index (snap-to-nearest bracket). Display-only. */
 export function getBracketForHandicap(index: number): BracketBenchmark {
   const label = handicapToBracketLabel(index);
+
+  // Plus handicap: return scratch anchor values with "plus" bracket label
+  if (label === "plus") {
+    const scratchAnchor = interpolateBenchmark(0);
+    const scratchBracketData = data.brackets.find((b) => b.bracket === "0-5");
+    return {
+      bracket: "plus",
+      averageScore: scratchAnchor.averageScore,
+      fairwayPercentage: scratchAnchor.fairwayPercentage,
+      girPercentage: scratchAnchor.girPercentage,
+      puttsPerRound: scratchAnchor.puttsPerRound,
+      upAndDownPercentage: scratchAnchor.upAndDownPercentage,
+      penaltiesPerRound: scratchAnchor.penaltiesPerRound,
+      scoring: scratchBracketData?.scoring ?? {
+        eaglesPerRound: 0,
+        birdiesPerRound: 0,
+        parsPerRound: 0,
+        bogeysPerRound: 0,
+        doublesPerRound: 0,
+        triplePlusPerRound: 0,
+      },
+    };
+  }
+
   const bracket = data.brackets.find((b) => b.bracket === label);
   if (!bracket) {
     throw new Error(`Bracket not found for label: ${label}`);
@@ -98,24 +123,27 @@ const sortedAnchors: BenchmarkAnchor[] = [...data.anchors].sort(
 
 /** Interpolate a BenchmarkAnchor for an exact handicap index. */
 export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
-  if (!Number.isFinite(handicapIndex) || handicapIndex < 0 || handicapIndex > 54) {
+  if (!Number.isFinite(handicapIndex) || handicapIndex < -9.9 || handicapIndex > 54) {
     throw new RangeError(
-      `Handicap index must be between 0 and 54, got ${handicapIndex}`
+      `Handicap index must be between -9.9 and 54, got ${handicapIndex}`
     );
   }
+
+  // Plus handicaps: clamp to scratch anchor values, preserve real handicapIndex
+  const effectiveIndex = Math.max(0, handicapIndex);
 
   const first = sortedAnchors[0];
   const last = sortedAnchors[sortedAnchors.length - 1];
 
-  // Clamp to boundaries
-  if (handicapIndex <= first.handicapIndex) return { ...first, handicapIndex };
-  if (handicapIndex >= last.handicapIndex) return { ...last, handicapIndex };
+  // Clamp to boundaries (use effectiveIndex for lookup, preserve real handicapIndex in result)
+  if (effectiveIndex <= first.handicapIndex) return { ...first, handicapIndex };
+  if (effectiveIndex >= last.handicapIndex) return { ...last, handicapIndex };
 
   // Find straddling anchors
   let lower = first;
   let upper = sortedAnchors[1];
   for (let i = 1; i < sortedAnchors.length; i++) {
-    if (sortedAnchors[i].handicapIndex >= handicapIndex) {
+    if (sortedAnchors[i].handicapIndex >= effectiveIndex) {
       lower = sortedAnchors[i - 1];
       upper = sortedAnchors[i];
       break;
@@ -123,11 +151,11 @@ export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
   }
 
   // Exact match
-  if (handicapIndex === lower.handicapIndex) return { ...lower };
-  if (handicapIndex === upper.handicapIndex) return { ...upper };
+  if (effectiveIndex === lower.handicapIndex) return { ...lower, handicapIndex };
+  if (effectiveIndex === upper.handicapIndex) return { ...upper, handicapIndex };
 
   const t =
-    (handicapIndex - lower.handicapIndex) /
+    (effectiveIndex - lower.handicapIndex) /
     (upper.handicapIndex - lower.handicapIndex);
 
   function lerp(a: number, b: number): number {
@@ -155,7 +183,9 @@ export function getInterpolatedBenchmark(handicapIndex: number): BracketBenchmar
   // It's not in the anchors array and isn't interpolated; snapping to the
   // nearest bracket is acceptable because the GIR estimate is already marked
   // as "medium" confidence regardless.
-  const bracketData = data.brackets.find((b) => b.bracket === bracket);
+  // For plus handicaps, snap to "0-5" bracket for scoring distribution.
+  const scoringBracketLabel = bracket === "plus" ? "0-5" : bracket;
+  const bracketData = data.brackets.find((b) => b.bracket === scoringBracketLabel);
   const scoring = bracketData?.scoring ?? {
     eaglesPerRound: 0,
     birdiesPerRound: 0,

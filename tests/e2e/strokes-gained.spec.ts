@@ -358,6 +358,71 @@ test.describe("Strokes Gained Benchmarker", () => {
     await expect(dlBtn).toBeEnabled();
   });
 
+  test("plus handicap: toggle to +, enter 2.3, submit and see Plus HCP disclosure", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+
+    // Toggle to plus
+    await page.click('[data-testid="plus-handicap-toggle"]');
+    await expect(page.getByTestId("plus-handicap-toggle")).toContainText("+");
+
+    // Enter unsigned value
+    await page.fill('[name="handicapIndex"]', "2.3");
+    await expect(page.getByText("Plus HCP")).toBeVisible();
+
+    // Fill rest of round
+    await page.fill('[name="course"]', "Plus Test Course");
+    await page.fill('[name="courseRating"]', "72.0");
+    await page.fill('[name="slopeRating"]', "113");
+    await page.fill('[name="score"]', "71");
+    await page.fill('[name="fairwaysHit"]', "10");
+    await page.fill('[name="fairwayAttempts"]', "14");
+    await page.fill('[name="greensInRegulation"]', "12");
+    await page.fill('[name="totalPutts"]', "29");
+    await page.fill('[name="penaltyStrokes"]', "0");
+    await page.fill('[name="eagles"]', "0");
+    await page.fill('[name="birdies"]', "3");
+    await page.fill('[name="pars"]', "12");
+    await page.fill('[name="bogeys"]', "3");
+    await page.fill('[name="doubleBogeys"]', "0");
+    await page.fill('[name="triplePlus"]', "0");
+
+    await page.click('button[type="submit"]');
+
+    const sgResults = page.locator('[data-testid="sg-results"]');
+    await expect(sgResults).toBeVisible({ timeout: 5000 });
+
+    // Verify "Plus HCP" in results
+    await expect(sgResults.getByText("Plus HCP")).toBeVisible();
+
+    // Verify disclosure text
+    await expect(
+      sgResults.getByText(/Category benchmarks use scratch/)
+    ).toBeVisible();
+
+    // Verify share URL round-trips
+    const dParam = new URL(page.url()).searchParams.get("d");
+    expect(dParam).toBeTruthy();
+
+    await page.goto(`/strokes-gained?d=${dParam}`);
+    await expect(
+      page.getByText("Your Strokes Gained Breakdown")
+    ).toBeVisible({ timeout: 5000 });
+
+    // Verify toggle rehydrates as "+"
+    await expect(page.getByTestId("plus-handicap-toggle")).toContainText("+");
+    // Verify input shows unsigned value
+    await expect(page.locator('[name="handicapIndex"]')).toHaveValue("2.3");
+    // Verify results still show Plus HCP and disclosure
+    await expect(
+      page.locator('[data-testid="sg-results"]').getByText("Plus HCP")
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="sg-results"]').getByText(/Category benchmarks use scratch/)
+    ).toBeVisible();
+  });
+
   test("form validation prevents submission with invalid scoring sum", async ({
     page,
   }) => {
