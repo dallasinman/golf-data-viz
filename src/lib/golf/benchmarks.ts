@@ -86,18 +86,14 @@ function handicapToBracketLabel(index: number): HandicapBracket {
 export function getBracketForHandicap(index: number): BracketBenchmark {
   const label = handicapToBracketLabel(index);
 
-  // Plus handicap: return scratch anchor values with "plus" bracket label
+  // Plus handicap: return scratch anchor values with "plus" bracket label.
+  // Spread scratch anchor so future anchor field additions are picked up.
   if (label === "plus") {
     const scratchAnchor = interpolateBenchmark(0);
     const scratchBracketData = data.brackets.find((b) => b.bracket === "0-5");
     return {
-      bracket: "plus",
-      averageScore: scratchAnchor.averageScore,
-      fairwayPercentage: scratchAnchor.fairwayPercentage,
-      girPercentage: scratchAnchor.girPercentage,
-      puttsPerRound: scratchAnchor.puttsPerRound,
-      upAndDownPercentage: scratchAnchor.upAndDownPercentage,
-      penaltiesPerRound: scratchAnchor.penaltiesPerRound,
+      ...scratchAnchor,
+      bracket: "plus" as const,
       scoring: scratchBracketData?.scoring ?? {
         eaglesPerRound: 0,
         birdiesPerRound: 0,

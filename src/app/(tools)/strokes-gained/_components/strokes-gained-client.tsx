@@ -135,6 +135,15 @@ export default function StrokesGainedClient({
       const utmSource = attributionUtmSourceRef.current ?? "";
       trackEvent("shared_round_viewed", { referrer, utm_source: utmSource });
 
+      // Plus handicap results viewed on share-URL open
+      if (initialInput.handicapIndex < 0 && initialComputed?.result) {
+        trackEvent("plus_handicap_results_viewed", {
+          normalized_value: initialInput.handicapIndex,
+          is_plus_handicap: true,
+          benchmark_interpolation_mode: initialComputed.result.benchmarkInterpolationMode ?? "scratch_clamped",
+        });
+      }
+
       // Fire emphasis impression for shared-link initial loads.
       // This is the only path for shared links — handleFormSubmit only fires
       // on user-initiated recalculations, and this useEffect is ref-guarded
@@ -188,17 +197,13 @@ export default function StrokesGainedClient({
       trackEvent("gir_estimated");
     }
 
-    // Plus handicap analytics
+    // Plus handicap analytics — results_viewed fires separately in the
+    // shared_round_viewed useEffect so it also covers share-URL opens.
     if (input.handicapIndex < 0) {
       trackEvent("plus_handicap_submitted", {
         normalized_value: input.handicapIndex,
         is_plus_handicap: true,
         benchmark_interpolation_mode: "scratch_clamped",
-      });
-      trackEvent("plus_handicap_results_viewed", {
-        normalized_value: input.handicapIndex,
-        is_plus_handicap: true,
-        benchmark_interpolation_mode: sgResult.benchmarkInterpolationMode ?? "scratch_clamped",
       });
     }
 
