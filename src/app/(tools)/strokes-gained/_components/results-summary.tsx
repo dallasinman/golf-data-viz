@@ -10,9 +10,11 @@ import type {
 } from "@/lib/golf/types";
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/golf/constants";
 import { getEmphasizedCategories } from "@/lib/golf/emphasis";
+import { generateTroubleNarrative, type RoundTroubleContext } from "@/lib/golf/trouble-context";
 import { trackEvent } from "@/lib/analytics/client";
 import { ConfidenceBadge } from "./confidence-badge";
 import { MethodologyTooltip } from "./methodology-tooltip";
+import { TroubleContextNarrative } from "./trouble-context-narrative";
 
 // Emphasis copy is intentionally limited to putting + ATG — the only categories
 // getEmphasizedCategories can return. Falls back to CATEGORY_DESCRIPTIONS if
@@ -39,9 +41,11 @@ function formatSG(value: number): string {
 interface ResultsSummaryProps {
   result: StrokesGainedResult;
   benchmarkMeta: BenchmarkMeta;
+  troubleContext?: RoundTroubleContext | null;
+  onRemoveTroubleContext?: () => void;
 }
 
-export function ResultsSummary({ result, benchmarkMeta }: ResultsSummaryProps) {
+export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemoveTroubleContext }: ResultsSummaryProps) {
   const [openPopover, setOpenPopover] = useState<{
     type: "confidence" | "methodology";
     category: StrokesGainedCategory;
@@ -203,6 +207,19 @@ export function ResultsSummary({ result, benchmarkMeta }: ResultsSummaryProps) {
         </div>
       )}
 
+      {/* Trouble context narrative — inserted between emphasis and breakdown */}
+      {troubleContext && (() => {
+        const narrative = generateTroubleNarrative(troubleContext, result);
+        return (
+          <TroubleContextNarrative
+            narrative={narrative}
+            teeCount={troubleContext.summary.tee}
+            totalHoles={troubleContext.troubleHoles.length}
+            onRemove={onRemoveTroubleContext ?? (() => {})}
+          />
+        );
+      })()}
+
       {/* Per-category breakdown */}
       <ul className="space-y-3">
         {entries.map(({ key, label, description, value, skipped }) => (
@@ -230,6 +247,11 @@ export function ResultsSummary({ result, benchmarkMeta }: ResultsSummaryProps) {
               <span className="mt-0.5 block text-xs font-normal text-neutral-400">
                 {description}
               </span>
+              {key === "off-the-tee" && troubleContext && troubleContext.summary.tee >= 1 && (
+                <span className="mt-0.5 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                  Trouble noted
+                </span>
+              )}
             </span>
             {skipped ? (
               <span className="px-4 py-3 text-sm italic text-neutral-400">Not Tracked</span>
@@ -293,6 +315,14 @@ export function ResultsSummary({ result, benchmarkMeta }: ResultsSummaryProps) {
               {CATEGORY_DESCRIPTIONS[weakness.key]}
             </p>
             <p className="font-mono text-sm tabular-nums text-data-negative">{formatSG(weakness.value)}</p>
+            {troubleContext && (() => {
+              const narrative = generateTroubleNarrative(troubleContext, result);
+              return narrative.weaknessCaveat ? (
+                <p className="mt-1 text-xs italic text-amber-700">
+                  {narrative.weaknessCaveat}
+                </p>
+              ) : null;
+            })()}
           </div>
         </div>
       )}

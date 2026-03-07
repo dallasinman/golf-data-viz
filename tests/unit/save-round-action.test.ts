@@ -97,9 +97,9 @@ describe("saveRound server action", () => {
     expect(mockInsert).not.toHaveBeenCalled();
   });
 
-  it("returns success on successful admin insert", async () => {
+  it("returns success with roundId on successful admin insert", async () => {
     const result = await saveRound(makeRound(), verification);
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, roundId: "test-round-id" });
     expect(mockCreateAdminClient).toHaveBeenCalledTimes(1);
   });
 
@@ -138,7 +138,7 @@ describe("saveRound server action", () => {
 
     const result = await saveRound(makeRound(), verification);
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, roundId: "test-round-id" });
     expect(mockInsert).toHaveBeenCalledTimes(2);
     expect(mockInsert.mock.calls[0][0]).toEqual(
       expect.objectContaining({

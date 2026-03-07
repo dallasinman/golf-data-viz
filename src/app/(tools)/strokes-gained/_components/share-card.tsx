@@ -22,10 +22,11 @@ interface ShareCardProps {
   courseName: string;
   score: number;
   benchmarkMeta?: BenchmarkMeta;
+  hasTroubleContext?: boolean;
 }
 
 export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
-  function ShareCard({ result, chartData, courseName, score, benchmarkMeta }, ref) {
+  function ShareCard({ result, chartData, courseName, score, benchmarkMeta, hasTroubleContext }, ref) {
     const bracketLabel =
       BRACKET_LABELS[result.benchmarkBracket] ?? result.benchmarkBracket;
 
@@ -57,6 +58,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
                 Shot {score} &middot; {formatHandicap(result.benchmarkHandicap)} HCP &middot; vs {bracketLabel}
                 {result.totalAnchorMode === "course_adjusted" && " \u00b7 Course-Adjusted"}
                 {result.totalAnchorMode === "course_neutral" && " \u00b7 Course-Neutral"}
+                {hasTroubleContext && " \u00b7 Trouble context added"}
               </p>
               {benchmarkMeta && (
                 <p className="mt-0.5 text-xs italic text-brand-100/70">

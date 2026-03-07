@@ -14,6 +14,12 @@ import { captureMonitoringException } from "@/lib/monitoring/sentry";
 import { assessRoundTrust } from "@/lib/golf/round-trust";
 import { getRoundSaveAvailability } from "@/lib/round-save";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
+import {
+  validateTroubleContext,
+  buildTroubleContextSummary,
+  type RoundTroubleContext,
+  type TroubleHoleInput,
+} from "@/lib/golf/trouble-context";
 import { headers } from "next/headers";
 
 export type SaveRoundErrorCode =
@@ -26,7 +32,7 @@ export type SaveRoundErrorCode =
   | "UNEXPECTED";
 
 export type SaveRoundResult =
-  | { success: true }
+  | { success: true; roundId: string }
   | { success: false; code: SaveRoundErrorCode; message: string };
 
 const SAVE_DISABLED_MESSAGE =
@@ -226,7 +232,7 @@ export async function saveRound(
       }
     }
 
-    return { success: true };
+    return { success: true, roundId: roundId ?? "" };
   } catch (err) {
     if (err instanceof SupabaseConfigError) {
       console.error("[saveRound] Supabase config error:", err.message);
@@ -242,5 +248,147 @@ export async function saveRound(
       code: "UNEXPECTED",
     });
     return fail("UNEXPECTED", UNEXPECTED_MESSAGE);
+  }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isMissingTroubleSchemaError(error: SupabaseInsertError | null): boolean {
+  return (
+    error?.code === "PGRST204" &&
+    /trouble_|has_trouble_context|attribution_version/.test(error.message ?? "")
+  );
+}
+
+/**
+ * Save trouble context annotations for a round.
+ * Idempotent: deletes existing annotations and replaces them.
+ * Best-effort — never blocks the UX. Writes via service-role (bypasses RLS).
+ *
+ * Note: Saved trouble context is for analytics and future modeling only.
+ * V1 does NOT rehydrate trouble context from DB on shared-link visits.
+ */
+export async function saveTroubleContext(
+  roundId: string,
+  context: RoundTroubleContext
+): Promise<{ success: boolean }> {
+  try {
+    if (!UUID_RE.test(roundId)) {
+      console.warn("[saveTroubleContext] Invalid roundId format");
+      return { success: false };
+    }
+
+    const validation = validateTroubleContext(context);
+    if (!validation.valid) {
+      console.warn("[saveTroubleContext] Validation failed:", validation.errors);
+      return { success: false };
+    }
+
+    const supabase = createAdminClient();
+
+    // Delete existing trouble holes (idempotent replace)
+    await supabase
+      .from("round_trouble_holes")
+      .delete()
+      .eq("round_id", roundId);
+
+    // Insert new trouble holes
+    if (context.troubleHoles.length > 0) {
+      const rows = context.troubleHoles.map((hole: TroubleHoleInput) => ({
+        round_id: roundId,
+        hole_number: hole.holeNumber,
+        primary_cause: hole.primaryCause,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("round_trouble_holes")
+        .insert(rows);
+
+      // Swallow if trouble schema doesn't exist yet
+      if (insertError && !isMissingTroubleSchemaError(insertError)) {
+        console.error("[saveTroubleContext] Insert error:", insertError.message);
+        captureMonitoringException(new Error(insertError.message), {
+          source: "saveTroubleContext",
+        });
+        return { success: false };
+      }
+    }
+
+    // Update rounds summary columns
+    const summary = buildTroubleContextSummary(context.troubleHoles);
+    const { error: updateError } = await supabase
+      .from("rounds")
+      .update({
+        has_trouble_context: true,
+        trouble_hole_count: context.troubleHoles.length,
+        trouble_tee_count: summary.tee,
+        trouble_approach_count: summary.approach,
+        trouble_around_green_count: summary.around_green,
+        trouble_putting_count: summary.putting,
+        trouble_penalty_count: summary.penalty,
+        attribution_version: "narrative-v1",
+      })
+      .eq("id", roundId);
+
+    // Swallow if trouble columns don't exist yet
+    if (updateError && !isMissingTroubleSchemaError(updateError)) {
+      console.error("[saveTroubleContext] Update error:", updateError.message);
+      captureMonitoringException(new Error(updateError.message), {
+        source: "saveTroubleContext",
+      });
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("[saveTroubleContext] Unexpected error:", err);
+    captureMonitoringException(err, { source: "saveTroubleContext" });
+    return { success: false };
+  }
+}
+
+/**
+ * Remove trouble context annotations from a round.
+ * Best-effort — never blocks the UX.
+ */
+export async function clearTroubleContext(
+  roundId: string
+): Promise<{ success: boolean }> {
+  try {
+    if (!UUID_RE.test(roundId)) {
+      return { success: false };
+    }
+
+    const supabase = createAdminClient();
+
+    await supabase
+      .from("round_trouble_holes")
+      .delete()
+      .eq("round_id", roundId);
+
+    const { error } = await supabase
+      .from("rounds")
+      .update({
+        has_trouble_context: false,
+        trouble_hole_count: 0,
+        trouble_tee_count: 0,
+        trouble_approach_count: 0,
+        trouble_around_green_count: 0,
+        trouble_putting_count: 0,
+        trouble_penalty_count: 0,
+        attribution_version: null,
+      })
+      .eq("id", roundId);
+
+    if (error && !isMissingTroubleSchemaError(error)) {
+      console.error("[clearTroubleContext] Update error:", error.message);
+      return { success: false };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("[clearTroubleContext] Unexpected error:", err);
+    captureMonitoringException(err, { source: "clearTroubleContext" });
+    return { success: false };
   }
 }
