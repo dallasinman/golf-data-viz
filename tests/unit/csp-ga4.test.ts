@@ -30,4 +30,8 @@ describe("CSP allows GA4 data collection", () => {
       "https://www.googletagmanager.com"
     );
   });
+
+  it("script-src includes 'unsafe-eval' for gtag.js", () => {
+    expect(getDirective("script-src")).toContain("'unsafe-eval'");
+  });
 });
