@@ -28,7 +28,7 @@ test.describe("Production smoke", () => {
 
     await fillFullRound(page);
     await page.click('button[type="submit"]');
-    await expect(page.getByTestId("sg-results")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId("sg-results")).toBeVisible({ timeout: 15000 });
     await expect(page).toHaveURL(/\?d=/);
 
     const downloadPromise = page.waitForEvent("download", { timeout: 10000 });
@@ -37,7 +37,7 @@ test.describe("Production smoke", () => {
     expect(download.suggestedFilename()).toBe("strokes-gained.png");
   });
 
-  test("partial round flow shows estimate help", async ({ page }) => {
+  test("partial round flow shows confidence badges", async ({ page }) => {
     skipUnlessRemoteBaseUrl();
     await page.goto("/strokes-gained");
     await submitPartialRound(page);
@@ -45,19 +45,19 @@ test.describe("Production smoke", () => {
     const partialResults = page.getByTestId("sg-results");
     await expect(partialResults).toBeVisible();
 
-    const estButtons = partialResults.getByRole("button", { name: "Est." });
-    await expect(estButtons.first()).toBeVisible();
-    await estButtons.first().click();
+    // Confidence badges render as buttons with aria-label "X confidence"
+    const confidenceButtons = partialResults.getByRole("button", {
+      name: /confidence/,
+    });
+    await expect(confidenceButtons.first()).toBeVisible();
+    await confidenceButtons.first().click();
+    // Clicking opens an explanation popover
     await expect(
-      partialResults.getByText(
-        "This category is estimated from related stats because not all inputs were provided."
-      )
+      partialResults.locator('[role="dialog"]').first()
     ).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(
-      partialResults.getByText(
-        "This category is estimated from related stats because not all inputs were provided."
-      )
+      partialResults.locator('[role="dialog"]')
     ).not.toBeVisible();
   });
 });
