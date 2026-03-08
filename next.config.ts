@@ -1,19 +1,6 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
-
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com https://challenges.cloudflare.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.ingest.sentry.io https://challenges.cloudflare.com",
-  "frame-src 'self' https://challenges.cloudflare.com",
-  "font-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join("; ");
+import { csp, reportUri } from "./src/lib/security/csp";
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -25,6 +12,9 @@ const securityHeaders = [
     value: "camera=(), microphone=(), geolocation=()",
   },
   { key: "Content-Security-Policy", value: csp },
+  ...(reportUri
+    ? [{ key: "Reporting-Endpoints", value: `csp-endpoint="${reportUri}"` }]
+    : []),
 ];
 
 const nextConfig: NextConfig = {
