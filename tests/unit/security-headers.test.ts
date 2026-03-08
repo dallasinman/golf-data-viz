@@ -24,7 +24,7 @@ describe("security headers", () => {
       "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com https://challenges.cloudflare.com"
     );
     expect(csp!.value).toContain(
-      "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.ingest.sentry.io https://challenges.cloudflare.com"
+      "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.ingest.sentry.io https://challenges.cloudflare.com"
     );
     expect(csp!.value).toContain(
       "frame-src 'self' https://challenges.cloudflare.com"
