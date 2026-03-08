@@ -1,4 +1,5 @@
 import type { StrokesGainedCategory } from "@/lib/golf/types";
+import type { TroubleCause } from "@/lib/golf/trouble-context";
 
 export type AnalyticsEvent =
   | "landing_cta_clicked"
@@ -18,7 +19,16 @@ export type AnalyticsEvent =
   | "results_emphasis_impression"
   | "category_detail_interacted"
   | "plus_handicap_submitted"
-  | "plus_handicap_results_viewed";
+  | "plus_handicap_results_viewed"
+  | "trouble_context_prompt_viewed"
+  | "trouble_context_prompt_dismissed"
+  | "trouble_context_started"
+  | "trouble_context_completed"
+  | "trouble_context_cause_selected"
+  | "trouble_narrative_viewed"
+  | "trouble_context_saved_with_round"
+  | "trouble_context_save_failed"
+  | "trouble_context_removed";
 
 type EmptyPayload = Record<never, never>;
 
@@ -74,6 +84,17 @@ export type AnalyticsEventProps = {
     is_plus_handicap: true;
     benchmark_interpolation_mode: "standard" | "scratch_clamped" | "elite_interpolated" | "elite_clamped";
   };
+  trouble_context_prompt_viewed: EmptyPayload;
+  trouble_context_prompt_dismissed: EmptyPayload;
+  trouble_context_started: EmptyPayload;
+  trouble_context_completed: { hole_count: number; causes: TroubleCause[] };
+  trouble_context_cause_selected: { cause: TroubleCause; step: number };
+  trouble_narrative_viewed: { tee_count: number; total_holes: number };
+  trouble_context_saved_with_round: { hole_count: number };
+  trouble_context_save_failed: {
+    error_type: "config" | "runtime" | "network";
+  };
+  trouble_context_removed: EmptyPayload;
 };
 
 type RequiredKeys<T extends object> = {

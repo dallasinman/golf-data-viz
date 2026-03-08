@@ -13,6 +13,11 @@ import {
   getBenchmarkMeta,
 } from "@/lib/golf/benchmarks";
 import { getEmphasizedCategories } from "@/lib/golf/emphasis";
+import {
+  shouldShowTroubleContextPrompt,
+  TROUBLE_CAUSES,
+  type RoundTroubleContext,
+} from "@/lib/golf/trouble-context";
 import { BRACKET_LABELS } from "@/lib/golf/constants";
 import {
   calculateStrokesGained,
@@ -25,12 +30,14 @@ import { captureElementAsPng, downloadBlob } from "@/lib/capture";
 import { RoundInputForm } from "./round-input-form";
 import { ResultsSummary } from "./results-summary";
 import { ShareCard } from "./share-card";
+import { TroubleContextPrompt } from "./trouble-context-prompt";
+import { TroubleContextModal } from "./trouble-context-modal";
 import { RadarChart } from "@/components/charts/radar-chart";
 import {
   TurnstileWidget,
   type TurnstileWidgetHandle,
 } from "@/components/security/turnstile-widget";
-import { saveRound } from "../actions";
+import { saveRound, saveTroubleContext, clearTroubleContext } from "../actions";
 import { LaunchTrustPanel } from "./launch-trust-panel";
 import { CompactSamplePreview } from "@/components/compact-sample-preview";
 import type { SamplePreviewData } from "@/lib/golf/sample-round";
@@ -99,6 +106,10 @@ export default function StrokesGainedClient({
   const [copyFailed, setCopyFailed] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [troubleContext, setTroubleContext] = useState<RoundTroubleContext | null>(null);
+  const [troubleModalOpen, setTroubleModalOpen] = useState(false);
+  const [troublePromptDismissed, setTroublePromptDismissed] = useState(false);
+  const [savedRoundId, setSavedRoundId] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
@@ -191,6 +202,10 @@ export default function StrokesGainedClient({
     setSavePhase(null);
     setSaveError(null);
     setSaveSuccess(false);
+    setTroubleContext(null);
+    setTroubleModalOpen(false);
+    setTroublePromptDismissed(false);
+    setSavedRoundId(null);
     if (saveSuccessTimerRef.current)
       clearTimeout(saveSuccessTimerRef.current);
 
@@ -299,6 +314,7 @@ export default function StrokesGainedClient({
             setSavePhase(null);
             if (res.success) {
               trackEvent("round_saved");
+              setSavedRoundId(res.roundId);
               setSaveSuccess(true);
               saveSuccessTimerRef.current = setTimeout(
                 () => setSaveSuccess(false),
@@ -423,6 +439,14 @@ export default function StrokesGainedClient({
     : copied
       ? "Copied!"
       : "Copy Link";
+
+  const troubleEligible = result && lastInput
+    ? shouldShowTroubleContextPrompt(
+        lastInput,
+        result,
+        getInterpolatedBenchmark(lastInput.handicapIndex)
+      )
+    : false;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -558,7 +582,57 @@ export default function StrokesGainedClient({
               bracketLabel={BRACKET_LABELS[result.benchmarkBracket]}
             />
           </div>
-          <ResultsSummary result={result} benchmarkMeta={benchmarkMeta} />
+          <ResultsSummary
+            result={result}
+            benchmarkMeta={benchmarkMeta}
+            troubleContext={troubleContext}
+            onRemoveTroubleContext={() => {
+              setTroubleContext(null);
+              trackEvent("trouble_context_removed");
+              if (savedRoundId) {
+                void clearTroubleContext(savedRoundId);
+              }
+            }}
+          />
+
+          {/* Trouble context prompt — shown when eligible and not yet annotated */}
+          {troubleEligible && !troubleContext && !troublePromptDismissed && (
+            <TroubleContextPrompt
+              onAddContext={() => {
+                setTroubleModalOpen(true);
+                trackEvent("trouble_context_started");
+              }}
+              onDismiss={() => setTroublePromptDismissed(true)}
+            />
+          )}
+
+          {troubleModalOpen && (
+            <TroubleContextModal
+              onClose={() => setTroubleModalOpen(false)}
+              onApply={(ctx) => {
+                setTroubleContext(ctx);
+                setTroubleModalOpen(false);
+                trackEvent("trouble_context_completed", {
+                  hole_count: ctx.troubleHoles.length,
+                  causes: TROUBLE_CAUSES.filter((c) => ctx.summary[c] > 0),
+                });
+                // Best-effort persistence
+                if (savedRoundId) {
+                  void saveTroubleContext(savedRoundId, ctx).then((res) => {
+                    if (res.success) {
+                      trackEvent("trouble_context_saved_with_round", {
+                        hole_count: ctx.troubleHoles.length,
+                      });
+                    } else {
+                      trackEvent("trouble_context_save_failed", {
+                        error_type: "runtime",
+                      });
+                    }
+                  });
+                }
+              }}
+            />
+          )}
 
           {/* Share actions */}
           <div className="flex gap-3">
@@ -596,6 +670,7 @@ export default function StrokesGainedClient({
               courseName={lastInput.course}
               score={lastInput.score}
               benchmarkMeta={benchmarkMeta}
+              hasTroubleContext={troubleContext !== null}
             />
           </div>
         </div>

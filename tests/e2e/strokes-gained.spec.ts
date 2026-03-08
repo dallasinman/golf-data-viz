@@ -3,6 +3,7 @@ import {
   fillFullRound,
   submitFullRound,
   submitPartialRound,
+  submitTroubleEligibleRound,
 } from "./helpers/round-form";
 
 test.describe("Strokes Gained Benchmarker", () => {
@@ -436,6 +437,70 @@ test.describe("Strokes Gained Benchmarker", () => {
     await expect(
       page.locator('[data-testid="sg-results"]').getByText(/Category benchmarks use scratch/)
     ).toBeVisible();
+  });
+
+  test("trouble-eligible round shows prompt; non-eligible does not", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitTroubleEligibleRound(page);
+
+    // Prompt should appear
+    await expect(
+      page.getByTestId("trouble-context-prompt")
+    ).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.getByText("Improve your results")
+    ).toBeVisible();
+  });
+
+  test("trouble context: Not now dismisses prompt", async ({ page }) => {
+    await page.goto("/strokes-gained");
+    await submitTroubleEligibleRound(page);
+
+    await expect(page.getByTestId("trouble-context-prompt")).toBeVisible({ timeout: 5000 });
+    await page.getByText("Not now").click();
+    await expect(page.getByTestId("trouble-context-prompt")).not.toBeVisible();
+  });
+
+  test("trouble context: full flow shows narrative", async ({ page }) => {
+    await page.goto("/strokes-gained");
+    await submitTroubleEligibleRound(page);
+
+    // Click the CTA
+    await page.getByText("Add trouble context").click();
+
+    // Modal should open
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+
+    // Select count
+    await page.getByTestId("trouble-count-2").click();
+
+    // Per-hole cards should appear
+    await expect(page.getByTestId("trouble-hole-0")).toBeVisible();
+    await expect(page.getByTestId("trouble-hole-1")).toBeVisible();
+
+    // Apply context
+    await page.getByTestId("trouble-apply").click();
+
+    // Modal closes
+    await expect(dialog).not.toBeVisible();
+
+    // Narrative card should appear
+    await expect(page.getByTestId("trouble-narrative")).toBeVisible();
+
+    // Prompt should be gone (replaced by narrative)
+    await expect(page.getByTestId("trouble-context-prompt")).not.toBeVisible();
+  });
+
+  test("non-eligible round does NOT show trouble prompt", async ({ page }) => {
+    await page.goto("/strokes-gained");
+    // Submit a full round with good FIR (7/14 = 50%, near peer benchmark)
+    await submitFullRound(page);
+
+    // Prompt should NOT appear (FIR not below peer)
+    await expect(page.getByTestId("trouble-context-prompt")).not.toBeVisible();
   });
 
   test("form validation prevents submission with invalid scoring sum", async ({

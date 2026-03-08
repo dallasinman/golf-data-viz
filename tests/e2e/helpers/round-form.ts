@@ -1,5 +1,36 @@
 import { expect, type Page } from "@playwright/test";
 
+/**
+ * Fill a round that triggers trouble context eligibility:
+ * low FIR (5/14 = 35.7%) + negative approach SG.
+ */
+export async function fillTroubleEligibleRound(page: Page) {
+  await page.fill('[name="handicapIndex"]', "14.3");
+  await page.fill('[name="course"]', "Trouble Test Course");
+  await page.fill('[name="courseRating"]', "72.0");
+  await page.fill('[name="slopeRating"]', "130");
+  await page.fill('[name="score"]', "95");
+  await page.fill('[name="fairwaysHit"]', "5");
+  await page.fill('[name="fairwayAttempts"]', "14");
+  await page.fill('[name="greensInRegulation"]', "3");
+  await page.fill('[name="totalPutts"]', "35");
+  await page.fill('[name="penaltyStrokes"]', "3");
+  await page.fill('[name="eagles"]', "0");
+  await page.fill('[name="birdies"]', "0");
+  await page.fill('[name="pars"]', "5");
+  await page.fill('[name="bogeys"]', "6");
+  await page.fill('[name="doubleBogeys"]', "5");
+  await page.fill('[name="triplePlus"]', "2");
+}
+
+export async function submitTroubleEligibleRound(page: Page) {
+  await fillTroubleEligibleRound(page);
+  await page.click('button[type="submit"]');
+  await expect(
+    page.getByText("Your Proxy SG Breakdown")
+  ).toBeVisible({ timeout: 5000 });
+}
+
 export async function fillPartialRound(page: Page) {
   await page.fill('[name="handicapIndex"]', "14.3");
   await page.fill('[name="course"]', "Pacifica Sharp Park");

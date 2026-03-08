@@ -7,35 +7,48 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
+      round_trouble_holes: {
+        Row: {
+          created_at: string
+          hole_number: number | null
+          id: string
+          primary_cause: string
+          round_id: string
+        }
+        Insert: {
+          created_at?: string
+          hole_number?: number | null
+          id?: string
+          primary_cause: string
+          round_id: string
+        }
+        Update: {
+          created_at?: string
+          hole_number?: number | null
+          id?: string
+          primary_cause?: string
+          round_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_trouble_holes_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rounds: {
         Row: {
+          attribution_version: string | null
           benchmark_bracket: string | null
           benchmark_handicap: number | null
           benchmark_interpolation_mode: string | null
@@ -52,6 +65,7 @@ export type Database = {
           fairways_hit: number | null
           greens_in_regulation: number | null
           handicap_index: number
+          has_trouble_context: boolean
           id: string
           methodology_version: string | null
           pars: number
@@ -73,6 +87,12 @@ export type Database = {
           total_anchor_value: number | null
           total_putts: number
           triple_plus: number
+          trouble_approach_count: number
+          trouble_around_green_count: number
+          trouble_hole_count: number
+          trouble_penalty_count: number
+          trouble_putting_count: number
+          trouble_tee_count: number
           trust_reasons: string[]
           trust_scored_at: string | null
           trust_status: string
@@ -81,6 +101,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          attribution_version?: string | null
           benchmark_bracket?: string | null
           benchmark_handicap?: number | null
           benchmark_interpolation_mode?: string | null
@@ -97,6 +118,7 @@ export type Database = {
           fairways_hit?: number | null
           greens_in_regulation?: number | null
           handicap_index: number
+          has_trouble_context?: boolean
           id?: string
           methodology_version?: string | null
           pars: number
@@ -118,6 +140,12 @@ export type Database = {
           total_anchor_value?: number | null
           total_putts: number
           triple_plus: number
+          trouble_approach_count?: number
+          trouble_around_green_count?: number
+          trouble_hole_count?: number
+          trouble_penalty_count?: number
+          trouble_putting_count?: number
+          trouble_tee_count?: number
           trust_reasons?: string[]
           trust_scored_at?: string | null
           trust_status?: string
@@ -126,6 +154,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          attribution_version?: string | null
           benchmark_bracket?: string | null
           benchmark_handicap?: number | null
           benchmark_interpolation_mode?: string | null
@@ -142,6 +171,7 @@ export type Database = {
           fairways_hit?: number | null
           greens_in_regulation?: number | null
           handicap_index?: number
+          has_trouble_context?: boolean
           id?: string
           methodology_version?: string | null
           pars?: number
@@ -163,6 +193,12 @@ export type Database = {
           total_anchor_value?: number | null
           total_putts?: number
           triple_plus?: number
+          trouble_approach_count?: number
+          trouble_around_green_count?: number
+          trouble_hole_count?: number
+          trouble_penalty_count?: number
+          trouble_putting_count?: number
+          trouble_tee_count?: number
           trust_reasons?: string[]
           trust_scored_at?: string | null
           trust_status?: string
@@ -176,7 +212,7 @@ export type Database = {
         Row: {
           anchor_mode: string | null
           calibration_version: string | null
-          created_at: string
+          created_at: string | null
           id: string
           methodology_v1: string | null
           methodology_v3: string | null
@@ -190,7 +226,7 @@ export type Database = {
         Insert: {
           anchor_mode?: string | null
           calibration_version?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           methodology_v1?: string | null
           methodology_v3?: string | null
@@ -204,7 +240,7 @@ export type Database = {
         Update: {
           anchor_mode?: string | null
           calibration_version?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           methodology_v1?: string | null
           methodology_v3?: string | null
@@ -359,11 +395,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-
