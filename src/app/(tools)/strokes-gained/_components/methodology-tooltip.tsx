@@ -14,14 +14,14 @@ const METHODOLOGY_CONTENT: Record<
     doesntCapture:
       "Driving distance, miss direction, playable misses.",
     interpret:
-      "Use this as an accuracy-and-trouble signal, not a full measure of driving value.",
+      "OTT and Approach may be lightly rebalanced when your round pattern suggests the default attribution is misleading.",
   },
   approach: {
     measures: "GIR rate vs peer benchmarks.",
     doesntCapture:
       "Binary GIR — great shots narrowly missing still count as misses.",
     interpret:
-      "Directional signal across rounds, not shot-quality grade.",
+      "OTT and Approach may be lightly rebalanced when your round pattern suggests the default split is off.",
   },
   "around-the-green": {
     measures: "Up-and-down / scramble performance.",
