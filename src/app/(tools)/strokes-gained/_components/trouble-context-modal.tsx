@@ -76,7 +76,6 @@ export function TroubleContextModal({
 
   const countOptions = [1, 2, 3, 4];
 
-
   return (
     <div
       ref={backdropRef}
