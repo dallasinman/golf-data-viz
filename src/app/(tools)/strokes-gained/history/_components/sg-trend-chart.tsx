@@ -141,61 +141,61 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
             format: (v) => (v > 0 ? `+${v}` : `${v}`),
           }}
           layers={[
-          "grid",
-          "markers",
-          "axes",
-          ZeroLine,
-          "lines",
-          "points",
-          "slices",
-          "mesh",
-          "legends",
-        ]}
-        useMesh
-        enableSlices={false}
-        motionConfig="gentle"
-        legends={[
-          {
-            anchor: "right",
-            direction: "column",
-            translateX: 85,
-            itemWidth: 80,
-            itemHeight: 20,
-            itemTextColor: "#64748b",
-            symbolSize: 10,
-            symbolShape: "circle",
-          },
-        ]}
-        tooltip={({ point }) => {
-          const roundLabel = point.data.xFormatted as string;
-          const info = tooltipData.get(roundLabel);
-          const categoryId = point.seriesId as string;
-          const categoryLabel =
-            CATEGORY_LABELS[
-              categoryId as keyof typeof CATEGORY_LABELS
-            ] ?? categoryId;
-          const value = point.data.y as number;
+            "grid",
+            "markers",
+            "axes",
+            ZeroLine,
+            "lines",
+            "points",
+            "slices",
+            "mesh",
+            "legends",
+          ]}
+          useMesh
+          enableSlices={false}
+          motionConfig="gentle"
+          legends={[
+            {
+              anchor: "right",
+              direction: "column",
+              translateX: 85,
+              itemWidth: 80,
+              itemHeight: 20,
+              itemTextColor: "#64748b",
+              symbolSize: 10,
+              symbolShape: "circle",
+            },
+          ]}
+          tooltip={({ point }) => {
+            const roundLabel = point.data.xFormatted as string;
+            const info = tooltipData.get(roundLabel);
+            const categoryId = point.seriesId as string;
+            const categoryLabel =
+              CATEGORY_LABELS[
+                categoryId as keyof typeof CATEGORY_LABELS
+              ] ?? categoryId;
+            const value = point.data.y as number;
 
-          return (
-            <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-md">
-              {info && (
-                <p className="text-xs text-neutral-500">
-                  {info.date} &middot; {info.courseName}
+            return (
+              <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-md">
+                {info && (
+                  <p className="text-xs text-neutral-500">
+                    {info.date} &middot; {info.courseName}
+                  </p>
+                )}
+                <p className="mt-0.5 text-sm font-medium text-neutral-900">
+                  <span
+                    className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: point.seriesColor }}
+                  />
+                  {categoryLabel}:{" "}
+                  <span className="font-mono">
+                    {value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
+                  </span>
                 </p>
-              )}
-              <p className="mt-0.5 text-sm font-medium text-neutral-900">
-                <span
-                  className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: point.seriesColor }}
-                />
-                {categoryLabel}:{" "}
-                <span className="font-mono">
-                  {value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
-                </span>
-              </p>
-            </div>
-          );
-        }}
+              </div>
+            );
+          }}
         />
       </div>
     </>
