@@ -82,9 +82,8 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
     return ticks.sort((a, b) => a - b);
   }, [yDomain]);
 
-  // Drop the bottom-most tick label so it doesn't collide with x-axis labels.
-  // Grid lines still use the full set.
-  const yTickLabels = useMemo(
+  // Drop the bottom-most tick so its label and grid line don't crowd the x-axis.
+  const yTicksVisible = useMemo(
     () => yTicks.filter((t) => t > yDomain.min),
     [yTicks, yDomain.min]
   );
@@ -124,7 +123,7 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
           lineWidth={2}
           enableGridX={false}
           enableGridY
-          gridYValues={yTicks}
+          gridYValues={yTicksVisible}
           axisBottom={{
             tickSize: 5,
             tickPadding: 12,
@@ -138,7 +137,7 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
           axisLeft={{
             tickSize: 0,
             tickPadding: 8,
-            tickValues: yTickLabels,
+            tickValues: yTicksVisible,
             format: (v) => (v > 0 ? `+${v}` : `${v}`),
           }}
           layers={[
