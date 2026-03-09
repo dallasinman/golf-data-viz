@@ -5,10 +5,15 @@ test.describe("Round History", () => {
     page,
   }) => {
     await page.goto("/strokes-gained/history");
-    await expect(
-      page.getByText("Track Your Progress Over Time")
-    ).toBeVisible();
+    await expect(page.getByText("Round History")).toBeVisible();
     await expect(page.getByTestId("auth-prompt-sign-in")).toBeVisible();
+    await expect(page.getByTestId("auth-prompt-sign-in")).toHaveText(
+      "Create free account to start tracking"
+    );
+    // Feature preview cards
+    await expect(page.getByText("Biggest Mover")).toBeVisible();
+    await expect(page.getByText("SG Trends Over Time")).toBeVisible();
+    await expect(page.getByText("Round-by-Round Breakdown")).toBeVisible();
   });
 
   test("header History link navigates to history page", async ({ page }) => {

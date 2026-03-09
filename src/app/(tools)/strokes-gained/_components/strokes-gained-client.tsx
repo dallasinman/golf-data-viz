@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useCallback, useEffect } from "react";
+import { CircleCheck } from "lucide-react";
 import { trackEvent } from "@/lib/analytics/client";
 import type {
   RoundInput,
@@ -324,10 +325,13 @@ export default function StrokesGainedClient({
               trackEvent("round_saved");
               setSavedRoundId(res.roundId);
               setSaveSuccess(true);
-              saveSuccessTimerRef.current = setTimeout(
-                () => setSaveSuccess(false),
-                3000
-              );
+              // Auto-dismiss for anonymous users only; signed-in users get a persistent card
+              if (!user) {
+                saveSuccessTimerRef.current = setTimeout(
+                  () => setSaveSuccess(false),
+                  3000
+                );
+              }
               // Store claim token for anonymous round claiming
               if (res.claimToken && !user) {
                 setSavedClaimToken(res.claimToken);
@@ -532,6 +536,7 @@ export default function StrokesGainedClient({
           initialValues={initialInput}
           isCalculating={isCalculating}
           saveEnabled={saveEnabled}
+          isAuthenticated={!!user}
         />
       </div>
 
@@ -551,24 +556,32 @@ export default function StrokesGainedClient({
         </div>
       )}
 
-      {saveSuccess && (
+      {saveSuccess && user && (
+        <div
+          data-testid="save-success-authed"
+          className="mt-6 rounded-xl border border-green-200 bg-green-50 px-5 py-4"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-green-800">
+            <CircleCheck className="h-5 w-5 shrink-0" />
+            Round added to your history.
+          </div>
+          <Link
+            href="/strokes-gained/history"
+            onClick={() => trackEvent("history_link_clicked", { surface: "post_save_confirmation" })}
+            className="mt-2 inline-block text-sm font-medium text-brand-800 underline hover:text-brand-600"
+          >
+            View your trends &rarr;
+          </Link>
+        </div>
+      )}
+
+      {saveSuccess && !user && (
         <div
           data-testid="save-success"
           role="status"
           className="mt-6 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="h-5 w-5 shrink-0"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <CircleCheck className="h-5 w-5 shrink-0" />
           Round saved.
         </div>
       )}
@@ -580,10 +593,10 @@ export default function StrokesGainedClient({
           className="mt-6 rounded-xl border border-brand-200 bg-brand-50/50 px-5 py-4"
         >
           <p className="text-sm font-medium text-neutral-900">
-            Create a free account to track your progress over time.
+            Keep this round and track what changes
           </p>
           <p className="mt-1 text-xs text-neutral-600">
-            Your round will be saved to your profile so you can see trends across rounds.
+            Create a free account to keep this round and see your SG trends, biggest mover, and round history over time.
           </p>
           <button
             type="button"
@@ -701,7 +714,7 @@ export default function StrokesGainedClient({
               setTroubleContext(null);
               trackEvent("trouble_context_removed");
               if (savedRoundId) {
-                void clearTroubleContext(savedRoundId);
+                void clearTroubleContext(savedRoundId, savedClaimToken);
               }
             }}
           />
@@ -729,7 +742,7 @@ export default function StrokesGainedClient({
                 });
                 // Best-effort persistence
                 if (savedRoundId) {
-                  void saveTroubleContext(savedRoundId, ctx).then((res) => {
+                  void saveTroubleContext(savedRoundId, ctx, savedClaimToken).then((res) => {
                     if (res.success) {
                       trackEvent("trouble_context_saved_with_round", {
                         hole_count: ctx.troubleHoles.length,

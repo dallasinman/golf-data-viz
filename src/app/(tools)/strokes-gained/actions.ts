@@ -293,16 +293,55 @@ function isMissingTroubleSchemaError(error: SupabaseInsertError | null): boolean
 }
 
 /**
+ * Verify the caller owns a round, either via claim token (anonymous rounds)
+ * or authenticated user_id match (claimed rounds).
+ */
+async function verifyRoundOwnership(
+  roundId: string,
+  claimToken: string | null
+): Promise<boolean> {
+  const supabase = createAdminClient();
+  const { data: round } = await supabase
+    .from("rounds")
+    .select("user_id, claim_token_hash, claim_token_expires_at")
+    .eq("id", roundId)
+    .single();
+
+  if (!round) return false;
+
+  // Claimed round: verify authenticated user matches owner
+  if (round.user_id) {
+    const user = await getUser();
+    return user?.id === round.user_id;
+  }
+
+  // Anonymous round: verify claim token + expiry
+  if (!claimToken || !round.claim_token_hash) return false;
+  if (round.claim_token_expires_at && new Date(round.claim_token_expires_at) < new Date()) {
+    return false;
+  }
+  const providedHash = await hashClaimToken(claimToken);
+  return timingSafeEqual(
+    Buffer.from(providedHash),
+    Buffer.from(round.claim_token_hash)
+  );
+}
+
+/**
  * Save trouble context annotations for a round.
  * Idempotent: deletes existing annotations and replaces them.
  * Best-effort — never blocks the UX. Writes via service-role (bypasses RLS).
+ *
+ * Requires proof of ownership: claim token for anonymous rounds,
+ * or authenticated user match for claimed rounds.
  *
  * Note: Saved trouble context is for analytics and future modeling only.
  * V1 does NOT rehydrate trouble context from DB on shared-link visits.
  */
 export async function saveTroubleContext(
   roundId: string,
-  context: RoundTroubleContext
+  context: RoundTroubleContext,
+  claimToken: string | null = null
 ): Promise<{ success: boolean }> {
   try {
     if (!UUID_RE.test(roundId)) {
@@ -313,6 +352,11 @@ export async function saveTroubleContext(
     const validation = validateTroubleContext(context);
     if (!validation.valid) {
       console.warn("[saveTroubleContext] Validation failed:", validation.errors);
+      return { success: false };
+    }
+
+    if (!(await verifyRoundOwnership(roundId, claimToken))) {
+      console.warn("[saveTroubleContext] Ownership verification failed");
       return { success: false };
     }
 
@@ -382,12 +426,21 @@ export async function saveTroubleContext(
 /**
  * Remove trouble context annotations from a round.
  * Best-effort — never blocks the UX.
+ *
+ * Requires proof of ownership: claim token for anonymous rounds,
+ * or authenticated user match for claimed rounds.
  */
 export async function clearTroubleContext(
-  roundId: string
+  roundId: string,
+  claimToken: string | null = null
 ): Promise<{ success: boolean }> {
   try {
     if (!UUID_RE.test(roundId)) {
+      return { success: false };
+    }
+
+    if (!(await verifyRoundOwnership(roundId, claimToken))) {
+      console.warn("[clearTroubleContext] Ownership verification failed");
       return { success: false };
     }
 

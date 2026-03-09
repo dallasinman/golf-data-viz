@@ -29,16 +29,16 @@ test.describe("Auth Flow", () => {
     await page.getByTestId("auth-prompt-sign-in").click();
     await expect(page.getByTestId("auth-modal")).toBeVisible();
 
-    // Should start in sign-in mode
-    await expect(page.getByTestId("auth-modal-title")).toContainText("Welcome back");
+    // Primary CTA opens in sign-up mode
+    await expect(page.getByTestId("auth-modal-title")).toContainText("Create your free account");
 
-    // Toggle to sign-up mode
-    await page.getByTestId("auth-toggle-mode").click();
-    await expect(page.getByTestId("auth-modal-title")).toContainText("Create your account");
-
-    // Toggle back to sign-in mode
+    // Toggle to sign-in mode
     await page.getByTestId("auth-toggle-mode").click();
     await expect(page.getByTestId("auth-modal-title")).toContainText("Welcome back");
+
+    // Toggle back to sign-up mode
+    await page.getByTestId("auth-toggle-mode").click();
+    await expect(page.getByTestId("auth-modal-title")).toContainText("Create your free account");
   });
 
   test("auth modal closes on backdrop click", async ({ page }) => {
