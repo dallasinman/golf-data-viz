@@ -51,4 +51,32 @@ describe("SgTrendChart", () => {
     expect(screen.getByTestId("sg-trend-chart")).toBeInTheDocument();
     expect(screen.queryByTestId("trend-chart-min-rounds")).not.toBeInTheDocument();
   });
+
+  it("renders direction label when 3+ rounds", () => {
+    const rounds = [
+      makeRoundSnapshot({ roundId: "r1", playedAt: "2026-03-01" }),
+      makeRoundSnapshot({ roundId: "r2", playedAt: "2026-03-08" }),
+      makeRoundSnapshot({ roundId: "r3", playedAt: "2026-03-15" }),
+    ];
+    const series: TrendSeries[] = [
+      {
+        id: "off-the-tee",
+        color: "#2563eb",
+        data: [
+          { x: "Round 1", y: 0.3 },
+          { x: "Round 2", y: 0.5 },
+          { x: "Round 3", y: 0.2 },
+        ],
+      },
+    ];
+
+    render(<SgTrendChart series={series} rounds={rounds} />);
+    expect(screen.getByText(/Oldest → Newest/)).toBeInTheDocument();
+  });
+
+  it("does not render direction label when fewer than 3 rounds", () => {
+    const rounds = [makeRoundSnapshot(), makeRoundSnapshot({ roundId: "r2" })];
+    render(<SgTrendChart series={[]} rounds={rounds} />);
+    expect(screen.queryByText(/Oldest → Newest/)).not.toBeInTheDocument();
+  });
 });

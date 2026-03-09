@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { ResponsiveLine } from "@nivo/line";
 import type { LineCustomSvgLayerProps } from "@nivo/line";
 import type { TrendSeries, RoundSgSnapshot } from "@/lib/golf/trends";
+import { computeYDomain } from "@/lib/golf/trends";
 import { CATEGORY_LABELS } from "@/lib/golf/constants";
 import { trackEvent } from "@/lib/analytics/client";
 
@@ -78,6 +79,20 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
     return map;
   }, [rounds]);
 
+  const yDomain = useMemo(() => computeYDomain(series), [series]);
+
+  const yTicks = useMemo(() => {
+    const step = 0.5;
+    const ticks: number[] = [];
+    let v = Math.floor(yDomain.min / step) * step;
+    while (v <= yDomain.max + step * 0.01) {
+      ticks.push(Math.round(v * 10) / 10);
+      v += step;
+    }
+    if (!ticks.includes(0)) ticks.push(0);
+    return ticks.sort((a, b) => a - b);
+  }, [yDomain]);
+
   if (rounds.length < 3) {
     return (
       <div
@@ -95,33 +110,37 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
   }
 
   return (
-    <div data-testid="sg-trend-chart" style={{ height: 360 }}>
-      <ResponsiveLine
-        data={series}
-        margin={{ top: 20, right: 90, bottom: 50, left: 50 }}
-        xScale={{ type: "point" }}
-        yScale={{ type: "linear", stacked: false }}
-        curve="linear"
-        enablePoints
-        pointSize={8}
-        pointColor={{ theme: "background" }}
-        pointBorderWidth={2}
-        pointBorderColor={{ from: "serieColor" }}
-        colors={(d) => d.color}
-        lineWidth={2}
-        enableGridX={false}
-        enableGridY
-        axisBottom={{
-          tickSize: 0,
-          tickPadding: 8,
-          tickRotation: rounds.length > 10 ? -45 : 0,
-        }}
-        axisLeft={{
-          tickSize: 0,
-          tickPadding: 8,
-          format: (v) => (v > 0 ? `+${v}` : `${v}`),
-        }}
-        layers={[
+    <>
+      <p className="mb-1 text-xs text-neutral-400">Oldest → Newest</p>
+      <div data-testid="sg-trend-chart" style={{ height: 360 }}>
+        <ResponsiveLine
+          data={series}
+          margin={{ top: 20, right: 90, bottom: 50, left: 50 }}
+          xScale={{ type: "point" }}
+          yScale={{ type: "linear", stacked: false, min: yDomain.min, max: yDomain.max }}
+          curve="linear"
+          enablePoints
+          pointSize={8}
+          pointColor={{ theme: "background" }}
+          pointBorderWidth={2}
+          pointBorderColor={{ from: "serieColor" }}
+          colors={(d) => d.color}
+          lineWidth={2}
+          enableGridX={false}
+          enableGridY
+          gridYValues={yTicks}
+          axisBottom={{
+            tickSize: 0,
+            tickPadding: 8,
+            tickRotation: rounds.length > 10 ? -45 : 0,
+          }}
+          axisLeft={{
+            tickSize: 0,
+            tickPadding: 8,
+            tickValues: yTicks,
+            format: (v) => (v > 0 ? `+${v}` : `${v}`),
+          }}
+          layers={[
           "grid",
           "markers",
           "axes",
@@ -177,7 +196,8 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
             </div>
           );
         }}
-      />
-    </div>
+        />
+      </div>
+    </>
   );
 }
