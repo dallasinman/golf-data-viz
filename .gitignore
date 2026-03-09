@@ -50,3 +50,6 @@ next-env.d.ts
 
 # claude code (contains MCP API keys)
 .mcp.json
+
+# playwright MCP debug logs
+.playwright-mcp/
