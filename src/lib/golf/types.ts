@@ -96,7 +96,7 @@ export interface StrokesGainedResult {
   /** Version of the benchmark data used (e.g., "1.0.0") */
   benchmarkVersion: string;
   /** How the benchmark was interpolated for this result */
-  benchmarkInterpolationMode?: "standard" | "scratch_clamped" | "elite_interpolated" | "elite_clamped";
+  benchmarkInterpolationMode?: "standard" | "scratch_clamped" | "extrapolated" | "elite_interpolated" | "elite_clamped";
   /** Exact handicap index used for interpolation */
   benchmarkHandicap: number;
   /** Diagnostic values computed but not included in totals */

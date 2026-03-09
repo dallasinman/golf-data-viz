@@ -113,12 +113,12 @@ describe("getBracketForHandicap", () => {
     expect(getBracketForHandicap(-0.1).bracket).toBe("plus");
   });
 
-  it("plus bracket returns scratch anchor values", () => {
+  it("plus bracket returns extrapolated values for -2.3", () => {
     const plus = getBracketForHandicap(-2.3);
-    const scratch = interpolateBenchmark(0);
-    expect(plus.averageScore).toBe(scratch.averageScore);
-    expect(plus.girPercentage).toBe(scratch.girPercentage);
-    expect(plus.puttsPerRound).toBe(scratch.puttsPerRound);
+    const extrapolated = interpolateBenchmark(-2.3);
+    expect(plus.averageScore).toBe(extrapolated.averageScore);
+    expect(plus.girPercentage).toBe(extrapolated.girPercentage);
+    expect(plus.puttsPerRound).toBe(extrapolated.puttsPerRound);
   });
 
   // Error cases
@@ -441,18 +441,80 @@ describe("interpolateBenchmark", () => {
     expect(at12.penaltiesPerRound).toBeLessThanOrEqual(at15.penaltiesPerRound);
   });
 
-  it("returns scratch anchor values for plus handicap -2.3", () => {
+  it("extrapolates below scratch for plus handicap -2.3", () => {
     const atMinus2 = interpolateBenchmark(-2.3);
-    const at0 = interpolateBenchmark(0);
-    expect(atMinus2.averageScore).toBe(at0.averageScore);
     expect(atMinus2.handicapIndex).toBe(-2.3);
+    // GIR: 59 + 3.6 * 2.3 = 67.28
+    expect(atMinus2.girPercentage).toBeCloseTo(67.28, 1);
+    // FIR frozen at scratch
+    expect(atMinus2.fairwayPercentage).toBe(50);
+    // putts: 29.8 - 0.08 * 2.3 = 29.616
+    expect(atMinus2.puttsPerRound).toBeCloseTo(29.616, 2);
+    // averageScore: 74.0 - 1.28 * 2.3 = 71.056
+    expect(atMinus2.averageScore).toBeCloseTo(71.056, 1);
   });
 
-  it("returns scratch anchor values for plus handicap -9.9", () => {
+  it("extrapolates below scratch for plus handicap -5", () => {
+    const atMinus5 = interpolateBenchmark(-5);
+    expect(atMinus5.handicapIndex).toBe(-5);
+    expect(atMinus5.girPercentage).toBeCloseTo(77, 1);
+    expect(atMinus5.fairwayPercentage).toBe(50);
+    expect(atMinus5.puttsPerRound).toBeCloseTo(29.4, 2);
+    expect(atMinus5.averageScore).toBeCloseTo(67.6, 1);
+    expect(atMinus5.upAndDownPercentage).toBeCloseTo(61, 1);
+    expect(atMinus5.penaltiesPerRound).toBeCloseTo(0.39, 2);
+  });
+
+  it("clamps extrapolated values at safety limits for -9.9", () => {
     const atMinus9 = interpolateBenchmark(-9.9);
-    const at0 = interpolateBenchmark(0);
-    expect(atMinus9.averageScore).toBe(at0.averageScore);
     expect(atMinus9.handicapIndex).toBe(-9.9);
+    // GIR would be 59 + 3.6 * 9.9 = 94.64 → clamped to 80
+    expect(atMinus9.girPercentage).toBe(80);
+    // FIR frozen at scratch
+    expect(atMinus9.fairwayPercentage).toBe(50);
+    // putts: 29.8 - 0.08 * 9.9 = 29.008 (above 27 floor)
+    expect(atMinus9.puttsPerRound).toBeCloseTo(29.008, 2);
+    // averageScore: 74.0 - 1.28 * 9.9 = 61.328 (above 60 floor)
+    expect(atMinus9.averageScore).toBeCloseTo(61.328, 1);
+  });
+
+  it("boundary continuity: -0.1 is only slightly different from scratch", () => {
+    const at0 = interpolateBenchmark(0);
+    const atMinus01 = interpolateBenchmark(-0.1);
+    // Each metric should differ by at most the gradient * 0.1
+    expect(Math.abs(atMinus01.averageScore - at0.averageScore)).toBeLessThan(0.2);
+    expect(Math.abs(atMinus01.girPercentage - at0.girPercentage)).toBeLessThan(0.5);
+    expect(Math.abs(atMinus01.puttsPerRound - at0.puttsPerRound)).toBeLessThan(0.02);
+    // FIR should be identical (frozen)
+    expect(atMinus01.fairwayPercentage).toBe(at0.fairwayPercentage);
+  });
+
+  it("whole-range invariant sweep: all plus handicaps respect bounds and monotonicity", () => {
+    let prev = interpolateBenchmark(0);
+    for (let hcp = -0.1; hcp >= -9.9; hcp = Math.round((hcp - 0.1) * 10) / 10) {
+      const curr = interpolateBenchmark(hcp);
+      // FIR frozen at 50
+      expect(curr.fairwayPercentage).toBe(50);
+      // GIR: 0–80
+      expect(curr.girPercentage).toBeGreaterThanOrEqual(0);
+      expect(curr.girPercentage).toBeLessThanOrEqual(80);
+      // U&D: 0–75
+      expect(curr.upAndDownPercentage).toBeGreaterThanOrEqual(0);
+      expect(curr.upAndDownPercentage).toBeLessThanOrEqual(75);
+      // Putts: >= 27
+      expect(curr.puttsPerRound).toBeGreaterThanOrEqual(27);
+      // Penalties: >= 0.05
+      expect(curr.penaltiesPerRound).toBeGreaterThanOrEqual(0.05);
+      // Average score: >= 60
+      expect(curr.averageScore).toBeGreaterThanOrEqual(60);
+      // Monotonic directions (more plus = better)
+      expect(curr.averageScore).toBeLessThanOrEqual(prev.averageScore + 0.001);
+      expect(curr.girPercentage).toBeGreaterThanOrEqual(prev.girPercentage - 0.001);
+      expect(curr.puttsPerRound).toBeLessThanOrEqual(prev.puttsPerRound + 0.001);
+      expect(curr.upAndDownPercentage).toBeGreaterThanOrEqual(prev.upAndDownPercentage - 0.001);
+      expect(curr.penaltiesPerRound).toBeLessThanOrEqual(prev.penaltiesPerRound + 0.001);
+      prev = curr;
+    }
   });
 
   it("throws RangeError for handicap < -9.9", () => {
@@ -489,12 +551,12 @@ describe("getInterpolatedBenchmark", () => {
     expect(interpolated.girPercentage).toBeGreaterThan(0);
   });
 
-  it("returns 'plus' bracket with scratch anchor metrics for -2.3", () => {
+  it("returns 'plus' bracket with extrapolated metrics for -2.3", () => {
     const result = getInterpolatedBenchmark(-2.3);
-    const scratch = interpolateBenchmark(0);
+    const extrapolated = interpolateBenchmark(-2.3);
     expect(result.bracket).toBe("plus");
-    expect(result.averageScore).toBe(scratch.averageScore);
-    expect(result.girPercentage).toBe(scratch.girPercentage);
+    expect(result.averageScore).toBe(extrapolated.averageScore);
+    expect(result.girPercentage).toBe(extrapolated.girPercentage);
   });
 
   it("uses '0-5' scoring distribution for plus bracket", () => {

@@ -357,6 +357,11 @@
   },
   "changelog": [
     {
+      "version": "1.0.0+extrap",
+      "date": "2026-03-09",
+      "summary": "Plus-handicap benchmark extrapolation: project 0-5 gradient below scratch with per-metric safeguards (FIR% frozen, GIR% cap 80%, putts floor 27, penalties floor 0.05, score floor 60). Replaces scratch clamping."
+    },
+    {
       "version": "1.0.0",
       "date": "2026-03-06",
       "summary": "All SG-consumed metrics source-locked from Shot Scope. Anchor-based interpolation replaces bracket snapping. puttsPerRound and penaltiesPerRound now sourced."

@@ -156,12 +156,12 @@ describe("calculateStrokesGainedV3", () => {
   });
 
   describe("plus handicap metadata", () => {
-    it("sets benchmarkInterpolationMode to scratch_clamped for plus handicap", () => {
+    it("sets benchmarkInterpolationMode to extrapolated for plus handicap", () => {
       const round = makeRound({ handicapIndex: -2.3, score: 71, courseRating: 72, slopeRating: 113 });
       const benchmark = getInterpolatedBenchmark(round.handicapIndex);
       const result = calculateStrokesGainedV3(round, benchmark);
       expect(result.benchmarkBracket).toBe("plus");
-      expect(result.benchmarkInterpolationMode).toBe("scratch_clamped");
+      expect(result.benchmarkInterpolationMode).toBe("extrapolated");
       expect(result.benchmarkHandicap).toBe(-2.3);
     });
 
@@ -181,6 +181,97 @@ describe("calculateStrokesGainedV3", () => {
         result.categories["around-the-green"] +
         result.categories["putting"];
       expect(sum).toBeCloseTo(result.total, 1);
+    });
+  });
+
+  describe("plus handicap anti-flattening", () => {
+    const plusRound = makeRound({
+      handicapIndex: -2.0,
+      score: 71,
+      courseRating: 72,
+      slopeRating: 113,
+      fairwaysHit: 9,
+      fairwayAttempts: 14,
+      greensInRegulation: 11,
+      totalPutts: 29,
+      penaltyStrokes: 0,
+      eagles: 0,
+      birdies: 3,
+      pars: 11,
+      bogeys: 4,
+      doubleBogeys: 0,
+      triplePlus: 0,
+      upAndDownAttempts: 5,
+      upAndDownConverted: 3,
+    });
+
+    it("at least one category has |sg| > 0.25 (not all crushed to zero)", () => {
+      const benchmark = getInterpolatedBenchmark(plusRound.handicapIndex);
+      const result = calculateStrokesGainedV3(plusRound, benchmark);
+      const cats = Object.values(result.categories);
+      const hasNonTrivial = cats.some((v) => Math.abs(v) > 0.25);
+      expect(hasNonTrivial).toBe(true);
+    });
+
+    it("not all four categories within ±0.1 of zero", () => {
+      const benchmark = getInterpolatedBenchmark(plusRound.handicapIndex);
+      const result = calculateStrokesGainedV3(plusRound, benchmark);
+      const cats = Object.values(result.categories);
+      const allNearZero = cats.every((v) => Math.abs(v) <= 0.1);
+      expect(allNearZero).toBe(false);
+    });
+
+    it("reconciliation: categories sum ≈ total (±0.1)", () => {
+      const benchmark = getInterpolatedBenchmark(plusRound.handicapIndex);
+      const result = calculateStrokesGainedV3(plusRound, benchmark);
+      const sum =
+        result.categories["off-the-tee"] +
+        result.categories["approach"] +
+        result.categories["around-the-green"] +
+        result.categories["putting"];
+      expect(sum).toBeCloseTo(result.total, 1);
+    });
+
+    it("no single category reconciliation adjustment exceeds 1.0 stroke", () => {
+      const benchmark = getInterpolatedBenchmark(plusRound.handicapIndex);
+      const result = calculateStrokesGainedV3(plusRound, benchmark);
+      const provisional = result.diagnostics.provisionalCategoryValues!;
+      const final = result.categories;
+      for (const cat of ["off-the-tee", "approach", "around-the-green", "putting"] as const) {
+        expect(Math.abs(final[cat] - provisional[cat])).toBeLessThan(1.0);
+      }
+    });
+  });
+
+  describe("total-anchor path isolation", () => {
+    it("course-adjusted: extrapolation does NOT alter total SG", () => {
+      const round = makeRound({
+        handicapIndex: -3.0,
+        score: 70,
+        courseRating: 72,
+        slopeRating: 125,
+      });
+      const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+      const result = calculateStrokesGainedV3(round, benchmark);
+      // Total uses (courseRating + handicapIndex * slope / 113) - score, not benchmark.averageScore
+      expect(result.totalAnchorMode).toBe("course_adjusted");
+      const expectedAnchor = (round.courseRating + round.handicapIndex * round.slopeRating / 113) - round.score;
+      expect(result.total).toBeCloseTo(expectedAnchor, 1);
+    });
+
+    it("course-neutral: extrapolated averageScore drives the anchor", () => {
+      const round = makeRound({
+        handicapIndex: -3.0,
+        score: 70,
+        courseRating: 0, // invalid → course-neutral
+        slopeRating: 125,
+      });
+      const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+      const result = calculateStrokesGainedV3(round, benchmark);
+      expect(result.totalAnchorMode).toBe("course_neutral");
+      // Course-neutral uses benchmark.averageScore, which is now extrapolated
+      // (lower than scratch 74.0 for a -3 HCP)
+      expect(result.total).toBeCloseTo(benchmark.averageScore - round.score, 1);
     });
   });
 
