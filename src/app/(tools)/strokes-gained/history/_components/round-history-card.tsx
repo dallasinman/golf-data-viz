@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import { CATEGORY_ORDER, CATEGORY_LABELS, SG_NEAR_ZERO_THRESHOLD } from "@/lib/golf/constants";
+import { cn } from "@/lib/utils";
 
 interface RoundHistoryCardProps {
   round: RoundSgSnapshot;
@@ -70,7 +71,7 @@ export function RoundHistoryCard({
   return (
     <div
       data-testid="round-history-card"
-      className={`rounded-xl border border-card-border bg-card shadow-sm transition-shadow hover:shadow-md ${className ?? ""}`}
+      className={cn("rounded-xl border border-card-border bg-card shadow-sm transition-shadow hover:shadow-md", className)}
       style={style}
     >
       <div className="flex items-start gap-4 p-4">
