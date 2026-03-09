@@ -183,6 +183,27 @@ export function calculateBiggestMover(
 }
 
 /**
+ * Compute a zero-centered, padded y-axis domain for the trend chart.
+ * Symmetric around zero so negative and positive values get equal visual weight.
+ */
+export function computeYDomain(series: TrendSeries[]): { min: number; max: number } {
+  const allValues = series.flatMap((s) => s.data.map((d) => d.y));
+  if (allValues.length === 0) return { min: -1, max: 1 };
+
+  const dataMin = Math.min(...allValues);
+  const dataMax = Math.max(...allValues);
+  const maxAbs = Math.max(Math.abs(dataMin), Math.abs(dataMax));
+
+  // Pad by 20% (minimum 0.3 strokes) so points aren't at edges
+  const paddedAbs = maxAbs + Math.max(maxAbs * 0.2, 0.3);
+
+  return {
+    min: Math.floor(-paddedAbs * 5) / 5, // Round down to nearest 0.2
+    max: Math.ceil(paddedAbs * 5) / 5, // Round up to nearest 0.2
+  };
+}
+
+/**
  * Check whether a set of rounds spans multiple methodology versions.
  *
  * Returns true only if there are 2+ distinct non-null methodologyVersion values.

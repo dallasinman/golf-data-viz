@@ -4,6 +4,7 @@ import {
   toTrendSeries,
   calculateBiggestMover,
   hasMethodologyMix,
+  computeYDomain,
   TREND_CATEGORY_COLORS,
 } from "@/lib/golf/trends";
 import { CATEGORY_ORDER } from "@/lib/golf/constants";
@@ -290,5 +291,67 @@ describe("hasMethodologyMix", () => {
       makeRoundSnapshot({ methodologyVersion: "3.0.0" }),
     ];
     expect(hasMethodologyMix(rounds)).toBe(true);
+  });
+});
+
+describe("computeYDomain", () => {
+  it("returns { min: -1, max: 1 } for empty series", () => {
+    expect(computeYDomain([])).toEqual({ min: -1, max: 1 });
+  });
+
+  it("returns zero-centered domain for all-positive values", () => {
+    const series = toTrendSeries([
+      makeRoundSnapshot({ sgOffTheTee: 1.0, sgApproach: 0.5, sgAroundTheGreen: 0.3, sgPutting: 0.2 }),
+    ]);
+    const domain = computeYDomain(series);
+    expect(domain.min).toBeLessThan(0);
+    expect(domain.max).toBeGreaterThan(0);
+    expect(Math.abs(domain.min)).toBeCloseTo(domain.max, 1);
+  });
+
+  it("returns zero-centered domain for mixed positive/negative values", () => {
+    const series = toTrendSeries([
+      makeRoundSnapshot({ sgOffTheTee: 1.5, sgApproach: -1.2, sgAroundTheGreen: -0.6, sgPutting: -0.5 }),
+    ]);
+    const domain = computeYDomain(series);
+    expect(domain.min).toBeLessThan(-1.2);
+    expect(domain.max).toBeGreaterThan(1.5);
+    expect(0).toBeGreaterThan(domain.min);
+    expect(0).toBeLessThan(domain.max);
+    expect(Math.abs(domain.min)).toBeCloseTo(domain.max, 1);
+  });
+
+  it("gives negatives readable space when positive spike dominates", () => {
+    const series = toTrendSeries([
+      makeRoundSnapshot({ sgOffTheTee: 3.0, sgApproach: -0.5, sgAroundTheGreen: -0.2, sgPutting: -0.3 }),
+    ]);
+    const domain = computeYDomain(series);
+    expect(domain.min).toBeLessThanOrEqual(-3.0);
+    expect(domain.max).toBeGreaterThanOrEqual(3.0);
+  });
+
+  it("always includes zero in the domain", () => {
+    const allPositive = toTrendSeries([
+      makeRoundSnapshot({ sgOffTheTee: 0.5, sgApproach: 0.3, sgAroundTheGreen: 0.2, sgPutting: 0.1 }),
+    ]);
+    const d1 = computeYDomain(allPositive);
+    expect(d1.min).toBeLessThan(0);
+    expect(d1.max).toBeGreaterThan(0);
+
+    const allNegative = toTrendSeries([
+      makeRoundSnapshot({ sgOffTheTee: -0.5, sgApproach: -0.3, sgAroundTheGreen: -0.2, sgPutting: -0.1 }),
+    ]);
+    const d2 = computeYDomain(allNegative);
+    expect(d2.min).toBeLessThan(0);
+    expect(d2.max).toBeGreaterThan(0);
+  });
+
+  it("snaps to 0.2 increments", () => {
+    const series = toTrendSeries([
+      makeRoundSnapshot({ sgOffTheTee: 0.7, sgApproach: -0.3, sgAroundTheGreen: 0.1, sgPutting: -0.1 }),
+    ]);
+    const domain = computeYDomain(series);
+    expect((domain.min * 5) % 1).toBeCloseTo(0, 5);
+    expect((domain.max * 5) % 1).toBeCloseTo(0, 5);
   });
 });

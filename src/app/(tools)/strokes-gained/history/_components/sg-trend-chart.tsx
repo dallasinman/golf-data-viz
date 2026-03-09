@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { ResponsiveLine } from "@nivo/line";
 import type { LineCustomSvgLayerProps } from "@nivo/line";
 import type { TrendSeries, RoundSgSnapshot } from "@/lib/golf/trends";
+import { computeYDomain } from "@/lib/golf/trends";
 import { CATEGORY_LABELS } from "@/lib/golf/constants";
 import { trackEvent } from "@/lib/analytics/client";
 
@@ -78,6 +79,20 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
     return map;
   }, [rounds]);
 
+  const yDomain = useMemo(() => computeYDomain(series), [series]);
+
+  const yTicks = useMemo(() => {
+    const step = 0.5;
+    const ticks: number[] = [];
+    let v = Math.floor(yDomain.min / step) * step;
+    while (v <= yDomain.max + step * 0.01) {
+      ticks.push(Math.round(v * 10) / 10);
+      v += step;
+    }
+    if (!ticks.includes(0)) ticks.push(0);
+    return ticks.sort((a, b) => a - b);
+  }, [yDomain]);
+
   if (rounds.length < 3) {
     return (
       <div
@@ -95,89 +110,94 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
   }
 
   return (
-    <div data-testid="sg-trend-chart" style={{ height: 360 }}>
-      <ResponsiveLine
-        data={series}
-        margin={{ top: 20, right: 90, bottom: 50, left: 50 }}
-        xScale={{ type: "point" }}
-        yScale={{ type: "linear", stacked: false }}
-        curve="linear"
-        enablePoints
-        pointSize={8}
-        pointColor={{ theme: "background" }}
-        pointBorderWidth={2}
-        pointBorderColor={{ from: "serieColor" }}
-        colors={(d) => d.color}
-        lineWidth={2}
-        enableGridX={false}
-        enableGridY
-        axisBottom={{
-          tickSize: 0,
-          tickPadding: 8,
-          tickRotation: rounds.length > 10 ? -45 : 0,
-        }}
-        axisLeft={{
-          tickSize: 0,
-          tickPadding: 8,
-          format: (v) => (v > 0 ? `+${v}` : `${v}`),
-        }}
-        layers={[
-          "grid",
-          "markers",
-          "axes",
-          ZeroLine,
-          "lines",
-          "points",
-          "slices",
-          "mesh",
-          "legends",
-        ]}
-        useMesh
-        enableSlices={false}
-        motionConfig="gentle"
-        legends={[
-          {
-            anchor: "right",
-            direction: "column",
-            translateX: 85,
-            itemWidth: 80,
-            itemHeight: 20,
-            itemTextColor: "#64748b",
-            symbolSize: 10,
-            symbolShape: "circle",
-          },
-        ]}
-        tooltip={({ point }) => {
-          const roundLabel = point.data.xFormatted as string;
-          const info = tooltipData.get(roundLabel);
-          const categoryId = point.seriesId as string;
-          const categoryLabel =
-            CATEGORY_LABELS[
-              categoryId as keyof typeof CATEGORY_LABELS
-            ] ?? categoryId;
-          const value = point.data.y as number;
+    <>
+      <p className="mb-1 text-xs text-neutral-400">Oldest → Newest</p>
+      <div data-testid="sg-trend-chart" style={{ height: 360 }}>
+        <ResponsiveLine
+          data={series}
+          margin={{ top: 20, right: 90, bottom: 50, left: 50 }}
+          xScale={{ type: "point" }}
+          yScale={{ type: "linear", stacked: false, min: yDomain.min, max: yDomain.max }}
+          curve="linear"
+          enablePoints
+          pointSize={8}
+          pointColor={{ theme: "background" }}
+          pointBorderWidth={2}
+          pointBorderColor={{ from: "serieColor" }}
+          colors={(d) => d.color}
+          lineWidth={2}
+          enableGridX={false}
+          enableGridY
+          gridYValues={yTicks}
+          axisBottom={{
+            tickSize: 0,
+            tickPadding: 8,
+            tickRotation: rounds.length > 10 ? -45 : 0,
+          }}
+          axisLeft={{
+            tickSize: 0,
+            tickPadding: 8,
+            tickValues: yTicks,
+            format: (v) => (v > 0 ? `+${v}` : `${v}`),
+          }}
+          layers={[
+            "grid",
+            "markers",
+            "axes",
+            ZeroLine,
+            "lines",
+            "points",
+            "slices",
+            "mesh",
+            "legends",
+          ]}
+          useMesh
+          enableSlices={false}
+          motionConfig="gentle"
+          legends={[
+            {
+              anchor: "right",
+              direction: "column",
+              translateX: 85,
+              itemWidth: 80,
+              itemHeight: 20,
+              itemTextColor: "#64748b",
+              symbolSize: 10,
+              symbolShape: "circle",
+            },
+          ]}
+          tooltip={({ point }) => {
+            const roundLabel = point.data.xFormatted as string;
+            const info = tooltipData.get(roundLabel);
+            const categoryId = point.seriesId as string;
+            const categoryLabel =
+              CATEGORY_LABELS[
+                categoryId as keyof typeof CATEGORY_LABELS
+              ] ?? categoryId;
+            const value = point.data.y as number;
 
-          return (
-            <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-md">
-              {info && (
-                <p className="text-xs text-neutral-500">
-                  {info.date} &middot; {info.courseName}
+            return (
+              <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 shadow-md">
+                {info && (
+                  <p className="text-xs text-neutral-500">
+                    {info.date} &middot; {info.courseName}
+                  </p>
+                )}
+                <p className="mt-0.5 text-sm font-medium text-neutral-900">
+                  <span
+                    className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: point.seriesColor }}
+                  />
+                  {categoryLabel}:{" "}
+                  <span className="font-mono">
+                    {value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
+                  </span>
                 </p>
-              )}
-              <p className="mt-0.5 text-sm font-medium text-neutral-900">
-                <span
-                  className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: point.seriesColor }}
-                />
-                {categoryLabel}:{" "}
-                <span className="font-mono">
-                  {value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
-                </span>
-              </p>
-            </div>
-          );
-        }}
-      />
-    </div>
+              </div>
+            );
+          }}
+        />
+      </div>
+    </>
   );
 }
