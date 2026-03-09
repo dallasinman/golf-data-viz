@@ -4,7 +4,6 @@ import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 import { GA4Bootstrap } from "@/lib/analytics/ga4-bootstrap";
 import { GA4PageView } from "@/lib/analytics/ga4-pageview";
-import { resolveGa4MeasurementId } from "@/lib/analytics/measurement-id";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuthProvider } from "@/lib/supabase/auth-context";
@@ -70,7 +69,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const ga4Id = resolveGa4MeasurementId();
+  const ga4Id = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID;
 
   return (
     <html lang="en">
@@ -90,7 +89,7 @@ export default function RootLayout({
               src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}
               strategy="afterInteractive"
             />
-            <GA4PageView measurementId={ga4Id} />
+            <GA4PageView />
           </>
         )}
       </body>
