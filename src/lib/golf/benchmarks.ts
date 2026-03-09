@@ -128,17 +128,20 @@ export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
   // FIR% is frozen at scratch (non-monotonic in source data). Other metrics have per-metric
   // safety clamps. puttsPerRound and penaltiesPerRound are extrapolated from seed estimates
   // pending second-source validation — this is the softest part of the math.
-  // TODO: validate puttsPerRound and penaltiesPerRound gradients against a second source.
+  // TODO(GOL-44): validate puttsPerRound and penaltiesPerRound gradients against a second source.
   if (handicapIndex < 0) {
     const anchor0 = sortedAnchors[0]; // scratch (0 HCP)
     const anchor5 = sortedAnchors[1]; // 5 HCP
+    if (anchor0.handicapIndex !== 0 || anchor5.handicapIndex !== 5) {
+      throw new Error("Extrapolation requires anchors at exactly 0 and 5 HCP");
+    }
     const span = anchor5.handicapIndex - anchor0.handicapIndex; // 5
     const dist = Math.abs(handicapIndex); // positive distance below scratch
 
-    function extrapolate(at0: number, at5: number, floor: number, cap: number): number {
+    const extrapolate = (at0: number, at5: number, floor: number, cap: number): number => {
       const gradient = (at5 - at0) / span;
       return Math.max(floor, Math.min(cap, at0 - gradient * dist));
-    }
+    };
 
     return {
       handicapIndex,
