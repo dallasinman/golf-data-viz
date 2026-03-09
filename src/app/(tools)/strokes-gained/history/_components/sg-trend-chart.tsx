@@ -110,7 +110,7 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
       <div data-testid="sg-trend-chart" style={{ height: 360 }}>
         <ResponsiveLine
           data={series}
-          margin={{ top: 20, right: 140, bottom: 60, left: 50 }}
+          margin={{ top: 20, right: 140, bottom: 40, left: 50 }}
           xScale={{ type: "point" }}
           yScale={{ type: "linear", stacked: false, min: yDomain.min, max: yDomain.max }}
           curve="linear"
@@ -125,13 +125,13 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
           enableGridY
           gridYValues={yTicksVisible}
           axisBottom={{
-            tickSize: 5,
-            tickPadding: 12,
+            tickSize: 0,
+            tickPadding: 8,
             format: (v) => {
               const n = Number(v);
-              // Show every label ≤10 rounds, every 2nd for 11-20, every 5th for 20+
-              const step = rounds.length <= 10 ? 1 : rounds.length <= 20 ? 2 : 5;
-              return n % step === 0 || n === 1 ? `R${n}` : "";
+              // Show every label ≤8, every 2nd for 9-16, every 5th for 17+
+              const step = rounds.length <= 8 ? 1 : rounds.length <= 16 ? 2 : 5;
+              return n % step === 0 || n === 1 ? `Round ${n}` : "";
             },
           }}
           axisLeft={{
