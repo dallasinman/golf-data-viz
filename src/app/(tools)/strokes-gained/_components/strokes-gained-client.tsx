@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useCallback, useEffect } from "react";
+import { CircleCheck } from "lucide-react";
 import { trackEvent } from "@/lib/analytics/client";
 import type {
   RoundInput,
@@ -535,6 +536,7 @@ export default function StrokesGainedClient({
           initialValues={initialInput}
           isCalculating={isCalculating}
           saveEnabled={saveEnabled}
+          isAuthenticated={!!user}
         />
       </div>
 
@@ -560,18 +562,7 @@ export default function StrokesGainedClient({
           className="mt-6 rounded-xl border border-green-200 bg-green-50 px-5 py-4"
         >
           <div className="flex items-center gap-2 text-sm font-medium text-green-800">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-5 w-5 shrink-0"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <CircleCheck className="h-5 w-5 shrink-0" />
             Round added to your history.
           </div>
           <Link
@@ -590,18 +581,7 @@ export default function StrokesGainedClient({
           role="status"
           className="mt-6 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="h-5 w-5 shrink-0"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <CircleCheck className="h-5 w-5 shrink-0" />
           Round saved.
         </div>
       )}

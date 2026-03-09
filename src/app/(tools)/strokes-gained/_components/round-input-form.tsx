@@ -18,6 +18,7 @@ interface RoundInputFormProps {
   initialValues?: Partial<RoundInput> | null;
   isCalculating?: boolean;
   saveEnabled?: boolean;
+  isAuthenticated?: boolean;
 }
 
 function FormField({
@@ -63,6 +64,7 @@ export function RoundInputForm({
   initialValues,
   isCalculating,
   saveEnabled = true,
+  isAuthenticated = false,
 }: RoundInputFormProps) {
   const [showOptional, setShowOptional] = useState(false);
   const [saveToCloud, setSaveToCloud] = useState(false);
@@ -478,9 +480,10 @@ export function RoundInputForm({
           </label>
           {saveToCloud && (
             <p className="text-xs text-neutral-500">
-              Save this round now, then create a free account to claim it and
-              track your SG trends over time. Anonymous saves use Cloudflare
-              Turnstile to verify you&apos;re human.{" "}
+              {isAuthenticated
+                ? "This round will be added to your history."
+                : "Save this round now, then create a free account to claim it and track your SG trends over time."}{" "}
+              Cloudflare Turnstile verifies you&apos;re human.{" "}
               <a
                 href="https://www.cloudflare.com/privacypolicy/"
                 target="_blank"

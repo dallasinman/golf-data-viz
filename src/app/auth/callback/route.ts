@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 function getSafeRedirect(next: string | null): string {
   const fallback = "/strokes-gained/history";
   if (!next) return fallback;
-  // Must start with / and not contain // (blocks protocol-relative URLs like //evil.com)
-  if (!next.startsWith("/") || next.startsWith("//")) return fallback;
+  // Must start with / but block // (protocol-relative) and \ (WHATWG URL normalizes \ to /)
+  if (!next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return fallback;
   return next;
 }
 

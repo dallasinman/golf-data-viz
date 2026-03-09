@@ -94,7 +94,7 @@ describe("RoundInputForm save consent", () => {
       screen.getByText(/Save this round now, then create a free account to claim it and track your SG trends over time/i)
     ).toBeVisible();
     expect(
-      screen.getByText(/Cloudflare Turnstile to verify you're human/i)
+      screen.getByText(/Cloudflare Turnstile verifies you're human/i)
     ).toBeVisible();
     expect(
       screen.getByRole("link", { name: "Privacy Policy" })
@@ -103,6 +103,23 @@ describe("RoundInputForm save consent", () => {
       "href",
       "https://www.cloudflare.com/website-terms/"
     );
+  });
+
+  it("shows authenticated disclosure when user is signed in", async () => {
+    const user = userEvent.setup();
+
+    render(<RoundInputForm onSubmit={onSubmit} saveEnabled isAuthenticated />);
+
+    await user.click(
+      screen.getByLabelText("Save this round to track over time")
+    );
+
+    expect(
+      screen.getByText(/This round will be added to your history/i)
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/create a free account/i)
+    ).toBeNull();
   });
 
   it("reports the save opt-in state upward as the checkbox changes", async () => {

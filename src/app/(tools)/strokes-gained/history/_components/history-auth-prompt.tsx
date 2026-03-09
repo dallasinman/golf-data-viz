@@ -45,7 +45,7 @@ export function HistoryAuthPrompt() {
           <div
             key={feature.title}
             className="animate-fade-up rounded-xl border border-card-border bg-card p-5 shadow-sm"
-            style={{ animationDelay: `${(i + 1) * 100}ms`, animationFillMode: "both" }}
+            style={{ animationDelay: `${(i + 1) * 100}ms` }}
           >
             <div className="inline-flex rounded-lg bg-cream-100 p-2 text-accent-500">
               <feature.icon className="h-5 w-5" />
