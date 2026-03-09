@@ -84,12 +84,12 @@ export type AnalyticsEventProps = {
   plus_handicap_submitted: {
     normalized_value: number;
     is_plus_handicap: true;
-    benchmark_interpolation_mode: "scratch_clamped";
+    benchmark_interpolation_mode: "scratch_clamped" | "extrapolated";
   };
   plus_handicap_results_viewed: {
     normalized_value: number;
     is_plus_handicap: true;
-    benchmark_interpolation_mode: "standard" | "scratch_clamped" | "elite_interpolated" | "elite_clamped";
+    benchmark_interpolation_mode: "standard" | "scratch_clamped" | "extrapolated" | "elite_interpolated" | "elite_clamped";
   };
   trouble_context_prompt_viewed: EmptyPayload;
   trouble_context_prompt_dismissed: EmptyPayload;

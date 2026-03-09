@@ -86,13 +86,12 @@ function handicapToBracketLabel(index: number): HandicapBracket {
 export function getBracketForHandicap(index: number): BracketBenchmark {
   const label = handicapToBracketLabel(index);
 
-  // Plus handicap: return scratch anchor values with "plus" bracket label.
-  // Spread scratch anchor so future anchor field additions are picked up.
+  // Plus handicap: return extrapolated anchor values with "plus" bracket label.
   if (label === "plus") {
-    const scratchAnchor = interpolateBenchmark(0);
+    const extrapolatedAnchor = interpolateBenchmark(index);
     const scratchBracketData = data.brackets.find((b) => b.bracket === "0-5");
     return {
-      ...scratchAnchor,
+      ...extrapolatedAnchor,
       bracket: "plus" as const,
       scoring: scratchBracketData?.scoring ?? {
         eaglesPerRound: 0,
@@ -125,21 +124,45 @@ export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
     );
   }
 
-  // Plus handicaps: clamp to scratch anchor values, preserve real handicapIndex
-  const effectiveIndex = Math.max(0, handicapIndex);
+  // Plus handicaps: extrapolate below scratch using the 0→5 gradient projected in reverse.
+  // FIR% is frozen at scratch (non-monotonic in source data). Other metrics have per-metric
+  // safety clamps. puttsPerRound and penaltiesPerRound are extrapolated from seed estimates
+  // pending second-source validation — this is the softest part of the math.
+  // TODO: validate puttsPerRound and penaltiesPerRound gradients against a second source.
+  if (handicapIndex < 0) {
+    const anchor0 = sortedAnchors[0]; // scratch (0 HCP)
+    const anchor5 = sortedAnchors[1]; // 5 HCP
+    const span = anchor5.handicapIndex - anchor0.handicapIndex; // 5
+    const dist = Math.abs(handicapIndex); // positive distance below scratch
+
+    function extrapolate(at0: number, at5: number, floor: number, cap: number): number {
+      const gradient = (at5 - at0) / span;
+      return Math.max(floor, Math.min(cap, at0 - gradient * dist));
+    }
+
+    return {
+      handicapIndex,
+      averageScore: extrapolate(anchor0.averageScore, anchor5.averageScore, 60, Infinity),
+      fairwayPercentage: anchor0.fairwayPercentage, // frozen at scratch
+      girPercentage: extrapolate(anchor0.girPercentage, anchor5.girPercentage, 0, 80),
+      puttsPerRound: extrapolate(anchor0.puttsPerRound, anchor5.puttsPerRound, 27, Infinity),
+      upAndDownPercentage: extrapolate(anchor0.upAndDownPercentage, anchor5.upAndDownPercentage, 0, 75),
+      penaltiesPerRound: extrapolate(anchor0.penaltiesPerRound, anchor5.penaltiesPerRound, 0.05, Infinity),
+    };
+  }
 
   const first = sortedAnchors[0];
   const last = sortedAnchors[sortedAnchors.length - 1];
 
-  // Clamp to boundaries (use effectiveIndex for lookup, preserve real handicapIndex in result)
-  if (effectiveIndex <= first.handicapIndex) return { ...first, handicapIndex };
-  if (effectiveIndex >= last.handicapIndex) return { ...last, handicapIndex };
+  // Clamp to boundaries
+  if (handicapIndex <= first.handicapIndex) return { ...first, handicapIndex };
+  if (handicapIndex >= last.handicapIndex) return { ...last, handicapIndex };
 
   // Find straddling anchors
   let lower = first;
   let upper = sortedAnchors[1];
   for (let i = 1; i < sortedAnchors.length; i++) {
-    if (sortedAnchors[i].handicapIndex >= effectiveIndex) {
+    if (sortedAnchors[i].handicapIndex >= handicapIndex) {
       lower = sortedAnchors[i - 1];
       upper = sortedAnchors[i];
       break;
@@ -147,11 +170,11 @@ export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
   }
 
   // Exact match
-  if (effectiveIndex === lower.handicapIndex) return { ...lower, handicapIndex };
-  if (effectiveIndex === upper.handicapIndex) return { ...upper, handicapIndex };
+  if (handicapIndex === lower.handicapIndex) return { ...lower, handicapIndex };
+  if (handicapIndex === upper.handicapIndex) return { ...upper, handicapIndex };
 
   const t =
-    (effectiveIndex - lower.handicapIndex) /
+    (handicapIndex - lower.handicapIndex) /
     (upper.handicapIndex - lower.handicapIndex);
 
   function lerp(a: number, b: number): number {

@@ -648,10 +648,15 @@ export default function MethodologyPage() {
             Plus Handicaps
           </h2>
           <p className="mt-2 text-base leading-relaxed text-neutral-600">
-            Plus handicaps are supported. In this version, category benchmarks
-            for plus-handicap rounds use the scratch (0 HCP) peer benchmark,
-            while total SG continues to reflect the entered plus handicap.
-            Elite-specific category benchmarks are not yet available.
+            Plus-handicap rounds are supported using extrapolated peer benchmarks
+            below scratch. For category comparisons, we project the 0–5 handicap
+            trend below 0 where the source data behaves sensibly. FIR% stays fixed
+            at the scratch benchmark because the underlying benchmark data is
+            non-monotonic, and GIR% is capped at 80% to avoid unrealistic elite
+            values. Total strokes gained still uses the player&apos;s actual plus
+            handicap in the course-adjusted calculation. This replaces the previous
+            scratch-clamped approach, which could flatten category results and make
+            it harder for plus-handicap players to see what to work on.
           </p>
         </section>
 

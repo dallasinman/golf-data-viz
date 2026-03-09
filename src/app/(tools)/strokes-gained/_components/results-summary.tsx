@@ -130,13 +130,22 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
           data. Results are less reliable than other brackets.
         </p>
       )}
-      {(result.benchmarkBracket === "plus" || result.benchmarkInterpolationMode === "scratch_clamped") && (
+      {(result.benchmarkBracket === "plus" || result.benchmarkInterpolationMode === "extrapolated" || result.benchmarkInterpolationMode === "scratch_clamped") && (
         <div data-testid="plus-handicap-disclosure" className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 space-y-1">
-          <p>
-            Category benchmarks use scratch (0 HCP) peer data. Total SG
-            reflects your plus handicap. Elite-specific category benchmarks
-            are not yet available in this version.
-          </p>
+          {result.benchmarkInterpolationMode === "extrapolated" ? (
+            <p>
+              <strong>Plus-handicap note:</strong> Your category benchmarks are
+              estimated below scratch using extrapolated peer data. FIR% uses
+              the scratch benchmark; other categories are projected for your
+              handicap level. Total SG still reflects your entered plus handicap.
+            </p>
+          ) : (
+            <p>
+              Category benchmarks use scratch (0 HCP) peer data. Total SG
+              reflects your plus handicap. Elite-specific category benchmarks
+              are not yet available in this version.
+            </p>
+          )}
           {result.estimatedCategories && result.estimatedCategories.length > 0 && (
             <p>
               Some categories were estimated using standard assumptions,
