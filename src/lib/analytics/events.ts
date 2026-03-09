@@ -32,6 +32,7 @@ export type AnalyticsEvent =
   | "round_claimed"
   | "round_claim_failed"
   | "history_page_viewed"
+  | "history_link_clicked"
   | "trend_chart_viewed"
   | "biggest_mover_viewed"
   | "auth_modal_opened";
@@ -104,6 +105,7 @@ export type AnalyticsEventProps = {
   round_claimed: EmptyPayload;
   round_claim_failed: { reason: string };
   history_page_viewed: { round_count: number };
+  history_link_clicked: { surface: string };
   trend_chart_viewed: { round_count: number };
   biggest_mover_viewed: { category: string; direction: string; confidence: string };
   auth_modal_opened: { surface: string };
