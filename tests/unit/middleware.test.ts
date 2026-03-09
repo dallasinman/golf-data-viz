@@ -1,7 +1,7 @@
 /**
- * Proxy (auth session refresh) unit tests.
+ * Middleware (auth session refresh) unit tests.
  *
- * Tests that the auth session refresh proxy:
+ * Tests that the auth session refresh middleware:
  * 1. No-ops when Supabase env vars are missing/placeholder
  * 2. No-ops when no sb-* auth cookie is present
  * 3. Fails open when getUser() throws
@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock NextResponse before any proxy imports
+// Mock NextResponse before any middleware imports
 vi.mock("next/server", () => {
   const next = vi.fn(() => ({
     cookies: {
@@ -30,7 +30,7 @@ function createMockRequest(cookies: { name: string; value: string }[] = []) {
   } as unknown as import("next/server").NextRequest;
 }
 
-describe("proxy", () => {
+describe("middleware", () => {
   beforeEach(() => {
     vi.resetModules();
   });
@@ -44,12 +44,12 @@ describe("proxy", () => {
       vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
       vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "real-key");
 
-      const { proxy } = await import("@/proxy");
+      const { middleware } = await import("@/middleware");
       const request = createMockRequest([
         { name: "sb-test-auth-token", value: "token" },
       ]);
 
-      const response = await proxy(request);
+      const response = await middleware(request);
       expect(response).toBeDefined();
     });
 
@@ -63,12 +63,12 @@ describe("proxy", () => {
         "placeholder-anon-key-for-ci-build"
       );
 
-      const { proxy } = await import("@/proxy");
+      const { middleware } = await import("@/middleware");
       const request = createMockRequest([
         { name: "sb-test-auth-token", value: "token" },
       ]);
 
-      const response = await proxy(request);
+      const response = await middleware(request);
       expect(response).toBeDefined();
     });
 
@@ -76,12 +76,12 @@ describe("proxy", () => {
       vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://not-https.supabase.co");
       vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "real-key");
 
-      const { proxy } = await import("@/proxy");
+      const { middleware } = await import("@/middleware");
       const request = createMockRequest([
         { name: "sb-test-auth-token", value: "token" },
       ]);
 
-      const response = await proxy(request);
+      const response = await middleware(request);
       expect(response).toBeDefined();
     });
   });
@@ -94,10 +94,10 @@ describe("proxy", () => {
       );
       vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "real-anon-key");
 
-      const { proxy } = await import("@/proxy");
+      const { middleware } = await import("@/middleware");
       const request = createMockRequest([]);
 
-      const response = await proxy(request);
+      const response = await middleware(request);
       expect(response).toBeDefined();
     });
 
@@ -108,13 +108,13 @@ describe("proxy", () => {
       );
       vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "real-anon-key");
 
-      const { proxy } = await import("@/proxy");
+      const { middleware } = await import("@/middleware");
       const request = createMockRequest([
         { name: "theme", value: "dark" },
         { name: "_ga", value: "tracking" },
       ]);
 
-      const response = await proxy(request);
+      const response = await middleware(request);
       expect(response).toBeDefined();
     });
   });
@@ -133,12 +133,12 @@ describe("proxy", () => {
         },
       }));
 
-      const { proxy } = await import("@/proxy");
+      const { middleware } = await import("@/middleware");
       const request = createMockRequest([
         { name: "sb-test-auth-token", value: "token" },
       ]);
 
-      const response = await proxy(request);
+      const response = await middleware(request);
       expect(response).toBeDefined();
     });
 
@@ -157,12 +157,12 @@ describe("proxy", () => {
         }),
       }));
 
-      const { proxy } = await import("@/proxy");
+      const { middleware } = await import("@/middleware");
       const request = createMockRequest([
         { name: "sb-test-auth-token", value: "token" },
       ]);
 
-      const response = await proxy(request);
+      const response = await middleware(request);
       expect(response).toBeDefined();
     });
   });
@@ -186,12 +186,12 @@ describe("proxy", () => {
         }),
       }));
 
-      const { proxy } = await import("@/proxy");
+      const { middleware } = await import("@/middleware");
       const request = createMockRequest([
         { name: "sb-abc123-auth-token", value: "some-jwt" },
       ]);
 
-      const response = await proxy(request);
+      const response = await middleware(request);
       expect(response).toBeDefined();
       expect(mockGetUser).toHaveBeenCalledOnce();
     });

@@ -21,7 +21,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
 
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
+    // Use getSession() first (reads local storage, no network request).
+    // Only call getUser() (network request to validate JWT) when a session exists.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      const { data: { user: u } } = await supabase.auth.getUser();
       setUser(u);
       setLoading(false);
     });
