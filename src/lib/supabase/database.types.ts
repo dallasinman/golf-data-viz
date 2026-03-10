@@ -7,13 +7,133 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
+      lesson_report_shares: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          report_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          report_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          report_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_report_shares_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: true
+            referencedRelation: "lesson_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_reports: {
+        Row: {
+          generated_at: string
+          id: string
+          regenerated_at: string | null
+          report_data: Json
+          report_version: string
+          round_count: number
+          selected_round_ids: string[]
+          selection_hash: string
+          user_id: string
+        }
+        Insert: {
+          generated_at?: string
+          id?: string
+          regenerated_at?: string | null
+          report_data: Json
+          report_version: string
+          round_count: number
+          selected_round_ids: string[]
+          selection_hash: string
+          user_id: string
+        }
+        Update: {
+          generated_at?: string
+          id?: string
+          regenerated_at?: string | null
+          report_data?: Json
+          report_version?: string
+          round_count?: number
+          selected_round_ids?: string[]
+          selection_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      round_shares: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          round_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          round_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          round_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_shares_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: true
+            referencedRelation: "rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       round_trouble_holes: {
         Row: {
           created_at: string
@@ -46,38 +166,6 @@ export type Database = {
           },
         ]
       }
-      round_shares: {
-        Row: {
-          id: string
-          round_id: string
-          owner_id: string
-          token: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          round_id: string
-          owner_id: string
-          token: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          round_id?: string
-          owner_id?: string
-          token?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "round_shares_round_id_fkey"
-            columns: ["round_id"]
-            isOneToOne: true
-            referencedRelation: "rounds"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       rounds: {
         Row: {
           attribution_version: string | null
@@ -88,19 +176,18 @@ export type Database = {
           birdies: number
           bogeys: number
           calibration_version: string | null
-          confidence_off_the_tee: string | null
-          confidence_approach: string | null
-          confidence_around_the_green: string | null
-          confidence_putting: string | null
-          estimated_categories: string[]
-          skipped_categories: string[]
           claim_token_expires_at: string | null
           claim_token_hash: string | null
+          confidence_approach: string | null
+          confidence_around_the_green: string | null
+          confidence_off_the_tee: string | null
+          confidence_putting: string | null
           course_name: string
           course_rating: number
           created_at: string
           double_bogeys: number
           eagles: number
+          estimated_categories: string[] | null
           fairway_attempts: number
           fairways_hit: number | null
           greens_in_regulation: number | null
@@ -121,6 +208,7 @@ export type Database = {
           sg_off_the_tee: number | null
           sg_putting: number | null
           sg_total: number | null
+          skipped_categories: string[] | null
           slope_rating: number
           three_putts: number | null
           total_anchor_mode: string | null
@@ -149,19 +237,18 @@ export type Database = {
           birdies: number
           bogeys: number
           calibration_version?: string | null
-          confidence_off_the_tee?: string | null
-          confidence_approach?: string | null
-          confidence_around_the_green?: string | null
-          confidence_putting?: string | null
-          estimated_categories?: string[]
-          skipped_categories?: string[]
           claim_token_expires_at?: string | null
           claim_token_hash?: string | null
+          confidence_approach?: string | null
+          confidence_around_the_green?: string | null
+          confidence_off_the_tee?: string | null
+          confidence_putting?: string | null
           course_name: string
           course_rating: number
           created_at?: string
           double_bogeys: number
           eagles: number
+          estimated_categories?: string[] | null
           fairway_attempts: number
           fairways_hit?: number | null
           greens_in_regulation?: number | null
@@ -182,6 +269,7 @@ export type Database = {
           sg_off_the_tee?: number | null
           sg_putting?: number | null
           sg_total?: number | null
+          skipped_categories?: string[] | null
           slope_rating: number
           three_putts?: number | null
           total_anchor_mode?: string | null
@@ -210,19 +298,18 @@ export type Database = {
           birdies?: number
           bogeys?: number
           calibration_version?: string | null
-          confidence_off_the_tee?: string | null
-          confidence_approach?: string | null
-          confidence_around_the_green?: string | null
-          confidence_putting?: string | null
-          estimated_categories?: string[]
-          skipped_categories?: string[]
           claim_token_expires_at?: string | null
           claim_token_hash?: string | null
+          confidence_approach?: string | null
+          confidence_around_the_green?: string | null
+          confidence_off_the_tee?: string | null
+          confidence_putting?: string | null
           course_name?: string
           course_rating?: number
           created_at?: string
           double_bogeys?: number
           eagles?: number
+          estimated_categories?: string[] | null
           fairway_attempts?: number
           fairways_hit?: number | null
           greens_in_regulation?: number | null
@@ -243,6 +330,7 @@ export type Database = {
           sg_off_the_tee?: number | null
           sg_putting?: number | null
           sg_total?: number | null
+          skipped_categories?: string[] | null
           slope_rating?: number
           three_putts?: number | null
           total_anchor_mode?: string | null
@@ -317,12 +405,66 @@ export type Database = {
           },
         ]
       }
+      stripe_webhook_events: {
+        Row: {
+          event_type: string
+          received_at: string
+          stripe_event_id: string
+        }
+        Insert: {
+          event_type: string
+          received_at?: string
+          stripe_event_id: string
+        }
+        Update: {
+          event_type?: string
+          received_at?: string
+          stripe_event_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          last_stripe_event_created_at: string | null
+          premium_expires_at: string | null
+          premium_status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_stripe_event_created_at?: string | null
+          premium_expires_at?: string | null
+          premium_status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_stripe_event_created_at?: string | null
+          premium_expires_at?: string | null
+          premium_status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_stripe_webhook_events: {
+        Args: { retention_window?: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
@@ -451,7 +593,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
+

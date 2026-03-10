@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatHandicap } from "@/lib/golf/format";
+import { formatCompactDate, formatHandicap } from "@/lib/golf/format";
 
 describe("formatHandicap", () => {
   it("formats plus handicap with + prefix", () => {
@@ -24,5 +24,11 @@ describe("formatHandicap", () => {
 
   it("formats whole numbers with one decimal", () => {
     expect(formatHandicap(10)).toBe("10.0");
+  });
+});
+
+describe("formatCompactDate", () => {
+  it("formats a YYYY-MM-DD value for compact UI display", () => {
+    expect(formatCompactDate("2026-03-01")).toBe("Mar 1, 2026");
   });
 });
