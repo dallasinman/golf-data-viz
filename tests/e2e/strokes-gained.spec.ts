@@ -7,6 +7,9 @@ import {
 } from "./helpers/round-form";
 
 test.describe("Strokes Gained Benchmarker", () => {
+  const plusDisclosurePattern =
+    /estimated below scratch using extrapolated peer data|Category benchmarks use scratch \(0 HCP\) peer data/;
+
   test("compact sample preview is visible on SG page", async ({ page }) => {
     await page.goto("/strokes-gained");
     const preview = page.getByTestId("compact-sample-preview");
@@ -413,7 +416,7 @@ test.describe("Strokes Gained Benchmarker", () => {
 
     // Verify disclosure text
     await expect(
-      sgResults.getByText(/estimated below scratch using extrapolated peer data/)
+      sgResults.getByText(plusDisclosurePattern)
     ).toBeVisible();
 
     // Verify share URL round-trips
@@ -436,7 +439,7 @@ test.describe("Strokes Gained Benchmarker", () => {
     await expect(
       page
         .locator('[data-testid="sg-results"]')
-        .getByText(/estimated below scratch using extrapolated peer data/)
+        .getByText(plusDisclosurePattern)
     ).toBeVisible();
   });
 
