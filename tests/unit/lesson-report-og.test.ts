@@ -60,6 +60,7 @@ describe("shared lesson report OG route", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/png");
+    expect(response.headers.get("cache-control")).toContain("s-maxage=3600");
     const body = await response.arrayBuffer();
     expect(body.byteLength).toBeGreaterThan(0);
   });

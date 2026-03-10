@@ -5,6 +5,9 @@ import { formatSG } from "@/lib/golf/format";
 export const runtime = "nodejs";
 
 const SIZE = { width: 1200, height: 630 };
+const CACHE_HEADERS = {
+  "Cache-Control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
+};
 
 export async function GET(
   _request: Request,
@@ -31,7 +34,7 @@ export async function GET(
           Lesson Prep Report Not Available
         </div>
       ),
-      SIZE
+      { ...SIZE, headers: CACHE_HEADERS }
     );
   }
 
@@ -140,6 +143,6 @@ export async function GET(
         </div>
       </div>
     ),
-    SIZE
+    { ...SIZE, headers: CACHE_HEADERS }
   );
 }

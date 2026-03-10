@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { PremiumStatus } from "@/lib/billing/entitlements";
+import { getSiteUrl } from "@/lib/site-url";
 
 interface StripeSubscriptionLike {
   id: string;
@@ -41,15 +42,6 @@ function getLessonPrepPriceId(): string {
     throw new Error("Missing STRIPE_PREMIUM_PRICE_ID");
   }
   return priceId;
-}
-
-function getBaseUrl(): string {
-  const value =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    "https://golfdataviz.com";
-
-  return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
 function toIsoFromUnix(seconds: number | null): string | null {
@@ -198,7 +190,7 @@ async function postStripeForm(
 }
 
 export async function createCheckoutSession(userId: string): Promise<string> {
-  const { successUrl, cancelUrl } = buildCheckoutRedirectUrls(getBaseUrl());
+  const { successUrl, cancelUrl } = buildCheckoutRedirectUrls(getSiteUrl());
   const body = new URLSearchParams({
     mode: "subscription",
     success_url: successUrl,
@@ -223,7 +215,7 @@ export async function createBillingPortalSession(
 ): Promise<string> {
   const body = new URLSearchParams({
     customer: stripeCustomerId,
-    return_url: `${getBaseUrl()}${LESSON_PREP_PATH}`,
+    return_url: `${getSiteUrl()}${LESSON_PREP_PATH}`,
   });
   const session = await postStripeForm("/billing_portal/sessions", body);
   const url = typeof session.url === "string" ? session.url : null;

@@ -22,6 +22,7 @@ import {
   getLessonReportBySelection,
   getRoundsForLessonReport,
 } from "@/lib/golf/round-queries";
+import { getSiteUrl } from "@/lib/site-url";
 
 type ActionFailure = {
   success: false;
@@ -61,12 +62,7 @@ function normalizeSelection(roundIds: string[]): string[] {
 }
 
 function buildReportShareUrl(token: string): string {
-  const base =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    "https://golfdataviz.com";
-  const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
-  return `${normalizedBase}/strokes-gained/shared/report/${token}`;
+  return `${getSiteUrl()}/strokes-gained/shared/report/${token}`;
 }
 
 export async function generateLessonReport(
@@ -160,21 +156,6 @@ export async function createLessonReportShareToken(
     }
 
     const supabase = await createClient();
-    const { data: existing } = await supabase
-      .from("lesson_report_shares")
-      .select("token")
-      .eq("report_id", reportId)
-      .single();
-
-    if (existing?.token) {
-      return {
-        success: true,
-        token: existing.token,
-        shareUrl: buildReportShareUrl(existing.token),
-        created: false,
-      };
-    }
-
     const { data: report } = await supabase
       .from("lesson_reports")
       .select("id")
@@ -184,6 +165,22 @@ export async function createLessonReportShareToken(
 
     if (!report) {
       return fail("NOT_FOUND", "Lesson prep report not found.");
+    }
+
+    const { data: existing } = await supabase
+      .from("lesson_report_shares")
+      .select("token")
+      .eq("report_id", reportId)
+      .eq("owner_id", user.id)
+      .single();
+
+    if (existing?.token) {
+      return {
+        success: true,
+        token: existing.token,
+        shareUrl: buildReportShareUrl(existing.token),
+        created: false,
+      };
     }
 
     const token = crypto.randomUUID();

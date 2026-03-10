@@ -10,9 +10,10 @@ import { ConfidenceBadge } from "@/app/(tools)/strokes-gained/_components/confid
 import { SgTrendChart } from "@/app/(tools)/strokes-gained/history/_components/sg-trend-chart";
 import { trackEvent } from "@/lib/analytics/client";
 import type { ViewerEntitlements } from "@/lib/billing/entitlements";
+import { CATEGORY_LABELS } from "@/lib/golf/constants";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import type { LessonReportSnapshot } from "@/lib/golf/round-queries";
-import { formatDate, formatHandicap, formatSG } from "@/lib/golf/format";
+import { formatCompactDate, formatDate, formatHandicap, formatSG } from "@/lib/golf/format";
 import {
   createLessonReportShareToken,
   generateLessonReport,
@@ -23,14 +24,6 @@ interface LessonReportViewProps {
   snapshot: LessonReportSnapshot;
   entitlements?: ViewerEntitlements;
   surface: "owner" | "shared";
-}
-
-function formatCompactDate(dateStr: string): string {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 function toTrendRounds(snapshot: LessonReportSnapshot): RoundSgSnapshot[] {
@@ -342,11 +335,7 @@ export function LessonReportView({
               className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5"
             >
               <span className="text-sm text-neutral-700">
-                {category === "off-the-tee"
-                  ? "Off the Tee"
-                  : category === "around-the-green"
-                    ? "Around the Green"
-                    : category.charAt(0).toUpperCase() + category.slice(1)}
+                {CATEGORY_LABELS[category as keyof typeof report.confidenceSummary.byCategory]}
               </span>
               <ConfidenceBadge
                 level={level}

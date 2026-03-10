@@ -211,20 +211,14 @@ function buildRankedAreas(
   confidenceByCategory: Record<StrokesGainedCategory, ConfidenceLevel>
 ): { focusArea: LessonReportArea; strongestArea: LessonReportArea } {
   const trendSnapshots = snapshots.map(roundToTrendSnapshot);
+  const biggestMover = calculateBiggestMover(trendSnapshots);
 
   const ranked = CATEGORY_ORDER.map((category) => {
     const values = snapshots.map((snapshot) => getCategoryValue(snapshot, category));
     const averageSg = average(values);
     const negativeCount = values.filter((value) => value < 0).length;
     const positiveCount = values.filter((value) => value > 0).length;
-    const recentDelta = (() => {
-      const mover = calculateBiggestMover(
-        trendSnapshots.map((snapshot) => ({
-          ...snapshot,
-        }))
-      );
-      return mover?.category === category ? mover.delta : 0;
-    })();
+    const recentDelta = biggestMover?.category === category ? biggestMover.delta : 0;
 
     return {
       category,

@@ -1,7 +1,7 @@
 "use client";
 
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
-import { formatSG } from "@/lib/golf/format";
+import { formatCompactDate, formatSG } from "@/lib/golf/format";
 import { cn } from "@/lib/utils";
 
 interface RoundSelectionCardProps {
@@ -9,14 +9,6 @@ interface RoundSelectionCardProps {
   selected: boolean;
   disabled?: boolean;
   onToggle: () => void;
-}
-
-function formatCompactDate(dateStr: string): string {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 export function RoundSelectionCard({

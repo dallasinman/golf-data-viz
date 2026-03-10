@@ -25,6 +25,7 @@ import { generateClaimToken, hashClaimToken } from "@/lib/security/claim-token";
 import { getUser } from "@/lib/supabase/auth";
 import { timingSafeEqual } from "crypto";
 import { headers } from "next/headers";
+import { getSiteUrl } from "@/lib/site-url";
 
 export type SaveRoundErrorCode =
   | "RATE_LIMITED"
@@ -563,8 +564,7 @@ export async function createShareToken(
 }
 
 function buildShareUrl(token: string): string {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://golfdataviz.com";
-  return `${base}/strokes-gained/shared/round/${token}`;
+  return `${getSiteUrl()}/strokes-gained/shared/round/${token}`;
 }
 
 // ---------------------------------------------------------------------------

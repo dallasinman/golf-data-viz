@@ -42,6 +42,15 @@ function getEventObject(event: StripeEventPayload): Record<string, unknown> | nu
     : null;
 }
 
+function isStripeEventPayload(value: unknown): value is StripeEventPayload {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "string" && typeof candidate.type === "string";
+}
+
 function getSubscriptionCustomer(
   value: unknown
 ): string | { id: string } | null {
@@ -199,7 +208,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
-    const event = JSON.parse(payload) as StripeEventPayload;
+    const parsed = JSON.parse(payload) as unknown;
+    if (!isStripeEventPayload(parsed)) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    const event = parsed;
     const recordResult = await recordWebhookEvent(event.id, event.type);
     if (recordResult === "duplicate") {
       return NextResponse.json({ received: true, duplicate: true });
