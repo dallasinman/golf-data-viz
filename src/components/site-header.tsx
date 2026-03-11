@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -213,7 +212,7 @@ export function SiteHeader() {
                     className={`block min-h-11 w-full rounded-lg px-3 py-2 text-left text-base font-medium text-neutral-800 transition-colors hover:bg-cream-100 hover:text-neutral-950 ${
                       mobileOpen ? "animate-fade-up" : ""
                     }`}
-                    style={mobileOpen ? { animationDelay: "160ms" } : undefined}
+                    style={mobileOpen ? { animationDelay: `${(PRIMARY_LINKS.length + 1) * 40}ms` } : undefined}
                   >
                     Sign in
                   </button>
