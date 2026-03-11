@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreditCard, Lock, Sparkles } from "lucide-react";
 import { trackEvent } from "@/lib/analytics/client";
 import type { ViewerEntitlements } from "@/lib/billing/entitlements";
+import { MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS } from "@/lib/golf/constants";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import { formatDate } from "@/lib/golf/format";
 import {
@@ -59,7 +60,10 @@ export function LessonPrepBuilder({
       router.replace("/strokes-gained/lesson-prep", { scroll: false });
     }
 
-    if (!entitlements.canGenerateLessonReports && rounds.length >= 3) {
+    if (
+      !entitlements.canGenerateLessonReports &&
+      rounds.length >= MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS
+    ) {
       trackEvent("premium_gate_hit", {
         feature: "lesson_report_generation",
         surface: "lesson_prep_builder",
@@ -146,8 +150,10 @@ export function LessonPrepBuilder({
   }
 
   const selectedRounds = rounds.filter((round) => selectedRoundIds.includes(round.roundId));
-  const selectionReady = selectedRoundIds.length >= 3 && selectedRoundIds.length <= 8;
-  const minRoundsMet = rounds.length >= 3;
+  const selectionReady =
+    selectedRoundIds.length >= MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS &&
+    selectedRoundIds.length <= 8;
+  const minRoundsMet = rounds.length >= MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS;
   const canGenerate = entitlements.canGenerateLessonReports && selectionReady;
   const selectionDateRange =
     selectedRounds.length > 0
@@ -180,7 +186,7 @@ export function LessonPrepBuilder({
             </p>
             <p className="mt-1 font-display text-5xl text-white">{rounds.length}</p>
             <p className="mt-1 text-xs text-brand-100/75">
-              3+ required to build
+              {MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS}+ required to build
             </p>
           </div>
         </div>
@@ -201,7 +207,8 @@ export function LessonPrepBuilder({
                   Select Rounds
                 </h2>
                 <p className="mt-1 text-sm text-neutral-500">
-                  Most recent five rounds are preselected. Use 3 to 8 rounds.
+                  Most recent five rounds are preselected. Use{" "}
+                  {MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS} to 8 rounds.
                 </p>
               </div>
               <div className="rounded-full bg-cream-100 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-neutral-700">
@@ -253,8 +260,8 @@ export function LessonPrepBuilder({
 
             {!minRoundsMet && (
               <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                Save at least 3 rounds first. Single-round benchmark, saved detail,
-                and saved-round sharing stay free.
+                Save at least {MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS} rounds first.
+                Single-round benchmark, saved detail, and saved-round sharing stay free.
               </div>
             )}
 

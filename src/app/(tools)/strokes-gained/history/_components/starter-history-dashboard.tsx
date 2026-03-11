@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight, Flag, LineChart, NotebookPen } from "lucide-react";
+import { MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS } from "@/lib/golf/constants";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import { SummaryStats } from "./history-summary-stats";
 import { RoundHistoryList } from "./round-history-list";
@@ -12,7 +13,10 @@ interface StarterHistoryDashboardProps {
 
 function StarterReadinessCard({ roundCount }: { roundCount: number }) {
   const title = roundCount === 1 ? "Baseline established" : "Comparison started";
-  const kicker = roundCount === 1 ? "Round 1 of 3" : "Round 2 of 3";
+  const kicker =
+    roundCount === 1
+      ? `Round 1 of ${MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS}`
+      : `Round 2 of ${MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS}`;
   const body =
     roundCount === 1
       ? "You have your first saved benchmark. One more round starts to separate a single day from the shape of your game."
@@ -79,13 +83,12 @@ function StarterReadinessCard({ roundCount }: { roundCount: number }) {
 }
 
 function StarterTrendCard({ roundCount }: { roundCount: number }) {
-  const roundsNeeded = Math.max(0, 3 - roundCount);
+  const roundsNeeded = Math.max(0, MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS - roundCount);
 
   return (
     <section
       data-testid="starter-trend-card"
-      className="animate-fade-up overflow-hidden rounded-2xl border border-card-border bg-card shadow-sm"
-      style={{ animationDelay: "100ms" }}
+      className="animate-fade-up delay-1 overflow-hidden rounded-2xl border border-card-border bg-card shadow-sm"
     >
       <div className="grid gap-0 md:grid-cols-[0.95fr,1.05fr]">
         <div className="bg-brand-900 px-5 py-6 text-white">
@@ -142,7 +145,7 @@ function StarterTrendCard({ roundCount }: { roundCount: number }) {
 }
 
 function StarterLessonPrepCard({ roundCount }: { roundCount: number }) {
-  const roundsNeeded = Math.max(0, 3 - roundCount);
+  const roundsNeeded = Math.max(0, MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS - roundCount);
 
   return (
     <section
@@ -203,7 +206,7 @@ export function StarterHistoryDashboard({
 
       <StarterTrendCard roundCount={rounds.length} />
 
-      <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
+      <div className="animate-fade-up delay-2">
         <RoundHistoryList rounds={rounds} />
       </div>
     </div>

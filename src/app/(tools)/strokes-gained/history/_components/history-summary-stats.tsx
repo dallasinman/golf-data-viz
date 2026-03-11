@@ -5,6 +5,14 @@ import type { RoundSgSnapshot } from "@/lib/golf/trends";
 
 export function SummaryStats({ rounds }: { rounds: RoundSgSnapshot[] }) {
   const stats = useMemo(() => {
+    if (rounds.length === 0) {
+      return {
+        roundsPlayed: 0,
+        avgScore: "—",
+        lastPlayed: "—",
+      };
+    }
+
     const avgScore = rounds.reduce((sum, r) => sum + r.score, 0) / rounds.length;
     const sorted = [...rounds].sort(
       (a, b) =>

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import type { ViewerEntitlements } from "@/lib/billing/entitlements";
+import { MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS } from "@/lib/golf/constants";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import {
   toTrendSeries,
@@ -27,7 +28,7 @@ type DashboardVariant = "empty" | "starter" | "full";
 
 function getDashboardVariant(roundCount: number): DashboardVariant {
   if (roundCount === 0) return "empty";
-  if (roundCount < 3) return "starter";
+  if (roundCount < MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS) return "starter";
   return "full";
 }
 
@@ -39,7 +40,7 @@ function LessonPrepCta({
   entitlements: ViewerEntitlements;
 }) {
   useEffect(() => {
-    if (roundCount >= 3) {
+    if (roundCount >= MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS) {
       trackEvent("premium_cta_viewed", {
         surface: "history_dashboard",
         premium_status: entitlements.status,
@@ -48,7 +49,7 @@ function LessonPrepCta({
     }
   }, [entitlements.status, roundCount]);
 
-  if (roundCount < 3) {
+  if (roundCount < MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS) {
     return null;
   }
 
@@ -124,13 +125,12 @@ export function HistoryDashboard({ rounds, entitlements }: HistoryDashboardProps
 
       <LessonPrepCta roundCount={rounds.length} entitlements={entitlements} />
 
-      <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
+      <div className="animate-fade-up delay-1">
         <BiggestMoverCard mover={mover} />
       </div>
 
       <div
-        className="animate-fade-up rounded-xl border border-card-border bg-card p-5 shadow-sm"
-        style={{ animationDelay: "200ms" }}
+        className="animate-fade-up delay-2 rounded-xl border border-card-border bg-card p-5 shadow-sm"
       >
         <h2 className="mb-3 font-display text-xl tracking-tight text-neutral-950">
           SG Trends
@@ -138,7 +138,7 @@ export function HistoryDashboard({ rounds, entitlements }: HistoryDashboardProps
         <SgTrendChart series={series} rounds={rounds} />
       </div>
 
-      <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
+      <div className="animate-fade-up delay-3">
         <RoundHistoryList rounds={rounds} />
       </div>
     </div>
