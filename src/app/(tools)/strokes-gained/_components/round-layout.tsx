@@ -207,26 +207,29 @@ export function RoundLayout({
           chartData={chartData}
           courseName={snapshot.courseName}
           score={snapshot.score}
-          benchmarkMeta={benchmarkMeta}
-          roundInput={{
-            course: snapshot.courseName,
-            date: snapshot.playedAt,
-            score: snapshot.score,
-            handicapIndex: snapshot.handicapIndex,
-            courseRating: snapshot.courseRating ?? 72,
-            slopeRating: snapshot.slopeRating ?? 113,
-            fairwaysHit: snapshot.fairwaysHit ?? undefined,
-            fairwayAttempts: snapshot.fairwayAttempts ?? 14,
-            greensInRegulation: snapshot.greensInRegulation ?? undefined,
-            totalPutts: snapshot.totalPutts ?? 36,
-            penaltyStrokes: snapshot.penaltyStrokes ?? 0,
-            eagles: snapshot.eagles ?? 0,
-            birdies: snapshot.birdies ?? 0,
-            pars: snapshot.pars ?? 0,
-            bogeys: snapshot.bogeys ?? 0,
-            doubleBogeys: snapshot.doubleBogeys ?? 0,
-            triplePlus: snapshot.triplePlus ?? 0,
-          }}
+          roundInput={
+            snapshot.eagles != null
+              ? {
+                  course: snapshot.courseName,
+                  date: snapshot.playedAt,
+                  score: snapshot.score,
+                  handicapIndex: snapshot.handicapIndex,
+                  courseRating: snapshot.courseRating ?? 72,
+                  slopeRating: snapshot.slopeRating ?? 113,
+                  fairwaysHit: snapshot.fairwaysHit ?? undefined,
+                  fairwayAttempts: snapshot.fairwayAttempts ?? 14,
+                  greensInRegulation: snapshot.greensInRegulation ?? undefined,
+                  totalPutts: snapshot.totalPutts ?? 36,
+                  penaltyStrokes: snapshot.penaltyStrokes ?? 0,
+                  eagles: snapshot.eagles,
+                  birdies: snapshot.birdies ?? 0,
+                  pars: snapshot.pars ?? 0,
+                  bogeys: snapshot.bogeys ?? 0,
+                  doubleBogeys: snapshot.doubleBogeys ?? 0,
+                  triplePlus: snapshot.triplePlus ?? 0,
+                }
+              : null
+          }
         />
       </div>
     </main>

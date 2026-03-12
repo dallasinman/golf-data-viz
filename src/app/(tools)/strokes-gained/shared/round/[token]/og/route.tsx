@@ -2,14 +2,11 @@ import { ImageResponse } from "next/og";
 import { type NextRequest } from "next/server";
 import { getRoundByShareToken } from "@/lib/golf/round-queries";
 import { toStrokesGainedResult } from "@/lib/golf/round-detail-adapter";
-import { getBenchmarkMeta } from "@/lib/golf/benchmarks";
-import { formatHandicap } from "@/lib/golf/format";
+import { buildFamiliarStats } from "@/lib/golf/format";
 import {
   buildCompactSGRow,
   findWeakestCategoryFromResult,
-  formatSGForOG,
   truncateText,
-  getBracketLabel,
 } from "@/lib/golf/og-card-data";
 
 // Node runtime needed for admin client (service role key)
@@ -80,17 +77,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   const result = toStrokesGainedResult(snapshot);
   const courseName = truncateText(snapshot.courseName, 58);
-  const bracketLabel = getBracketLabel(result);
-  const meta = getBenchmarkMeta();
   const compactSG = buildCompactSGRow(result);
   const weakest = findWeakestCategoryFromResult(result);
 
-  // Build familiar stats line
-  const familiarParts: string[] = [];
-  familiarParts.push(`${formatHandicap(snapshot.handicapIndex)} index`);
-  if (snapshot.greensInRegulation != null) familiarParts.push(`${snapshot.greensInRegulation} GIR`);
-  if (snapshot.totalPutts != null) familiarParts.push(`${snapshot.totalPutts} putts`);
-  const familiarLine = familiarParts.join(" · ");
+  const familiarLine = buildFamiliarStats({
+    handicapIndex: snapshot.handicapIndex,
+    greensInRegulation: snapshot.greensInRegulation,
+    totalPutts: snapshot.totalPutts,
+  }).join(" · ");
 
   return new ImageResponse(
     (

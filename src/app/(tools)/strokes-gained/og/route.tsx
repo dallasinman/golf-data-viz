@@ -5,7 +5,7 @@ import { getInterpolatedBenchmark } from "@/lib/golf/benchmarks";
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
 import { getSgPhase2Mode } from "@/lib/golf/phase2-mode";
-import { formatHandicap } from "@/lib/golf/format";
+import { buildFamiliarStats } from "@/lib/golf/format";
 import {
   buildCompactSGRow,
   findWeakestCategoryFromResult,
@@ -116,12 +116,11 @@ export async function GET(request: NextRequest) {
   const compactSG = buildCompactSGRow(result);
   const weakest = findWeakestCategoryFromResult(result);
 
-  // Build familiar stats line
-  const familiarParts: string[] = [];
-  familiarParts.push(`${formatHandicap(input.handicapIndex)} index`);
-  if (input.greensInRegulation != null) familiarParts.push(`${input.greensInRegulation} GIR`);
-  if (input.totalPutts != null) familiarParts.push(`${input.totalPutts} putts`);
-  const familiarLine = familiarParts.join(" · ");
+  const familiarLine = buildFamiliarStats({
+    handicapIndex: input.handicapIndex,
+    greensInRegulation: input.greensInRegulation,
+    totalPutts: input.totalPutts,
+  }).join(" · ");
 
   return new ImageResponse(
     (

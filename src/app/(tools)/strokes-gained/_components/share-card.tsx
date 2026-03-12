@@ -2,7 +2,6 @@
 
 import { forwardRef } from "react";
 import type {
-  BenchmarkMeta,
   StrokesGainedResult,
   RadarChartDatum,
   RoundInput,
@@ -22,14 +21,13 @@ interface ShareCardProps {
   chartData: RadarChartDatum[];
   courseName: string;
   score: number;
-  benchmarkMeta?: BenchmarkMeta;
   hasTroubleContext?: boolean;
   /** Pass the round input to show scoring distribution and familiar stats. */
   roundInput?: RoundInput | null;
 }
 
 export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
-  function ShareCard({ result, chartData, courseName, score, benchmarkMeta, hasTroubleContext, roundInput }, ref) {
+  function ShareCard({ result, chartData, courseName, score, hasTroubleContext, roundInput }, ref) {
     const bracketLabel =
       BRACKET_LABELS[result.benchmarkBracket] ?? result.benchmarkBracket;
 

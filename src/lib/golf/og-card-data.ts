@@ -8,32 +8,8 @@ import {
   BRACKET_LABELS,
   CATEGORY_LABELS,
   CATEGORY_ORDER,
-  CONFIDENCE_COLORS_HEX,
-  CONFIDENCE_LABELS,
 } from "./constants";
-import type { ConfidenceLevel } from "./types";
-
-export interface OGCardEntry {
-  label: string;
-  value: number;
-  skipped: boolean;
-  confidence: ConfidenceLevel;
-}
-
-export function buildOGCardEntries(result: StrokesGainedResult): OGCardEntry[] {
-  const skippedSet = new Set(result.skippedCategories);
-  return CATEGORY_ORDER.map((key) => ({
-    label: CATEGORY_LABELS[key],
-    value: result.categories[key],
-    skipped: skippedSet.has(key),
-    confidence: result.confidence[key],
-  }));
-}
-
-export function formatSGForOG(value: number): string {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}`;
-}
+import { formatSG } from "./format";
 
 export function truncateText(value: string, max: number): string {
   return value.length <= max ? value : `${value.slice(0, max - 1)}…`;
@@ -56,7 +32,7 @@ export function buildCompactSGRow(result: StrokesGainedResult): string {
   const skippedSet = new Set(result.skippedCategories);
   return CATEGORY_ORDER
     .filter((key) => !skippedSet.has(key))
-    .map((key) => `${OG_CATEGORY_ABBREV[key]} ${formatSGForOG(result.categories[key])}`)
+    .map((key) => `${OG_CATEGORY_ABBREV[key]} ${formatSG(result.categories[key])}`)
     .join("  ");
 }
 
@@ -74,4 +50,3 @@ export function findWeakestCategoryFromResult(result: StrokesGainedResult): stri
   return weakest ? CATEGORY_LABELS[weakest.key] : null;
 }
 
-export { CONFIDENCE_COLORS_HEX, CONFIDENCE_LABELS };

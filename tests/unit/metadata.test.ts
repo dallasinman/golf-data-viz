@@ -28,6 +28,8 @@ describe("generateMetadata", () => {
     expect(description).toBeTruthy();
     // Score-first description includes index and familiar stats
     expect(description).toContain("index");
+    expect(description).toContain("GIR");
+    expect(description).toContain("putts");
   });
 
   it("returns default metadata when no d param", async () => {

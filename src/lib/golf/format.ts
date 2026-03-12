@@ -61,13 +61,17 @@ export function formatScoringBreakdown(s: {
   return parts;
 }
 
-/** Find the weakest SG category label (most negative value). Returns null if all zero/positive. */
+/** Find the weakest SG category label (most negative value). Returns null if all zero/positive.
+ *  Optionally pass skippedCategories to exclude them from consideration.
+ */
 export function findWeakestCategory(snapshot: {
   sgOffTheTee: number;
   sgApproach: number;
   sgAroundTheGreen: number;
   sgPutting: number;
+  skippedCategories?: StrokesGainedCategory[];
 }): string | null {
+  const skippedSet = new Set(snapshot.skippedCategories ?? []);
   const mapping: { key: StrokesGainedCategory; value: number }[] = [
     { key: "off-the-tee", value: snapshot.sgOffTheTee },
     { key: "approach", value: snapshot.sgApproach },
@@ -76,6 +80,7 @@ export function findWeakestCategory(snapshot: {
   ];
   let weakest: { key: StrokesGainedCategory; value: number } | null = null;
   for (const entry of mapping) {
+    if (skippedSet.has(entry.key)) continue;
     if (entry.value < 0 && (weakest === null || entry.value < weakest.value)) {
       weakest = entry;
     }
@@ -83,14 +88,18 @@ export function findWeakestCategory(snapshot: {
   return weakest ? CATEGORY_LABELS[weakest.key] : null;
 }
 
-/** Build a familiar stats line from available data. */
+/** Build a familiar stats line from available data.
+ *  Pass handicapIndex to prefix with "[index] index" (used in OG images).
+ */
 export function buildFamiliarStats(s: {
   greensInRegulation?: number | null;
   totalPutts?: number | null;
   fairwaysHit?: number | null;
   fairwayAttempts?: number | null;
+  handicapIndex?: number | null;
 }): string[] {
   const parts: string[] = [];
+  if (s.handicapIndex != null) parts.push(`${formatHandicap(s.handicapIndex)} index`);
   if (s.greensInRegulation != null) parts.push(`${s.greensInRegulation} GIR`);
   if (s.totalPutts != null) parts.push(`${s.totalPutts} putts`);
   if (s.fairwaysHit != null && s.fairwayAttempts != null) {

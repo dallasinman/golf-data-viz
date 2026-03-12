@@ -209,6 +209,8 @@ test.describe("Strokes Gained Benchmarker", () => {
       .locator('meta[property="og:description"]')
       .getAttribute("content");
     expect(ogDesc).toBeTruthy();
+    expect(ogDesc).toContain("index");
+    expect(ogDesc).toContain("GIR");
 
     const robots = await page.locator('meta[name="robots"]').getAttribute("content");
     expect(robots?.toLowerCase()).toContain("noindex");

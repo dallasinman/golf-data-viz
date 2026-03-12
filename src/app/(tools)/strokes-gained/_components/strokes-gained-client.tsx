@@ -364,10 +364,12 @@ export default function StrokesGainedClient({
               setSavedRoundId(res.roundId);
               setSavedRoundOwned(res.isOwned);
               setSaveSuccess(true);
-              // Create a share token for canonical URL sharing
-              void createShareToken(res.roundId).then((tokenRes) => {
-                if (tokenRes.success) setShareToken(tokenRes.token);
-              });
+              // Create a share token for canonical URL sharing (owner only)
+              if (res.isOwned) {
+                void createShareToken(res.roundId).then((tokenRes) => {
+                  if (tokenRes.success) setShareToken(tokenRes.token);
+                });
+              }
               // Auto-dismiss for anonymous saves; owned rounds get a persistent card
               if (!res.isOwned) {
                 saveSuccessTimerRef.current = setTimeout(
@@ -895,7 +897,6 @@ export default function StrokesGainedClient({
               chartData={chartData}
               courseName={lastInput.course}
               score={lastInput.score}
-              benchmarkMeta={benchmarkMeta}
               hasTroubleContext={troubleContext !== null}
               roundInput={lastInput}
             />
