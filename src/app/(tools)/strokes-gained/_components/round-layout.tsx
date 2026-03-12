@@ -221,7 +221,7 @@ export function RoundLayout({
                   greensInRegulation: snapshot.greensInRegulation ?? undefined,
                   totalPutts: snapshot.totalPutts ?? 36,
                   penaltyStrokes: snapshot.penaltyStrokes ?? 0,
-                  eagles: snapshot.eagles,
+                  eagles: snapshot.eagles ?? 0,
                   birdies: snapshot.birdies ?? 0,
                   pars: snapshot.pars ?? 0,
                   bogeys: snapshot.bogeys ?? 0,
