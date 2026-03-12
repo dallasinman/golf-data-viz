@@ -91,7 +91,7 @@ describe("ShareCard", () => {
     );
 
     expect(screen.getByText("+2.50")).toBeTruthy();
-    expect(screen.getByText("Proxy SG")).toBeTruthy();
+    expect(screen.getByText("SG vs peers")).toBeTruthy();
   });
 
   it("shows bracket label", () => {
