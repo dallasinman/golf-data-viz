@@ -84,8 +84,8 @@ export function reconcileCategories(
   activeCats.forEach((cat) => {
     if (provisionals[cat] !== 0 &&
         Math.sign(provisionals[cat]) !== Math.sign(categories[cat])) {
-      const excess = categories[cat]; // amount beyond zero-crossing
-      unattributed += excess;
+      const crossoverAmount = categories[cat]; // amount beyond zero-crossing
+      unattributed += crossoverAmount;
       adjustments[cat] = -provisionals[cat]; // bring exactly to 0
       categories[cat] = 0;
       if (!flags.includes("sign_flip_prevented")) {

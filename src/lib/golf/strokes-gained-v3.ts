@@ -148,6 +148,8 @@ export function calculateStrokesGainedV3(
   }
 
   // ── Low-GIR putting caveat ──
+  // effectiveInput.greensInRegulation is always set by Layer 1 (GIR estimation),
+  // but ?? 0 guards against future callers that bypass the pipeline.
   const effectiveGirPct = (effectiveInput.greensInRegulation ?? 0) / 18;
   const lowGirPuttingCaveat = effectiveGirPct < benchmark.girPercentage / 100 - 0.10;
 

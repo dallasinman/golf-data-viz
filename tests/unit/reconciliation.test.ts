@@ -143,6 +143,23 @@ describe("reconcileCategories", () => {
     expect(result.flags).not.toContain("sign_flip_prevented");
   });
 
+  it("all-zero provisionals → Broadie-weighted distribution, no division errors", () => {
+    const provisionals = makeProvisionals([0, 0, 0, 0]); // sum=0
+    const confidence = makeConfidence(["high", "high", "high", "high"]);
+    const result = reconcileCategories(provisionals, 2.0, confidence, []); // gap=+2
+
+    // Should distribute via Broadie shares without any NaN or Infinity
+    for (const cat of allCategories) {
+      expect(Number.isFinite(result.categories[cat])).toBe(true);
+    }
+    // Sum should equal anchor
+    const sum = allCategories.reduce((s, cat) => s + result.categories[cat], 0)
+      + result.unattributed;
+    expect(sum).toBeCloseTo(2.0, 1);
+    // scaleFactor should be 0 (no non-zero provisionals to divide by)
+    expect(Number.isFinite(result.scaleFactor)).toBe(true);
+  });
+
   it("mixed confidence → approach absorbs more (Broadie share=40%)", () => {
     const provisionals = makeProvisionals([1.0, 1.0, 1.0, 1.0]); // sum=4
     const confidence = makeConfidence(["high", "medium", "high", "high"]);
