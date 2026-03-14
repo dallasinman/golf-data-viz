@@ -42,12 +42,26 @@ interface MethodologyTooltipProps {
   isOpen?: boolean;
   /** Called when the tooltip wants to toggle. Parent decides final state. */
   onToggle?: () => void;
+  /** Raw signal value before reconciliation (V3 only). */
+  signalValue?: number;
+  /** Reconciliation adjustment applied to this category (V3 only). */
+  reconciliationAdjustment?: number;
+  /** Whether the low-GIR putting caveat applies (putting only). */
+  lowGirPuttingCaveat?: boolean;
+}
+
+function formatSignalValue(value: number): string {
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}`;
 }
 
 export function MethodologyTooltip({
   category,
   isOpen,
   onToggle,
+  signalValue,
+  reconciliationAdjustment,
+  lowGirPuttingCaveat,
 }: MethodologyTooltipProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const controlled = isOpen !== undefined;
@@ -142,6 +156,36 @@ export function MethodologyTooltip({
             <strong className="text-neutral-800">Interpret it:</strong>{" "}
             {content.interpret}
           </p>
+          {signalValue != null && reconciliationAdjustment != null && (
+            <div className="mt-2.5 border-t border-cream-200 pt-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                Signal breakdown
+              </p>
+              <dl className="mt-1.5 space-y-0.5 font-mono text-[11px] tabular-nums">
+                <div className="flex items-baseline justify-between">
+                  <dt className="text-neutral-500">Signal estimate</dt>
+                  <dd className={signalValue >= 0 ? "text-data-positive" : "text-data-negative"}>
+                    {formatSignalValue(signalValue)}
+                  </dd>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <dt className="text-neutral-500">Score adjustment</dt>
+                  <dd className={reconciliationAdjustment >= 0 ? "text-data-positive" : "text-data-negative"}>
+                    {formatSignalValue(reconciliationAdjustment)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
+          {category === "putting" && lowGirPuttingCaveat && (
+            <div className="mt-2.5 rounded border border-amber-200/60 bg-amber-50/50 px-2 py-1.5">
+              <p className="text-amber-800">
+                <strong className="text-amber-900">Low GIR note:</strong> With few greens hit,
+                most putts come after chips (shorter distances). This may overstate putting
+                performance for this round.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </span>

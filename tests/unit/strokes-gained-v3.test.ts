@@ -132,7 +132,7 @@ describe("calculateStrokesGainedV3", () => {
     });
   });
 
-  describe("categories sum to total", () => {
+  describe("categories + unattributed sum to total", () => {
     const fixtures = [
       { name: "scratch good", round: scratchGoodRound },
       { name: "10-HCP average", round: tenHcpAverage },
@@ -142,14 +142,15 @@ describe("calculateStrokesGainedV3", () => {
     ];
 
     for (const { name, round } of fixtures) {
-      it(`categories sum to total within ±0.1 (${name})`, () => {
+      it(`categories + unattributed sum to total within ±0.1 (${name})`, () => {
         const benchmark = getInterpolatedBenchmark(round.handicapIndex);
         const result = calculateStrokesGainedV3(round, benchmark);
         const sum =
           result.categories["off-the-tee"] +
           result.categories["approach"] +
           result.categories["around-the-green"] +
-          result.categories["putting"];
+          result.categories["putting"] +
+          (result.reconciliationUnattributed ?? 0);
         expect(sum).toBeCloseTo(result.total, 1);
       });
     }
@@ -171,7 +172,7 @@ describe("calculateStrokesGainedV3", () => {
       expect(result.benchmarkInterpolationMode).toBe("standard");
     });
 
-    it("categories sum to total within tolerance for plus handicap", () => {
+    it("categories + unattributed sum to total within tolerance for plus handicap", () => {
       const round = makeRound({ handicapIndex: -2.3, score: 71, courseRating: 72, slopeRating: 113 });
       const benchmark = getInterpolatedBenchmark(round.handicapIndex);
       const result = calculateStrokesGainedV3(round, benchmark);
@@ -179,7 +180,8 @@ describe("calculateStrokesGainedV3", () => {
         result.categories["off-the-tee"] +
         result.categories["approach"] +
         result.categories["around-the-green"] +
-        result.categories["putting"];
+        result.categories["putting"] +
+        (result.reconciliationUnattributed ?? 0);
       expect(sum).toBeCloseTo(result.total, 1);
     });
   });
@@ -221,14 +223,15 @@ describe("calculateStrokesGainedV3", () => {
       expect(allNearZero).toBe(false);
     });
 
-    it("reconciliation: categories sum ≈ total (±0.1)", () => {
+    it("reconciliation: categories + unattributed sum ≈ total (±0.1)", () => {
       const benchmark = getInterpolatedBenchmark(plusRound.handicapIndex);
       const result = calculateStrokesGainedV3(plusRound, benchmark);
       const sum =
         result.categories["off-the-tee"] +
         result.categories["approach"] +
         result.categories["around-the-green"] +
-        result.categories["putting"];
+        result.categories["putting"] +
+        (result.reconciliationUnattributed ?? 0);
       expect(sum).toBeCloseTo(result.total, 1);
     });
 
@@ -396,7 +399,7 @@ describe("calculateStrokesGainedV3", () => {
       expect(result.total).toBe(result.totalAnchorValue);
     });
 
-    it("categories still sum to total within tolerance with correction", () => {
+    it("categories + unattributed still sum to total within tolerance with correction", () => {
       const round = makeRound({
         handicapIndex: 14.3,
         fairwaysHit: 4,
@@ -411,7 +414,8 @@ describe("calculateStrokesGainedV3", () => {
         result.categories["off-the-tee"] +
         result.categories["approach"] +
         result.categories["around-the-green"] +
-        result.categories["putting"];
+        result.categories["putting"] +
+        (result.reconciliationUnattributed ?? 0);
       expect(sum).toBeCloseTo(result.total, 1);
     });
 
@@ -440,8 +444,117 @@ describe("calculateStrokesGainedV3", () => {
     });
   });
 
+  describe("sign-flip prevention integration", () => {
+    it("no sign flips across fixture rounds", () => {
+      const fixtures = [
+        { name: "scratch good", round: scratchGoodRound },
+        { name: "10-HCP average", round: tenHcpAverage },
+        { name: "15-HCP bad", round: fifteenHcpBadRound },
+        { name: "20-HCP typical", round: twentyHcpTypical },
+        { name: "30+ HCP", round: highHcpRound },
+      ];
+
+      for (const { round } of fixtures) {
+        const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+        const result = calculateStrokesGainedV3(round, benchmark);
+        const provisional = result.diagnostics.provisionalCategoryValues!;
+
+        for (const cat of ["off-the-tee", "approach", "around-the-green", "putting"] as const) {
+          if (provisional[cat] > 0.01) {
+            expect(result.categories[cat]).toBeGreaterThanOrEqual(0);
+          } else if (provisional[cat] < -0.01) {
+            expect(result.categories[cat]).toBeLessThanOrEqual(0);
+          }
+        }
+      }
+    });
+
+    it("reconciliationUnattributed is present in result", () => {
+      const benchmark = getInterpolatedBenchmark(fifteenHcpBadRound.handicapIndex);
+      const result = calculateStrokesGainedV3(fifteenHcpBadRound, benchmark);
+      expect(result.reconciliationUnattributed).toBeDefined();
+      expect(typeof result.reconciliationUnattributed).toBe("number");
+    });
+
+    it("reconciliationAdjustments present in diagnostics", () => {
+      const benchmark = getInterpolatedBenchmark(14.3);
+      const result = calculateStrokesGainedV3(makeRound(), benchmark);
+      expect(result.diagnostics.reconciliationAdjustments).toBeDefined();
+      for (const cat of ["off-the-tee", "approach", "around-the-green", "putting"] as const) {
+        expect(typeof result.diagnostics.reconciliationAdjustments![cat]).toBe("number");
+      }
+    });
+  });
+
+  describe("low-GIR putting caveat", () => {
+    it("true when GIR well below peer average (2 GIR at 15 HCP)", () => {
+      const round = makeRound({
+        handicapIndex: 15.0,
+        greensInRegulation: 2,
+        totalPutts: 31,
+      });
+      const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+      const result = calculateStrokesGainedV3(round, benchmark);
+      // 2/18 = 11% vs 23% benchmark → -12pp → true
+      expect(result.diagnostics.lowGirPuttingCaveat).toBe(true);
+    });
+
+    it("false when GIR near peer average (7 GIR at 10 HCP)", () => {
+      const round = makeRound({
+        handicapIndex: 10.0,
+        greensInRegulation: 7,
+        totalPutts: 32,
+      });
+      const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+      const result = calculateStrokesGainedV3(round, benchmark);
+      // 7/18 = 39% vs 35% benchmark → +4pp → false
+      expect(result.diagnostics.lowGirPuttingCaveat).toBe(false);
+    });
+  });
+
+  describe("GIR-adjusted putting in V3 pipeline", () => {
+    it("V3 uses GIR-adjusted putting delta (different from V1 raw)", () => {
+      const round = makeRound({
+        handicapIndex: 15.0,
+        greensInRegulation: 3,
+        totalPutts: 31,
+        courseRating: 72.0,
+        slopeRating: 130,
+      });
+      const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+      const result = calculateStrokesGainedV3(round, benchmark);
+
+      // Raw category values use GIR-adjusted delta
+      const rawPutting = result.diagnostics.rawCategoryValues!["putting"];
+      // With 3 GIR at 15 HCP benchmark (puttsPerGIR=2.06, puttsPerNonGIR=1.78):
+      // expected = 3×2.06 + 15×1.78 = 32.88 → (32.88-31)/18 ≈ 0.104
+      expect(rawPutting).toBeGreaterThan(0);
+    });
+  });
+
+  describe("attribution correction + Broadie reconciliation interaction", () => {
+    it("scratch round (full path): correction + Broadie produces valid result", () => {
+      const benchmark = getInterpolatedBenchmark(scratchGoodRound.handicapIndex);
+      const result = calculateStrokesGainedV3(scratchGoodRound, benchmark);
+
+      // Categories + unattributed = anchor
+      const sum =
+        result.categories["off-the-tee"] +
+        result.categories["approach"] +
+        result.categories["around-the-green"] +
+        result.categories["putting"] +
+        (result.reconciliationUnattributed ?? 0);
+      expect(sum).toBeCloseTo(result.total, 1);
+
+      // Attribution correction should be present for full path
+      if (result.attributionCorrectionEnabled) {
+        expect(result.diagnostics.attributionCorrection).toBeDefined();
+      }
+    });
+  });
+
   describe("V1 parity with full-path coefficients", () => {
-    it("V3 categories are close to V1 when anchor is close to category sum", () => {
+    it("V3 OTT/Approach/ATG provisionals match V1 on full path; putting differs (GIR-adjusted)", () => {
       // With standard course (slope=113, CR close to expected), the anchor
       // should be near the category sum, so reconciliation adjustments are small
       const round = makeRound({
@@ -455,12 +568,13 @@ describe("calculateStrokesGainedV3", () => {
       const v1 = calculateStrokesGained(round, benchmark);
       const v3 = calculateStrokesGainedV3(round, benchmark);
 
-      // V3 provisionals (before reconciliation) should match V1 exactly on full path
+      // V3 provisionals (before reconciliation) should match V1 for non-putting on full path
       const diag = v3.diagnostics.provisionalCategoryValues!;
       expect(diag["off-the-tee"]).toBeCloseTo(v1.categories["off-the-tee"], 5);
       expect(diag["approach"]).toBeCloseTo(v1.categories["approach"], 5);
       expect(diag["around-the-green"]).toBeCloseTo(v1.categories["around-the-green"], 5);
-      expect(diag["putting"]).toBeCloseTo(v1.categories["putting"], 5);
+      // V3 putting uses GIR-adjusted delta — intentionally different from V1
+      expect(Number.isFinite(diag["putting"])).toBe(true);
     });
   });
 });

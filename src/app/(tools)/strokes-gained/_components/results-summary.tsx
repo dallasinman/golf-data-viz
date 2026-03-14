@@ -67,8 +67,8 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
   // Only non-estimated, non-skipped categories participate in callouts
   const calloutEntries = entries.filter((e) => !e.skipped && !e.estimated);
   const sorted = [...calloutEntries].sort((a, b) => b.value - a.value);
-  const strength = sorted[0];
-  const weakness = sorted[sorted.length - 1];
+  const strength = sorted.find((e) => e.value > 0.05) ?? null;
+  const weakness = sorted.findLast((e) => e.value < -0.05) ?? null;
 
   const emphasizedCategories = getEmphasizedCategories(result);
 
@@ -256,6 +256,9 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
                   category={key}
                   isOpen={openPopover?.type === "methodology" && openPopover.category === key}
                   onToggle={() => handleDetailToggle("methodology", key)}
+                  signalValue={result.diagnostics.provisionalCategoryValues?.[key]}
+                  reconciliationAdjustment={result.diagnostics.reconciliationAdjustments?.[key]}
+                  lowGirPuttingCaveat={key === "putting" ? result.diagnostics.lowGirPuttingCaveat : undefined}
                 />
               </span>
               <span className="mt-0.5 block text-xs font-normal text-neutral-400">
@@ -264,6 +267,15 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
               {key === "off-the-tee" && troubleContext && troubleContext.summary.tee >= 1 && (
                 <span className="mt-0.5 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                   Trouble noted
+                </span>
+              )}
+              {key === "putting" && result.diagnostics.lowGirPuttingCaveat && (
+                <span
+                  data-testid="low-gir-putting-caveat"
+                  className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-100/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                >
+                  <span className="inline-block h-1 w-1 rounded-full bg-amber-400" aria-hidden="true" />
+                  Low GIR — less reliable
                 </span>
               )}
             </span>
@@ -289,6 +301,21 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
           </li>
         ))}
       </ul>
+      {result.reconciliationUnattributed != null && Math.abs(result.reconciliationUnattributed) > 0.05 && (
+        <div
+          data-testid="unattributed-row"
+          className="animate-fade-up flex items-center justify-between rounded-lg border border-dotted border-neutral-200 bg-neutral-50 px-4 py-2.5"
+          style={{ animationDelay: `${(entries.length + 2) * 100}ms` }}
+        >
+          <span className="flex items-baseline gap-1.5">
+            <span className="text-sm text-neutral-400">Other</span>
+            <span className="text-[10px] leading-none text-neutral-400/70">not captured by scorecard stats</span>
+          </span>
+          <span className="font-mono text-sm tabular-nums text-neutral-400">
+            {formatSG(result.reconciliationUnattributed)}
+          </span>
+        </div>
+      )}
       <p className="text-xs text-neutral-400">
         Confidence levels reflect input completeness. High = direct data. Med = derived estimate. Low = limited data. See{" "}
         <Link href="/methodology" className="underline hover:text-neutral-600">

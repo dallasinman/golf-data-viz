@@ -285,6 +285,26 @@ test.describe("Strokes Gained Benchmarker", () => {
     await expect(page.getByText(/proxy model/i).first()).toBeVisible();
   });
 
+  test("V3 results show Course-Adjusted badge and methodology tooltip with signal breakdown", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+
+    const sgResults = page.locator('[data-testid="sg-results"]');
+
+    // Course-Adjusted badge visible on hero card
+    await expect(sgResults.getByText("Course-Adjusted").first()).toBeVisible();
+
+    // Methodology tooltip trigger exists and is clickable
+    const tooltipTrigger = sgResults.locator('[aria-expanded]').first();
+    await expect(tooltipTrigger).toBeVisible();
+    await tooltipTrigger.click();
+
+    // Signal breakdown section should appear
+    await expect(sgResults.getByText("Signal breakdown").first()).toBeVisible();
+  });
+
   test("partial round (blank FIR/GIR) shows confidence badges and survives share/reload", async ({
     page,
   }) => {

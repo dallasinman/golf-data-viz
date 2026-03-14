@@ -27,7 +27,7 @@ import {
   computeRawOttPenaltyDelta,
   computeRawApproachDelta,
   computeRawAtgDelta,
-  computeRawPuttingDelta,
+  computeGirAdjustedPuttingDelta,
 } from "./strokes-gained";
 import { computeTotalAnchor } from "./total-anchor";
 import {
@@ -70,13 +70,13 @@ export function calculateStrokesGainedV3(
   // ── Layer 2: Total anchor ──
   const anchor = computeTotalAnchor(effectiveInput, benchmark);
 
-  // ── Layer 3: Raw signals ──
+  // ── Layer 3: Raw signals (using GIR-adjusted putting for V3) ──
   const rawSignals = {
     firDelta: computeRawOttFirDelta(effectiveInput, benchmark),
     penaltyDelta: computeRawOttPenaltyDelta(effectiveInput, benchmark),
     approachDelta: computeRawApproachDelta(effectiveInput, benchmark),
     atgDelta: computeRawAtgDelta(effectiveInput, benchmark),
-    puttingDelta: computeRawPuttingDelta(effectiveInput, benchmark),
+    puttingDelta: computeGirAdjustedPuttingDelta(effectiveInput, benchmark),
   };
 
   const rawCategoryValues: Record<StrokesGainedCategory, number> = {
@@ -147,6 +147,12 @@ export function calculateStrokesGainedV3(
     );
   }
 
+  // ── Low-GIR putting caveat ──
+  // effectiveInput.greensInRegulation is always set by Layer 1 (GIR estimation),
+  // but ?? 0 guards against future callers that bypass the pipeline.
+  const effectiveGirPct = (effectiveInput.greensInRegulation ?? 0) / 18;
+  const lowGirPuttingCaveat = effectiveGirPct < benchmark.girPercentage / 100 - 0.10;
+
   return {
     total: anchor.value,
     categories: reconciliation.categories,
@@ -163,6 +169,8 @@ export function calculateStrokesGainedV3(
       rawCategoryValues,
       provisionalCategoryValues,
       attributionCorrection: attributionCorrectionDiag,
+      reconciliationAdjustments: reconciliation.adjustments,
+      lowGirPuttingCaveat,
     },
     // Phase 2 fields
     calibrationVersion: getCalibrationVersion(),
@@ -171,6 +179,7 @@ export function calculateStrokesGainedV3(
     inputPath,
     reconciliationScaleFactor: reconciliation.scaleFactor,
     reconciliationFlags: reconciliation.flags,
+    reconciliationUnattributed: reconciliation.unattributed,
     attributionCorrectionVersion: correctionEnabled ? getAttributionCorrectionVersion() : undefined,
     attributionCorrectionEnabled: correctionEnabled,
   };

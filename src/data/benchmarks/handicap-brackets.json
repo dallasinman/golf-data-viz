@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "updatedAt": "2026-03-06",
+  "version": "1.1.0",
+  "updatedAt": "2026-03-14",
   "provisional": false,
   "sources": [
     "Shot Scope Law of Averages Series (2024–2025)"
@@ -30,7 +30,9 @@
       "girPercentage": 59,
       "puttsPerRound": 29.8,
       "upAndDownPercentage": 54,
-      "penaltiesPerRound": 0.65
+      "penaltiesPerRound": 0.65,
+      "puttsPerGIR": 1.85,
+      "puttsPerNonGIR": 1.38
     },
     {
       "handicapIndex": 5,
@@ -39,7 +41,9 @@
       "girPercentage": 41,
       "puttsPerRound": 30.2,
       "upAndDownPercentage": 47,
-      "penaltiesPerRound": 0.91
+      "penaltiesPerRound": 0.91,
+      "puttsPerGIR": 1.93,
+      "puttsPerNonGIR": 1.59
     },
     {
       "handicapIndex": 10,
@@ -48,7 +52,9 @@
       "girPercentage": 35,
       "puttsPerRound": 31.2,
       "upAndDownPercentage": 40,
-      "penaltiesPerRound": 1.62
+      "penaltiesPerRound": 1.62,
+      "puttsPerGIR": 1.98,
+      "puttsPerNonGIR": 1.66
     },
     {
       "handicapIndex": 15,
@@ -57,7 +63,9 @@
       "girPercentage": 23,
       "puttsPerRound": 32.2,
       "upAndDownPercentage": 35,
-      "penaltiesPerRound": 2.15
+      "penaltiesPerRound": 2.15,
+      "puttsPerGIR": 2.06,
+      "puttsPerNonGIR": 1.78
     },
     {
       "handicapIndex": 20,
@@ -66,7 +74,9 @@
       "girPercentage": 16,
       "puttsPerRound": 33.4,
       "upAndDownPercentage": 32,
-      "penaltiesPerRound": 2.73
+      "penaltiesPerRound": 2.73,
+      "puttsPerGIR": 2.16,
+      "puttsPerNonGIR": 1.85
     },
     {
       "handicapIndex": 25,
@@ -75,7 +85,9 @@
       "girPercentage": 9,
       "puttsPerRound": 34.6,
       "upAndDownPercentage": 24,
-      "penaltiesPerRound": 3.30
+      "penaltiesPerRound": 3.30,
+      "puttsPerGIR": 2.18,
+      "puttsPerNonGIR": 1.90
     },
     {
       "handicapIndex": 30,
@@ -85,6 +97,8 @@
       "puttsPerRound": 36,
       "upAndDownPercentage": 14,
       "penaltiesPerRound": 4.6,
+      "puttsPerGIR": 2.25,
+      "puttsPerNonGIR": 1.95,
       "_note": "Estimated — no Shot Scope coverage above 25 HCP. Values from 30+ bracket."
     }
   ],
@@ -357,6 +371,11 @@
   },
   "changelog": [
     {
+      "version": "1.1.0",
+      "date": "2026-03-14",
+      "summary": "Added puttsPerGIR and puttsPerNonGIR to all anchors and brackets for GIR-adjusted putting delta in V3 pipeline."
+    },
+    {
       "version": "1.0.0+extrap",
       "date": "2026-03-09",
       "summary": "Plus-handicap benchmark extrapolation: project 0-5 gradient below scratch with per-metric safeguards (FIR% frozen, GIR% cap 80%, putts floor 27, penalties floor 0.05, score floor 60). Replaces scratch clamping."
@@ -386,6 +405,8 @@
       "puttsPerRound": 29.8,
       "upAndDownPercentage": 54,
       "penaltiesPerRound": 0.65,
+      "puttsPerGIR": 1.85,
+      "puttsPerNonGIR": 1.38,
       "scoring": {
         "eaglesPerRound": 0.02,
         "birdiesPerRound": 2.2,
@@ -403,6 +424,8 @@
       "puttsPerRound": 30.2,
       "upAndDownPercentage": 47,
       "penaltiesPerRound": 0.91,
+      "puttsPerGIR": 1.93,
+      "puttsPerNonGIR": 1.59,
       "scoring": {
         "eaglesPerRound": 0.01,
         "birdiesPerRound": 1.4,
@@ -420,6 +443,8 @@
       "puttsPerRound": 31.2,
       "upAndDownPercentage": 40,
       "penaltiesPerRound": 1.62,
+      "puttsPerGIR": 1.98,
+      "puttsPerNonGIR": 1.66,
       "scoring": {
         "eaglesPerRound": 0,
         "birdiesPerRound": 0.8,
@@ -437,6 +462,8 @@
       "puttsPerRound": 32.2,
       "upAndDownPercentage": 35,
       "penaltiesPerRound": 2.15,
+      "puttsPerGIR": 2.06,
+      "puttsPerNonGIR": 1.78,
       "scoring": {
         "eaglesPerRound": 0,
         "birdiesPerRound": 0.4,
@@ -454,6 +481,8 @@
       "puttsPerRound": 33.4,
       "upAndDownPercentage": 32,
       "penaltiesPerRound": 2.73,
+      "puttsPerGIR": 2.16,
+      "puttsPerNonGIR": 1.85,
       "scoring": {
         "eaglesPerRound": 0,
         "birdiesPerRound": 0.2,
@@ -471,6 +500,8 @@
       "puttsPerRound": 34.6,
       "upAndDownPercentage": 24,
       "penaltiesPerRound": 3.30,
+      "puttsPerGIR": 2.18,
+      "puttsPerNonGIR": 1.90,
       "scoring": {
         "eaglesPerRound": 0,
         "birdiesPerRound": 0.1,
@@ -488,6 +519,8 @@
       "puttsPerRound": 36,
       "upAndDownPercentage": 14,
       "penaltiesPerRound": 4.6,
+      "puttsPerGIR": 2.25,
+      "puttsPerNonGIR": 1.95,
       "scoring": {
         "eaglesPerRound": 0,
         "birdiesPerRound": 0,

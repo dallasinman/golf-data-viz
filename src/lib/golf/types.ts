@@ -35,6 +35,8 @@ export interface BenchmarkAnchor {
   puttsPerRound: number;
   upAndDownPercentage: number;
   penaltiesPerRound: number;
+  puttsPerGIR?: number;
+  puttsPerNonGIR?: number;
 }
 
 /** Diagnostic values computed alongside SG but not included in totals */
@@ -45,6 +47,8 @@ export interface SGDiagnostics {
   rawCategoryValues?: Record<StrokesGainedCategory, number>;
   provisionalCategoryValues?: Record<StrokesGainedCategory, number>;
   attributionCorrection?: AttributionCorrectionResult;
+  reconciliationAdjustments?: Record<StrokesGainedCategory, number>;
+  lowGirPuttingCaveat?: boolean;
 }
 
 /** Raw round stats as entered by the user */
@@ -108,6 +112,7 @@ export interface StrokesGainedResult {
   inputPath?: CalibrationInputPath;
   reconciliationScaleFactor?: number;
   reconciliationFlags?: string[];
+  reconciliationUnattributed?: number;
   attributionCorrectionVersion?: string;
   attributionCorrectionEnabled?: boolean;
 }
@@ -121,6 +126,8 @@ export interface BracketBenchmark {
   puttsPerRound: number;
   upAndDownPercentage: number;
   penaltiesPerRound: number;
+  puttsPerGIR?: number;
+  puttsPerNonGIR?: number;
   /** Scoring distribution averages */
   scoring: {
     eaglesPerRound: number;
@@ -226,6 +233,7 @@ export interface ReconciliationResult {
   scaleFactor: number;
   gap: number;
   flags: string[];
+  unattributed: number;
 }
 
 export interface CalibrationCoefficients {
