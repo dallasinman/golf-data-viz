@@ -89,6 +89,18 @@ export function computeRawPuttingDelta(input: RoundInput, benchmark: BracketBenc
   return benchmark.puttsPerRound / 18 - input.totalPutts / 18;
 }
 
+/** GIR-adjusted putting delta for V3 pipeline. Falls back to raw when data unavailable. */
+export function computeGirAdjustedPuttingDelta(
+  input: RoundInput, benchmark: BracketBenchmark
+): number {
+  if (input.greensInRegulation != null && benchmark.puttsPerGIR != null && benchmark.puttsPerNonGIR != null) {
+    const gir = input.greensInRegulation;
+    const expectedPutts = gir * benchmark.puttsPerGIR + (18 - gir) * benchmark.puttsPerNonGIR;
+    return (expectedPutts - input.totalPutts) / 18;
+  }
+  return benchmark.puttsPerRound / 18 - input.totalPutts / 18;
+}
+
 // ── Weighted category functions ──
 
 /** Calculate SG: Off-the-Tee */

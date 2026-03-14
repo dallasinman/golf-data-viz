@@ -530,6 +530,53 @@ describe("interpolateBenchmark", () => {
   });
 });
 
+describe("puttsPerGIR / puttsPerNonGIR benchmark data", () => {
+  const brackets = loadBrackets();
+
+  it("puttsPerGIR and puttsPerNonGIR present on all brackets", () => {
+    for (const b of brackets) {
+      expect(b.puttsPerGIR).toBeDefined();
+      expect(b.puttsPerNonGIR).toBeDefined();
+    }
+  });
+
+  it("puttsPerGIR > puttsPerNonGIR for all brackets", () => {
+    for (const b of brackets) {
+      expect(b.puttsPerGIR!).toBeGreaterThan(b.puttsPerNonGIR!);
+    }
+  });
+
+  it("puttsPerGIR values are between 1.5 and 2.5", () => {
+    for (const b of brackets) {
+      expect(b.puttsPerGIR!).toBeGreaterThanOrEqual(1.5);
+      expect(b.puttsPerGIR!).toBeLessThanOrEqual(2.5);
+    }
+  });
+
+  it("puttsPerGIR increases monotonically across brackets", () => {
+    for (let i = 1; i < brackets.length; i++) {
+      expect(brackets[i].puttsPerGIR!).toBeGreaterThanOrEqual(brackets[i - 1].puttsPerGIR!);
+    }
+  });
+
+  it("interpolated benchmark includes puttsPerGIR and puttsPerNonGIR", () => {
+    const b = getInterpolatedBenchmark(12);
+    expect(b.puttsPerGIR).toBeDefined();
+    expect(b.puttsPerNonGIR).toBeDefined();
+    // 12 HCP is between 10 and 15 anchors
+    expect(b.puttsPerGIR!).toBeGreaterThan(1.98); // 10 HCP value
+    expect(b.puttsPerGIR!).toBeLessThan(2.06); // 15 HCP value
+  });
+
+  it("extrapolated plus-handicap benchmark includes puttsPerGIR", () => {
+    const b = getInterpolatedBenchmark(-2.0);
+    expect(b.puttsPerGIR).toBeDefined();
+    expect(b.puttsPerNonGIR).toBeDefined();
+    // Should be lower than scratch (1.85)
+    expect(b.puttsPerGIR!).toBeLessThanOrEqual(1.85);
+  });
+});
+
 describe("getInterpolatedBenchmark", () => {
   it("returns BracketBenchmark-shaped object with bracket label", () => {
     const result = getInterpolatedBenchmark(12);

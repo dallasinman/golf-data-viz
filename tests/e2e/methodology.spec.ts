@@ -96,10 +96,10 @@ test.describe("Methodology page — changelog", () => {
 
     const changelog = page.getByTestId("changelog-section");
     const items = changelog.locator("li");
-    await expect(items).toHaveCount(4);
+    await expect(items).toHaveCount(5);
 
     // First entry is the latest version
-    await expect(items.first()).toContainText("v1.0.0+extrap");
+    await expect(items.first()).toContainText("v1.1.0");
     await expect(items.last()).toContainText("v0.1.0");
   });
 

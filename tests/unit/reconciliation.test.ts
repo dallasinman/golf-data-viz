@@ -53,15 +53,16 @@ describe("reconcileCategories", () => {
     expect(Math.abs(puttingAdj)).toBeGreaterThan(Math.abs(ottAdj));
   });
 
-  it("all same confidence → uniform distribution", () => {
+  it("all same confidence → Broadie-weighted distribution", () => {
     const provisionals = makeProvisionals([1.0, 1.0, 1.0, 1.0]); // sum=4
     const confidence = makeConfidence(["medium", "medium", "medium", "medium"]);
     const result = reconcileCategories(provisionals, 6.0, confidence, []); // gap=+2
 
-    // Each category should get +0.5
-    for (const cat of allCategories) {
-      expect(result.adjustments[cat]).toBeCloseTo(0.5, 5);
-    }
+    // With uniform confidence, Broadie shares determine distribution: 28/40/17/15
+    expect(result.adjustments["off-the-tee"]).toBeCloseTo(2.0 * 0.28, 2);
+    expect(result.adjustments["approach"]).toBeCloseTo(2.0 * 0.40, 2);
+    expect(result.adjustments["around-the-green"]).toBeCloseTo(2.0 * 0.17, 2);
+    expect(result.adjustments["putting"]).toBeCloseTo(2.0 * 0.15, 2);
   });
 
   it("skipped categories excluded from reconciliation", () => {
@@ -114,15 +115,16 @@ describe("reconcileCategories", () => {
     expect(sum).toBeCloseTo(anchor, 1);
   });
 
-  it("negative gap distributes correctly", () => {
+  it("negative gap distributes correctly with Broadie weights", () => {
     const provisionals = makeProvisionals([2.0, 2.0, 2.0, 2.0]); // sum=8
     const confidence = makeConfidence(["high", "high", "high", "high"]);
     const result = reconcileCategories(provisionals, 6.0, confidence, []); // gap=-2
 
-    // Each adjustment should be -0.5
-    for (const cat of allCategories) {
-      expect(result.adjustments[cat]).toBeCloseTo(-0.5, 5);
-    }
+    // With uniform confidence, Broadie shares determine distribution: 28/40/17/15
+    expect(result.adjustments["off-the-tee"]).toBeCloseTo(-2.0 * 0.28, 2);
+    expect(result.adjustments["approach"]).toBeCloseTo(-2.0 * 0.40, 2);
+    expect(result.adjustments["around-the-green"]).toBeCloseTo(-2.0 * 0.17, 2);
+    expect(result.adjustments["putting"]).toBeCloseTo(-2.0 * 0.15, 2);
     expect(result.gap).toBeCloseTo(-2, 5);
   });
 
@@ -131,5 +133,81 @@ describe("reconcileCategories", () => {
     const confidence = makeConfidence(["high", "high", "high", "high"]);
     const result = reconcileCategories(provisionals, 6.0, confidence, []);
     expect(result.preReconciliationSum).toBeCloseTo(5.0, 5);
+  });
+
+  it("unattributed is 0 when no sign flips", () => {
+    const provisionals = makeProvisionals([1.0, 1.0, 1.0, 1.0]); // sum=4
+    const confidence = makeConfidence(["high", "high", "high", "high"]);
+    const result = reconcileCategories(provisionals, 5.0, confidence, []); // gap=+1
+    expect(result.unattributed).toBe(0);
+    expect(result.flags).not.toContain("sign_flip_prevented");
+  });
+
+  it("mixed confidence → approach absorbs more (Broadie share=40%)", () => {
+    const provisionals = makeProvisionals([1.0, 1.0, 1.0, 1.0]); // sum=4
+    const confidence = makeConfidence(["high", "medium", "high", "high"]);
+    const result = reconcileCategories(provisionals, 6.0, confidence, []); // gap=+2
+    // Approach has medium confidence (higher inverse) AND highest Broadie share (0.40)
+    const approachAdj = result.adjustments["approach"];
+    const ottAdj = result.adjustments["off-the-tee"];
+    expect(Math.abs(approachAdj)).toBeGreaterThan(Math.abs(ottAdj));
+  });
+});
+
+describe("sign-flip prevention", () => {
+  it("positive provisional + negative adjustment that would flip → clamped to 0", () => {
+    // Provisionals sum to +2.5, anchor is -5 → gap = -7.5
+    // This huge negative gap should cause sign flips on small positive provisionals
+    const provisionals = makeProvisionals([0.5, 0.5, 0.5, 1.0]);
+    const confidence = makeConfidence(["medium", "high", "medium", "high"]);
+    const result = reconcileCategories(provisionals, -5.0, confidence, []);
+
+    // At least one category should be clamped to 0
+    const hasClamped = allCategories.some((cat) =>
+      provisionals[cat] > 0 && result.categories[cat] === 0
+    );
+    expect(hasClamped).toBe(true);
+    expect(result.flags).toContain("sign_flip_prevented");
+    expect(result.unattributed).not.toBe(0);
+  });
+
+  it("negative provisional + positive adjustment that would flip → clamped to 0", () => {
+    // Provisionals sum to -2.5, anchor is +5 → gap = +7.5
+    const provisionals = makeProvisionals([-0.5, -0.5, -0.5, -1.0]);
+    const confidence = makeConfidence(["medium", "high", "medium", "high"]);
+    const result = reconcileCategories(provisionals, 5.0, confidence, []);
+
+    const hasClamped = allCategories.some((cat) =>
+      provisionals[cat] < 0 && result.categories[cat] === 0
+    );
+    expect(hasClamped).toBe(true);
+    expect(result.flags).toContain("sign_flip_prevented");
+  });
+
+  it("small gap, no flips → unattributed = 0", () => {
+    const provisionals = makeProvisionals([1.0, 0.5, -0.5, 0.3]); // sum=1.3
+    const confidence = makeConfidence(["high", "high", "high", "high"]);
+    const result = reconcileCategories(provisionals, 1.5, confidence, []); // gap=+0.2
+    expect(result.unattributed).toBe(0);
+    expect(result.flags).not.toContain("sign_flip_prevented");
+  });
+
+  it("sum(categories) + unattributed === totalAnchor", () => {
+    // Extreme case: provisionals sum positive, anchor very negative
+    const provisionals = makeProvisionals([0.3, 0.5, 0.2, 0.5]);
+    const confidence = makeConfidence(["medium", "high", "low", "high"]);
+    const anchor = -8.0;
+    const result = reconcileCategories(provisionals, anchor, confidence, []);
+
+    const sum = allCategories.reduce((s, cat) => s + result.categories[cat], 0)
+      + result.unattributed;
+    expect(sum).toBeCloseTo(anchor, 1);
+  });
+
+  it("sign_flip_prevented flag appears when clamping happens", () => {
+    const provisionals = makeProvisionals([0.1, 0.1, 0.1, 0.1]); // sum=0.4
+    const confidence = makeConfidence(["high", "high", "high", "high"]);
+    const result = reconcileCategories(provisionals, -2.0, confidence, []);
+    expect(result.flags).toContain("sign_flip_prevented");
   });
 });

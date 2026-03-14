@@ -10,6 +10,14 @@ const CONFIDENCE_WEIGHTS: Record<ConfidenceLevel, number> = {
   low: 1,
 };
 
+/** Broadie's actual amateur variance shares (Every Shot Counts, 2014). */
+const BROADIE_SHARES: Record<StrokesGainedCategory, number> = {
+  "off-the-tee": 0.28,
+  approach: 0.40,
+  "around-the-green": 0.17,
+  putting: 0.15,
+};
+
 const EXCESSIVE_SCALING_THRESHOLD = 0.5;
 const DEFAULT_TOLERANCE = 0.1;
 
@@ -53,19 +61,37 @@ export function reconcileCategories(
       scaleFactor: 0,
       gap,
       flags: [],
+      unattributed: 0,
     };
   }
 
-  // Compute inverse-confidence shares
-  const inverseWeights = activeCats.map(
-    (cat) => 1 / CONFIDENCE_WEIGHTS[confidence[cat]]
+  // Hybrid: Broadie share × inverse-confidence, then normalize
+  const hybridWeights = activeCats.map(
+    (cat) => BROADIE_SHARES[cat] * (1 / CONFIDENCE_WEIGHTS[confidence[cat]])
   );
-  const totalInverseWeight = inverseWeights.reduce((s, w) => s + w, 0);
+  const totalHybridWeight = hybridWeights.reduce((s, w) => s + w, 0);
 
   activeCats.forEach((cat, i) => {
-    const share = inverseWeights[i] / totalInverseWeight;
+    const share = hybridWeights[i] / totalHybridWeight;
     adjustments[cat] = gap * share;
     categories[cat] = provisionals[cat] + adjustments[cat];
+  });
+
+  // Sign-flip prevention: clamp categories that would reverse sign
+  let unattributed = 0;
+  const flags: string[] = [];
+
+  activeCats.forEach((cat) => {
+    if (provisionals[cat] !== 0 &&
+        Math.sign(provisionals[cat]) !== Math.sign(categories[cat])) {
+      const excess = categories[cat]; // amount beyond zero-crossing
+      unattributed += excess;
+      adjustments[cat] = -provisionals[cat]; // bring exactly to 0
+      categories[cat] = 0;
+      if (!flags.includes("sign_flip_prevented")) {
+        flags.push("sign_flip_prevented");
+      }
+    }
   });
 
   // Compute scale factor: max |adjustment / provisional| for non-zero provisionals
@@ -77,7 +103,6 @@ export function reconcileCategories(
     }
   }
 
-  const flags: string[] = [];
   if (scaleFactor > EXCESSIVE_SCALING_THRESHOLD) {
     flags.push("excessive_scaling");
   }
@@ -89,5 +114,6 @@ export function reconcileCategories(
     scaleFactor,
     gap,
     flags,
+    unattributed,
   };
 }

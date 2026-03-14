@@ -810,7 +810,7 @@ describe("methodology version stamp", () => {
   it("benchmarkVersion is present on every result", () => {
     const benchmark = getInterpolatedBenchmark(14.3);
     const result = calculateStrokesGained(makeRound(), benchmark);
-    expect(result.benchmarkVersion).toBe("1.0.0");
+    expect(result.benchmarkVersion).toBe("1.1.0");
   });
 
   it("benchmarkHandicap matches the input handicap index", () => {

@@ -143,7 +143,7 @@ export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
       return Math.max(floor, Math.min(cap, at0 - gradient * dist));
     };
 
-    return {
+    const result: BenchmarkAnchor = {
       handicapIndex,
       averageScore: extrapolate(anchor0.averageScore, anchor5.averageScore, 60, Infinity),
       fairwayPercentage: anchor0.fairwayPercentage, // frozen at scratch
@@ -152,6 +152,13 @@ export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
       upAndDownPercentage: extrapolate(anchor0.upAndDownPercentage, anchor5.upAndDownPercentage, 0, 75),
       penaltiesPerRound: extrapolate(anchor0.penaltiesPerRound, anchor5.penaltiesPerRound, 0.05, Infinity),
     };
+    if (anchor0.puttsPerGIR != null && anchor5.puttsPerGIR != null) {
+      result.puttsPerGIR = extrapolate(anchor0.puttsPerGIR, anchor5.puttsPerGIR, 1.5, 3.0);
+    }
+    if (anchor0.puttsPerNonGIR != null && anchor5.puttsPerNonGIR != null) {
+      result.puttsPerNonGIR = extrapolate(anchor0.puttsPerNonGIR, anchor5.puttsPerNonGIR, 1.0, 2.5);
+    }
+    return result;
   }
 
   const first = sortedAnchors[0];
@@ -184,7 +191,7 @@ export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
     return a + (b - a) * t;
   }
 
-  return {
+  const result: BenchmarkAnchor = {
     handicapIndex,
     averageScore: lerp(lower.averageScore, upper.averageScore),
     fairwayPercentage: lerp(lower.fairwayPercentage, upper.fairwayPercentage),
@@ -193,6 +200,13 @@ export function interpolateBenchmark(handicapIndex: number): BenchmarkAnchor {
     upAndDownPercentage: lerp(lower.upAndDownPercentage, upper.upAndDownPercentage),
     penaltiesPerRound: lerp(lower.penaltiesPerRound, upper.penaltiesPerRound),
   };
+  if (lower.puttsPerGIR != null && upper.puttsPerGIR != null) {
+    result.puttsPerGIR = lerp(lower.puttsPerGIR, upper.puttsPerGIR);
+  }
+  if (lower.puttsPerNonGIR != null && upper.puttsPerNonGIR != null) {
+    result.puttsPerNonGIR = lerp(lower.puttsPerNonGIR, upper.puttsPerNonGIR);
+  }
+  return result;
 }
 
 /** Get interpolated benchmark in BracketBenchmark shape for downstream compat. */
@@ -225,6 +239,8 @@ export function getInterpolatedBenchmark(handicapIndex: number): BracketBenchmar
     puttsPerRound: anchor.puttsPerRound,
     upAndDownPercentage: anchor.upAndDownPercentage,
     penaltiesPerRound: anchor.penaltiesPerRound,
+    puttsPerGIR: anchor.puttsPerGIR,
+    puttsPerNonGIR: anchor.puttsPerNonGIR,
     scoring,
   };
 }

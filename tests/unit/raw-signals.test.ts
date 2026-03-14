@@ -6,6 +6,7 @@ import {
   computeRawApproachDelta,
   computeRawAtgDelta,
   computeRawPuttingDelta,
+  computeGirAdjustedPuttingDelta,
   SG_WEIGHTS,
 } from "@/lib/golf/strokes-gained";
 import {
@@ -385,5 +386,74 @@ describe("refactor snapshot: calculateStrokesGained output unchanged", () => {
       result.categories["around-the-green"] +
       result.categories["putting"];
     expect(result.total).toBeCloseTo(categorySum, 10);
+  });
+});
+
+// === computeGirAdjustedPuttingDelta (V3 only — does NOT replace computeRawPuttingDelta) ===
+
+describe("computeGirAdjustedPuttingDelta", () => {
+  it("low GIR (3 GIR, 31 putts, HCP 15) → positive delta", () => {
+    const round = makeRound({
+      handicapIndex: 15.0,
+      greensInRegulation: 3,
+      totalPutts: 31,
+    });
+    const benchmark = getInterpolatedBenchmark(15.0);
+    const delta = computeGirAdjustedPuttingDelta(round, benchmark);
+    // 3 × 2.06 + 15 × 1.78 = 6.18 + 26.70 = 32.88 expected putts
+    // (32.88 - 31) / 18 ≈ +0.104
+    expect(delta).toBeGreaterThan(0);
+    expect(delta).toBeCloseTo(0.104, 1);
+  });
+
+  it("high GIR (14 GIR, 28 putts) → positive delta", () => {
+    const round = makeRound({
+      handicapIndex: 2.0,
+      greensInRegulation: 14,
+      totalPutts: 28,
+    });
+    const benchmark = getInterpolatedBenchmark(2.0);
+    const delta = computeGirAdjustedPuttingDelta(round, benchmark);
+    expect(delta).toBeGreaterThan(0);
+  });
+
+  it("fallback when GIR is null → matches computeRawPuttingDelta exactly", () => {
+    const round = makeRound({ totalPutts: 33 });
+    delete round.greensInRegulation;
+    const benchmark = getInterpolatedBenchmark(14.3);
+    const girAdjusted = computeGirAdjustedPuttingDelta(round, benchmark);
+    const raw = computeRawPuttingDelta(round, benchmark);
+    expect(girAdjusted).toBe(raw);
+  });
+
+  it("fallback when puttsPerGIR missing → matches computeRawPuttingDelta exactly", () => {
+    const round = makeRound({ greensInRegulation: 6, totalPutts: 33 });
+    const benchmark = getInterpolatedBenchmark(14.3);
+    // Manually strip puttsPerGIR to test fallback
+    const strippedBenchmark = { ...benchmark };
+    delete strippedBenchmark.puttsPerGIR;
+    const girAdjusted = computeGirAdjustedPuttingDelta(round, strippedBenchmark);
+    const raw = computeRawPuttingDelta(round, strippedBenchmark);
+    expect(girAdjusted).toBe(raw);
+  });
+
+  it("computeRawPuttingDelta unchanged — V1 not affected", () => {
+    const round = makeRound({ totalPutts: 30 });
+    const benchmark = getInterpolatedBenchmark(14.3);
+    const delta = computeRawPuttingDelta(round, benchmark);
+    const expected = benchmark.puttsPerRound / 18 - 30 / 18;
+    expect(delta).toBe(expected);
+  });
+});
+
+describe("benchmark puttsPerGIR > puttsPerNonGIR invariant", () => {
+  it("puttsPerGIR > puttsPerNonGIR for all bracket anchors", () => {
+    const anchorHcps = [0, 5, 10, 15, 20, 25, 30];
+    for (const hcp of anchorHcps) {
+      const benchmark = getInterpolatedBenchmark(hcp);
+      expect(benchmark.puttsPerGIR).toBeDefined();
+      expect(benchmark.puttsPerNonGIR).toBeDefined();
+      expect(benchmark.puttsPerGIR!).toBeGreaterThan(benchmark.puttsPerNonGIR!);
+    }
   });
 });
