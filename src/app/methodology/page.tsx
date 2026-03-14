@@ -12,6 +12,7 @@ import {
   CALIBRATION_VERSION,
   ATTRIBUTION_CORRECTION_VERSION,
 } from "@/lib/golf/constants";
+import { loadCalibrationConfig } from "@/lib/golf/calibration";
 
 export const metadata: Metadata = {
   title: "Methodology",
@@ -192,6 +193,48 @@ const FORMULA_CARDS = [
     note: "expectedPutts = GIR \u00D7 puttsPerGIR + (18 \u2212 GIR) \u00D7 puttsPerNonGIR. Falls back to (peerPutts/18 \u2212 playerPutts/18) when GIR is unavailable.",
   },
 ];
+
+const PROFILE_LABELS: Record<string, string> = {
+  full: "Full",
+  "gir-estimated": "GIR-estimated",
+  "atg-fallback": "ATG-fallback",
+};
+
+function CoefficientTable() {
+  const calibration = loadCalibrationConfig();
+  const profileNames = Object.keys(calibration.profiles);
+  return (
+    <div className="mt-4 overflow-x-auto rounded-md border border-neutral-200">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-neutral-200 bg-neutral-50 text-left">
+            <th className="px-3 py-2 font-medium text-neutral-600">Profile</th>
+            <th className="px-3 py-2 font-medium text-neutral-600">OTT FIR</th>
+            <th className="px-3 py-2 font-medium text-neutral-600">OTT Pen</th>
+            <th className="px-3 py-2 font-medium text-neutral-600">Approach</th>
+            <th className="px-3 py-2 font-medium text-neutral-600">ATG</th>
+            <th className="px-3 py-2 font-medium text-neutral-600">Putting</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-neutral-100 font-mono">
+          {profileNames.map((name) => {
+            const p = calibration.profiles[name as keyof typeof calibration.profiles];
+            return (
+              <tr key={name}>
+                <td className="px-3 py-2 font-sans text-neutral-800">{PROFILE_LABELS[name] ?? name}</td>
+                <td className="px-3 py-2 text-neutral-600">{p.ottFir}</td>
+                <td className="px-3 py-2 text-neutral-600">{p.ottPenalty}</td>
+                <td className="px-3 py-2 text-neutral-600">{p.approach}</td>
+                <td className="px-3 py-2 text-neutral-600">{p.aroundTheGreen}</td>
+                <td className="px-3 py-2 text-neutral-600">{p.putting}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function MethodologyPage() {
   const meta = getBenchmarkMeta();
@@ -392,46 +435,7 @@ export default function MethodologyPage() {
                 up-and-down data with missed greens
               </li>
             </ul>
-            <div className="mt-4 overflow-x-auto rounded-md border border-neutral-200">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-neutral-200 bg-neutral-50 text-left">
-                    <th className="px-3 py-2 font-medium text-neutral-600">Profile</th>
-                    <th className="px-3 py-2 font-medium text-neutral-600">OTT FIR</th>
-                    <th className="px-3 py-2 font-medium text-neutral-600">OTT Pen</th>
-                    <th className="px-3 py-2 font-medium text-neutral-600">Approach</th>
-                    <th className="px-3 py-2 font-medium text-neutral-600">ATG</th>
-                    <th className="px-3 py-2 font-medium text-neutral-600">Putting</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100 font-mono">
-                  <tr>
-                    <td className="px-3 py-2 font-sans text-neutral-800">Full</td>
-                    <td className="px-3 py-2 text-neutral-600">6.0</td>
-                    <td className="px-3 py-2 text-neutral-600">0.8</td>
-                    <td className="px-3 py-2 text-neutral-600">8.0</td>
-                    <td className="px-3 py-2 text-neutral-600">5.0</td>
-                    <td className="px-3 py-2 text-neutral-600">4.0</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-sans text-neutral-800">GIR-estimated</td>
-                    <td className="px-3 py-2 text-neutral-600">6.0</td>
-                    <td className="px-3 py-2 text-neutral-600">0.8</td>
-                    <td className="px-3 py-2 text-neutral-600">6.5</td>
-                    <td className="px-3 py-2 text-neutral-600">4.0</td>
-                    <td className="px-3 py-2 text-neutral-600">4.0</td>
-                  </tr>
-                  <tr>
-                    <td className="px-3 py-2 font-sans text-neutral-800">ATG-fallback</td>
-                    <td className="px-3 py-2 text-neutral-600">6.0</td>
-                    <td className="px-3 py-2 text-neutral-600">0.8</td>
-                    <td className="px-3 py-2 text-neutral-600">8.0</td>
-                    <td className="px-3 py-2 text-neutral-600">3.5</td>
-                    <td className="px-3 py-2 text-neutral-600">4.0</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <CoefficientTable />
             <p className="mt-4 text-xs italic text-neutral-500">
               Coefficients are model artifacts, not hardcoded truths. The
               current seed coefficients ({CALIBRATION_VERSION}) are derived
