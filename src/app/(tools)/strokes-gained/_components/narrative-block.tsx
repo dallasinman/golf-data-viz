@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { trackEvent } from "@/lib/analytics/client";
 import type { RoundInput } from "@/lib/golf/types";
 import type { RoundTroubleContext } from "@/lib/golf/trouble-context";
@@ -38,8 +38,8 @@ export function NarrativeBlock({
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   // Stabilize object deps to avoid re-fetching on identical-value re-renders
-  const inputKey = JSON.stringify(input);
-  const troubleKey = JSON.stringify(troubleContext ?? null);
+  const inputKey = useMemo(() => JSON.stringify(input), [input]);
+  const troubleKey = useMemo(() => JSON.stringify(troubleContext ?? null), [troubleContext]);
 
   const fetchNarrative = useCallback(async () => {
     // Cancel any in-flight request
