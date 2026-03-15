@@ -4,6 +4,7 @@ import { roundInputSchema } from "@/lib/golf/schemas";
 import { extractClientIp, checkRateLimit } from "@/lib/rate-limit";
 import { getInterpolatedBenchmark } from "@/lib/golf/benchmarks";
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
+import { captureMonitoringException } from "@/lib/monitoring/sentry";
 import {
   NARRATIVE_SYSTEM_PROMPT,
   buildNarrativeUserPrompt,
@@ -170,7 +171,11 @@ export async function POST(request: NextRequest) {
         504
       );
     }
-    console.error("[narrative] Unexpected error:", String(err), err instanceof Error ? err.message : "");
+    console.error("[narrative] Unexpected error:", String(err));
+    captureMonitoringException(
+      err instanceof Error ? err : new Error(String(err)),
+      { source: "narrative", code: "GENERATION_FAILED" }
+    );
     return errorResponse(
       "Failed to generate narrative",
       "GENERATION_FAILED",

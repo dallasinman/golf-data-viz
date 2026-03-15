@@ -199,45 +199,24 @@ export async function checkRateLimit(
 
   try {
     const key = hashRateLimitKey(ip || "unknown");
-    const hourKey = `${prefix}:hour:${key}`;
+    const checkMinute = !options || options.maxPerMinute !== undefined;
 
-    // Skip minute check when maxPerMinute is undefined (explicitly opt out)
-    if (options?.maxPerMinute !== undefined) {
-      const minuteKey = `${prefix}:minute:${key}`;
-      const [minuteCount, hourCount] = await Promise.all([
-        store.increment(minuteKey, DEFAULT_MINUTE_WINDOW_SECONDS),
-        store.increment(hourKey, DEFAULT_HOUR_WINDOW_SECONDS),
-      ]);
+    const checks: Promise<number>[] = [];
+    if (checkMinute) {
+      checks.push(store.increment(`${prefix}:minute:${key}`, DEFAULT_MINUTE_WINDOW_SECONDS));
+    }
+    checks.push(store.increment(`${prefix}:hour:${key}`, DEFAULT_HOUR_WINDOW_SECONDS));
 
-      if (minuteCount > maxPerMinute) {
-        return { allowed: false, reason: "minute" };
-      }
+    const results = await Promise.all(checks);
+    const minuteCount = checkMinute ? results[0] : undefined;
+    const hourCount = checkMinute ? results[1] : results[0];
 
-      if (hourCount > maxPerHour) {
-        return { allowed: false, reason: "hour" };
-      }
-    } else if (options) {
-      // Options provided but maxPerMinute is undefined — hourly only
-      const hourCount = await store.increment(hourKey, DEFAULT_HOUR_WINDOW_SECONDS);
+    if (minuteCount !== undefined && minuteCount > maxPerMinute) {
+      return { allowed: false, reason: "minute" };
+    }
 
-      if (hourCount > maxPerHour) {
-        return { allowed: false, reason: "hour" };
-      }
-    } else {
-      // No options at all — use defaults (backward compatible)
-      const minuteKey = `${prefix}:minute:${key}`;
-      const [minuteCount, hourCount] = await Promise.all([
-        store.increment(minuteKey, DEFAULT_MINUTE_WINDOW_SECONDS),
-        store.increment(hourKey, DEFAULT_HOUR_WINDOW_SECONDS),
-      ]);
-
-      if (minuteCount > maxPerMinute) {
-        return { allowed: false, reason: "minute" };
-      }
-
-      if (hourCount > maxPerHour) {
-        return { allowed: false, reason: "hour" };
-      }
+    if (hourCount > maxPerHour) {
+      return { allowed: false, reason: "hour" };
     }
 
     return { allowed: true };

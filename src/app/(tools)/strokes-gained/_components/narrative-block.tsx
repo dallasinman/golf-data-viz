@@ -37,6 +37,9 @@ export function NarrativeBlock({
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Stabilize object deps to avoid re-fetching on identical-value re-renders
+  const inputKey = JSON.stringify(input);
+  const troubleKey = JSON.stringify(troubleContext ?? null);
 
   const fetchNarrative = useCallback(async () => {
     // Cancel any in-flight request
@@ -49,9 +52,11 @@ export function NarrativeBlock({
     const startTime = Date.now();
 
     try {
-      const body: Record<string, unknown> = { ...input };
-      if (troubleContext && troubleContext.troubleHoles.length > 0) {
-        body.troubleContext = troubleContext;
+      const parsedInput = JSON.parse(inputKey) as RoundInput;
+      const parsedTrouble = JSON.parse(troubleKey) as RoundTroubleContext | null;
+      const body: Record<string, unknown> = { ...parsedInput };
+      if (parsedTrouble && parsedTrouble.troubleHoles.length > 0) {
+        body.troubleContext = parsedTrouble;
       }
 
       const res = await fetch("/api/narrative", {
@@ -91,7 +96,7 @@ export function NarrativeBlock({
       trackEvent("narrative_failed", { error_type: "network" });
       setState({ status: "error" });
     }
-  }, [input, troubleContext]);
+  }, [inputKey, troubleKey]);
 
   useEffect(() => {
     if (isSharedLink) return;
