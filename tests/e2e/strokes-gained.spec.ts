@@ -61,7 +61,7 @@ test.describe("Strokes Gained Benchmarker", () => {
     expect(rightBox.y).toBeLessThan(leftBox.y + leftBox.height);
   });
 
-  test("form shows compact trust module and save consent defaults to unchecked", async ({
+  test("form shows compact trust module", async ({
     page,
   }) => {
     await page.goto("/strokes-gained");
@@ -345,14 +345,23 @@ test.describe("Strokes Gained Benchmarker", () => {
     ).toBeVisible();
   });
 
-  test("unchecked save consent computes results without save banners", async ({
+  test("results render without pre-submit save banners", async ({
     page,
   }) => {
     await page.goto("/strokes-gained");
     await submitFullRound(page);
 
+    // Results should render
+    await expect(
+      page.getByText("Your Proxy SG Breakdown")
+    ).toBeVisible({ timeout: 5000 });
+
+    // Old save banners should not appear (no pre-submit checkbox)
     await expect(page.getByTestId("save-success")).not.toBeVisible();
-    await expect(page.getByTestId("save-error")).not.toBeVisible();
+    // Save checkbox should not be in the form
+    await expect(
+      page.getByLabel("Save this round to track over time")
+    ).not.toBeVisible();
   });
 
   test("submit button shows Calculating... while processing", async ({
