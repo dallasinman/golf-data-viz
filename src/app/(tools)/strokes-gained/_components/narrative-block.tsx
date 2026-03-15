@@ -15,7 +15,7 @@ interface NarrativeBlockProps {
 type NarrativeState =
   | { status: "loading" }
   | { status: "success"; narrative: string; wordCount: number }
-  | { status: "error" };
+  | { status: "error"; retryable: boolean };
 
 function mapErrorCode(
   httpStatus: number,
@@ -72,7 +72,8 @@ export function NarrativeBlock({
         };
         const errorType = mapErrorCode(res.status, data.code);
         trackEvent("narrative_failed", { error_type: errorType });
-        setState({ status: "error" });
+        const retryable = errorType === "timeout" || errorType === "network" || errorType === "generation";
+        setState({ status: "error", retryable });
         return;
       }
 
@@ -94,7 +95,7 @@ export function NarrativeBlock({
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
       trackEvent("narrative_failed", { error_type: "network" });
-      setState({ status: "error" });
+      setState({ status: "error", retryable: true });
     }
   }, [inputKey, troubleKey]);
 
@@ -114,9 +115,9 @@ export function NarrativeBlock({
     };
   }, []);
 
-  // Don't render for shared links or errors
+  // Don't render for shared links or non-retryable errors
   if (isSharedLink) return null;
-  if (state.status === "error") return null;
+  if (state.status === "error" && !state.retryable) return null;
 
   const handleCopy = async () => {
     if (state.status !== "success") return;
@@ -158,6 +159,28 @@ export function NarrativeBlock({
       }
     }
   };
+
+  // Retryable error state
+  if (state.status === "error" && state.retryable) {
+    return (
+      <div
+        className="animate-fade-up [animation-delay:350ms] rounded-xl border border-cream-200 bg-white p-6 shadow-sm"
+        data-testid="narrative-error"
+      >
+        <p className="text-sm text-neutral-500">
+          Couldn&apos;t generate your round analysis.
+        </p>
+        <button
+          type="button"
+          onClick={fetchNarrative}
+          data-testid="narrative-retry"
+          className="mt-3 rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-all duration-200 hover:border-brand-800/30 hover:bg-cream-50"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   // Loading skeleton
   if (state.status === "loading") {

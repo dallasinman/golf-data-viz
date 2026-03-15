@@ -91,15 +91,38 @@ describe("NarrativeBlock", () => {
     expect(block.textContent).toContain("This was a solid round overall.");
   });
 
-  it("renders nothing on error", async () => {
+  it("shows retry button on retryable error", async () => {
     mockFetchError(500, "GENERATION_FAILED");
+    render(<NarrativeBlock input={VALID_INPUT} />);
+    const errorCard = await screen.findByTestId("narrative-error");
+    expect(errorCard).toBeInTheDocument();
+    expect(screen.getByTestId("narrative-retry")).toBeInTheDocument();
+    expect(errorCard.textContent).toContain("generate your round analysis");
+  });
+
+  it("renders nothing on non-retryable error (rate limited)", async () => {
+    mockFetchError(429, "RATE_LIMITED");
     const { container } = render(<NarrativeBlock input={VALID_INPUT} />);
-    // Wait for the fetch to complete and state to update
     await waitFor(() => {
       expect(screen.queryByTestId("narrative-loading")).not.toBeInTheDocument();
     });
-    expect(screen.queryByTestId("narrative-block")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("narrative-error")).not.toBeInTheDocument();
     expect(container.innerHTML).toBe("");
+  });
+
+  it("retries fetch when Try Again is clicked", async () => {
+    mockFetchError(503, "UNAVAILABLE");
+    const user = userEvent.setup();
+    render(<NarrativeBlock input={VALID_INPUT} />);
+    await screen.findByTestId("narrative-error");
+
+    // Switch mock to success and click retry
+    vi.restoreAllMocks();
+    mockFetchSuccess();
+    await user.click(screen.getByTestId("narrative-retry"));
+
+    const block = await screen.findByTestId("narrative-block");
+    expect(block.textContent).toContain("This was a solid round overall.");
   });
 
   it("does not render for shared links", () => {
