@@ -33,7 +33,18 @@ export function NarrativeBlock({
   troubleContext,
   isSharedLink = false,
 }: NarrativeBlockProps) {
-  const [state, setState] = useState<NarrativeState>({ status: "loading" });
+  const cacheKey = useMemo(() => "narrative:" + encodeRound(input), [input]);
+  const [state, setState] = useState<NarrativeState>(() => {
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as { narrative: string; wordCount: number };
+        return { status: "success", narrative: parsed.narrative, wordCount: parsed.wordCount };
+      }
+    } catch { /* sessionStorage unavailable or parse failure */ }
+    return { status: "loading" };
+  });
+  const hadCacheHit = useRef(state.status === "success");
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -87,6 +98,9 @@ export function NarrativeBlock({
         latency_ms: latencyMs,
         word_count: data.word_count,
       });
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ narrative: data.narrative, wordCount: data.word_count }));
+      } catch { /* quota exceeded or unavailable */ }
       setState({
         status: "success",
         narrative: data.narrative,
@@ -97,10 +111,11 @@ export function NarrativeBlock({
       trackEvent("narrative_failed", { error_type: "network" });
       setState({ status: "error", retryable: true });
     }
-  }, [inputKey, troubleKey]);
+  }, [inputKey, troubleKey, cacheKey]);
 
   useEffect(() => {
     if (isSharedLink) return;
+    if (hadCacheHit.current) return;
     fetchNarrative();
 
     return () => {
@@ -117,7 +132,18 @@ export function NarrativeBlock({
 
   // Don't render for shared links or non-retryable errors
   if (isSharedLink) return null;
-  if (state.status === "error" && !state.retryable) return null;
+  if (state.status === "error" && !state.retryable) {
+    return (
+      <div
+        className="animate-fade-up [animation-delay:350ms] rounded-xl border border-cream-200 bg-white p-6 shadow-sm"
+        data-testid="narrative-unavailable"
+      >
+        <p className="text-sm text-neutral-400">
+          Round analysis is temporarily unavailable.
+        </p>
+      </div>
+    );
+  }
 
   const handleCopy = async () => {
     if (state.status !== "success") return;
