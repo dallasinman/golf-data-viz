@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { captureMonitoringException } from "@/lib/monitoring/sentry";
 
-const MINUTE_WINDOW_SECONDS = 60;
-const HOUR_WINDOW_SECONDS = 60 * 60;
-const MAX_REQUESTS_PER_MINUTE = 5;
-const MAX_REQUESTS_PER_HOUR = 30;
+const DEFAULT_MINUTE_WINDOW_SECONDS = 60;
+const DEFAULT_HOUR_WINDOW_SECONDS = 60 * 60;
+const DEFAULT_MAX_PER_MINUTE = 5;
+const DEFAULT_MAX_PER_HOUR = 30;
 const KV_FETCH_TIMEOUT_MS = 3000;
 const MIN_RATE_LIMIT_SALT_LENGTH = 16;
 const DEV_FALLBACK_SALT = "dev-rate-limit-fallback-salt";
@@ -182,26 +182,62 @@ export function hashRateLimitKey(ip: string): string {
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }
 
+export interface RateLimitOptions {
+  prefix?: string;
+  maxPerMinute?: number;
+  maxPerHour?: number;
+}
+
 export async function checkRateLimit(
   ip: string,
-  store: RateLimitStore = getDefaultStore()
+  store: RateLimitStore = getDefaultStore(),
+  options?: RateLimitOptions
 ): Promise<RateLimitDecision> {
+  const prefix = options?.prefix ?? "save_round";
+  const maxPerMinute = options?.maxPerMinute ?? DEFAULT_MAX_PER_MINUTE;
+  const maxPerHour = options?.maxPerHour ?? DEFAULT_MAX_PER_HOUR;
+
   try {
     const key = hashRateLimitKey(ip || "unknown");
-    const minuteKey = `save_round:minute:${key}`;
-    const hourKey = `save_round:hour:${key}`;
+    const hourKey = `${prefix}:hour:${key}`;
 
-    const [minuteCount, hourCount] = await Promise.all([
-      store.increment(minuteKey, MINUTE_WINDOW_SECONDS),
-      store.increment(hourKey, HOUR_WINDOW_SECONDS),
-    ]);
+    // Skip minute check when maxPerMinute is undefined (explicitly opt out)
+    if (options?.maxPerMinute !== undefined) {
+      const minuteKey = `${prefix}:minute:${key}`;
+      const [minuteCount, hourCount] = await Promise.all([
+        store.increment(minuteKey, DEFAULT_MINUTE_WINDOW_SECONDS),
+        store.increment(hourKey, DEFAULT_HOUR_WINDOW_SECONDS),
+      ]);
 
-    if (minuteCount > MAX_REQUESTS_PER_MINUTE) {
-      return { allowed: false, reason: "minute" };
-    }
+      if (minuteCount > maxPerMinute) {
+        return { allowed: false, reason: "minute" };
+      }
 
-    if (hourCount > MAX_REQUESTS_PER_HOUR) {
-      return { allowed: false, reason: "hour" };
+      if (hourCount > maxPerHour) {
+        return { allowed: false, reason: "hour" };
+      }
+    } else if (options) {
+      // Options provided but maxPerMinute is undefined — hourly only
+      const hourCount = await store.increment(hourKey, DEFAULT_HOUR_WINDOW_SECONDS);
+
+      if (hourCount > maxPerHour) {
+        return { allowed: false, reason: "hour" };
+      }
+    } else {
+      // No options at all — use defaults (backward compatible)
+      const minuteKey = `${prefix}:minute:${key}`;
+      const [minuteCount, hourCount] = await Promise.all([
+        store.increment(minuteKey, DEFAULT_MINUTE_WINDOW_SECONDS),
+        store.increment(hourKey, DEFAULT_HOUR_WINDOW_SECONDS),
+      ]);
+
+      if (minuteCount > maxPerMinute) {
+        return { allowed: false, reason: "minute" };
+      }
+
+      if (hourCount > maxPerHour) {
+        return { allowed: false, reason: "hour" };
+      }
     }
 
     return { allowed: true };

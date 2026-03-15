@@ -48,7 +48,8 @@ export const SG_WEIGHTS = {
 /** Raw FIR delta: playerFIR% - peerFIR% (unweighted). */
 export function computeRawOttFirDelta(input: RoundInput, benchmark: BracketBenchmark): number {
   if (input.fairwaysHit == null || input.fairwayAttempts <= 0) return 0;
-  return input.fairwaysHit / input.fairwayAttempts - benchmark.fairwayPercentage / 100;
+  const firPct = Math.min(1, input.fairwaysHit / input.fairwayAttempts);
+  return firPct - benchmark.fairwayPercentage / 100;
 }
 
 /** Raw penalty delta: peerPenalties - playerPenalties (unweighted). */
@@ -70,7 +71,8 @@ export function computeRawAtgDelta(input: RoundInput, benchmark: BracketBenchmar
     input.upAndDownConverted != null &&
     input.upAndDownAttempts > 0
   ) {
-    return input.upAndDownConverted / input.upAndDownAttempts - benchmark.upAndDownPercentage / 100;
+    const uadPct = Math.min(1, input.upAndDownConverted / input.upAndDownAttempts);
+    return uadPct - benchmark.upAndDownPercentage / 100;
   }
   // Path 2: estimate from scoring
   if (input.greensInRegulation == null) return 0;

@@ -109,6 +109,15 @@ describe("computeRawOttFirDelta", () => {
     const benchmark = getInterpolatedBenchmark(14.3);
     expect(computeRawOttFirDelta(round, benchmark)).toBe(0);
   });
+
+  it("clamps ratio to 1.0 when fairwaysHit > fairwayAttempts (data entry error)", () => {
+    const round = makeRound({ fairwaysHit: 15, fairwayAttempts: 14 });
+    const benchmark = getInterpolatedBenchmark(14.3);
+    const delta = computeRawOttFirDelta(round, benchmark);
+    // Should use ratio=1.0, not 15/14=1.071
+    const expected = 1.0 - benchmark.fairwayPercentage / 100;
+    expect(delta).toBeCloseTo(expected, 10);
+  });
 });
 
 describe("computeRawOttPenaltyDelta", () => {
@@ -162,6 +171,18 @@ describe("computeRawAtgDelta", () => {
     const expected =
       round.upAndDownConverted! / round.upAndDownAttempts! -
       benchmark.upAndDownPercentage / 100;
+    expect(delta).toBeCloseTo(expected, 10);
+  });
+
+  it("clamps ratio to 1.0 when upAndDownConverted > upAndDownAttempts (data entry error)", () => {
+    const round = makeRound({
+      upAndDownAttempts: 5,
+      upAndDownConverted: 7,
+    });
+    const benchmark = getInterpolatedBenchmark(14.3);
+    const delta = computeRawAtgDelta(round, benchmark);
+    // Should use ratio=1.0, not 7/5=1.4
+    const expected = 1.0 - benchmark.upAndDownPercentage / 100;
     expect(delta).toBeCloseTo(expected, 10);
   });
 
