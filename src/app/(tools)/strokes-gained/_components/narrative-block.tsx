@@ -201,7 +201,9 @@ export function NarrativeBlock({
     );
   }
 
-  // Success state
+  // All non-success states handled above
+  if (state.status !== "success") return null;
+
   return (
     <div
       className="animate-fade-up [animation-delay:350ms] rounded-xl border border-cream-200 bg-white p-6 shadow-sm"
