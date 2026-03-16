@@ -20,6 +20,7 @@ import {
   type RoundTroubleContext,
 } from "@/lib/golf/trouble-context";
 import { BRACKET_LABELS } from "@/lib/golf/constants";
+import { formatHandicap, formatSG } from "@/lib/golf/format";
 import {
   calculateStrokesGained,
   toRadarChartData,
@@ -83,6 +84,9 @@ export default function StrokesGainedClient({
 }: StrokesGainedClientProps) {
   // from=history adaptation: show returning-user copy unless viewing a shared link
   const isFromHistory = from === "history" && !initialInput;
+  // Shared link recipient: initialInput present AND not navigating from history.
+  // State so it clears when the recipient submits their own round.
+  const [isSharedLink, setIsSharedLink] = useState(!!initialInput && from !== "history");
   const benchmarkMeta = getBenchmarkMeta();
 
   const phase2Mode = getClientPhase2Mode();
@@ -280,6 +284,7 @@ export default function StrokesGainedClient({
 
     // Clear stale feedback from previous submit
     setSaveSuccess(false);
+    setIsSharedLink(false);
     setTroubleContext(null);
     setTroubleModalOpen(false);
     setTroublePromptDismissed(false);
@@ -493,7 +498,7 @@ export default function StrokesGainedClient({
             </Link>
           )}
           <p className="animate-fade-up text-sm font-semibold uppercase tracking-[0.22em] text-brand-800">
-            Free post-round benchmark
+            Strokes Gained Benchmarker
           </p>
           <h1 className="animate-fade-up [animation-delay:100ms] mt-4 font-display text-4xl tracking-tight text-neutral-950 sm:text-5xl">
             {isFromHistory ? "Log Another Round" : "Strokes Gained Benchmarker"}
@@ -501,7 +506,7 @@ export default function StrokesGainedClient({
           {isFromHistory ? (
             <>
               <p className="animate-fade-up [animation-delay:200ms] mt-4 max-w-xl text-base leading-relaxed text-neutral-600">
-                Scorecard-based estimate vs your handicap peers. Add it to your history when you save.
+                Log another round and see how your game is changing.
               </p>
               <p className="animate-fade-up [animation-delay:200ms] mt-2 max-w-lg text-sm text-neutral-500">
                 No sensors needed.{" "}
@@ -513,7 +518,7 @@ export default function StrokesGainedClient({
           ) : (
             <>
               <p className="animate-fade-up [animation-delay:200ms] mt-4 max-w-xl text-base leading-relaxed text-neutral-600">
-                A proxy strokes gained benchmark built from scorecard stats amateurs already track.
+                See where your strokes went this round.
               </p>
               <p className="animate-fade-up [animation-delay:200ms] mt-2 max-w-lg text-sm text-neutral-500">
                 See where you gain and lose strokes compared to golfers at your handicap
@@ -574,12 +579,60 @@ export default function StrokesGainedClient({
           data-testid="sg-results"
           className="mt-16 space-y-8"
         >
+          {/* Score-first header band for shared link recipients */}
+          {isSharedLink && initialComputed && (
+            <div
+              data-testid="shared-link-header"
+              className="animate-fade-up overflow-hidden rounded-xl bg-brand-900 px-5 py-5 shadow-lg sm:px-8 sm:py-6"
+            >
+              <div className="sm:flex sm:items-end sm:gap-5">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-display text-4xl font-bold text-white sm:text-5xl">
+                    {lastInput.score}
+                  </span>
+                  <span className="text-base text-brand-100">at</span>
+                  <span className="truncate font-display text-lg font-bold text-brand-100 sm:text-xl">
+                    {lastInput.course}
+                  </span>
+                </div>
+                {/* SG badge — inline on mobile, circle on sm+ */}
+                <div className="mt-3 sm:mt-0">
+                  <span
+                    className={`font-mono text-base font-bold sm:hidden ${
+                      result.total >= 0 ? "text-green-400" : "text-red-300"
+                    }`}
+                  >
+                    {formatSG(result.total)} SG
+                  </span>
+                  <div
+                    className={`hidden sm:flex sm:h-16 sm:w-16 sm:items-center sm:justify-center sm:rounded-full sm:border-2 ${
+                      result.total >= 0
+                        ? "sm:border-data-positive sm:bg-data-positive/15"
+                        : "sm:border-data-negative sm:bg-data-negative/15"
+                    }`}
+                  >
+                    <span
+                      className={`font-mono text-lg font-bold ${
+                        result.total >= 0 ? "text-green-400" : "text-red-300"
+                      }`}
+                    >
+                      {formatSG(result.total)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-brand-100/70">
+                {formatHandicap(lastInput.handicapIndex)} index &middot; vs {BRACKET_LABELS[result.benchmarkBracket]}
+              </p>
+            </div>
+          )}
+
           <div className="animate-fade-up">
             <p className="text-sm font-semibold uppercase tracking-[0.15em] text-brand-800">
               Results
             </p>
             <h2 className="mt-2 font-display text-3xl tracking-tight text-neutral-950 sm:text-4xl">
-              Your Proxy SG Breakdown
+              Your Round Breakdown
             </h2>
           </div>
           <details className="animate-fade-up [animation-delay:100ms] rounded-lg border border-cream-200 bg-cream-50 px-4 py-3 text-sm text-neutral-500">
@@ -825,6 +878,27 @@ export default function StrokesGainedClient({
               }
             }}
           />
+
+          {/* Recipient CTA — shown only for shared link recipients */}
+          {isSharedLink && (
+            <div
+              data-testid="recipient-cta"
+              className="animate-fade-up rounded-xl border border-brand-200 bg-brand-50/50 px-5 py-5 text-center"
+            >
+              <p className="font-display text-lg font-bold tracking-tight text-neutral-950">
+                What does your game look like?
+              </p>
+              <p className="mt-1 text-sm text-neutral-600">
+                Enter your round stats and see how you compare to your handicap peers.
+              </p>
+              <a
+                href="/strokes-gained"
+                className="mt-3 inline-block rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md active:translate-y-0"
+              >
+                Try It Free
+              </a>
+            </div>
+          )}
 
           {/* Off-screen share card for PNG capture */}
           <div className="fixed left-[-9999px] top-0" aria-hidden="true">

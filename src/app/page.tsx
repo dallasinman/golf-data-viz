@@ -25,23 +25,52 @@ export default async function Home({ searchParams }: HomePageProps) {
           className="relative mx-auto max-w-4xl"
         >
           <p className="animate-fade-up text-xs font-semibold uppercase tracking-[0.18em] text-brand-800 sm:text-sm sm:tracking-[0.22em]">
-            Free post-round benchmark
+            Strokes Gained Benchmarker
           </p>
           <h1
             data-testid="hero-headline"
             className="animate-fade-up mt-4 max-w-[10ch] font-display text-4xl leading-[0.95] tracking-tight text-neutral-950 sm:text-5xl md:text-6xl"
           >
-            Know where your strokes go
+            Where did your strokes go?
           </h1>
           <p className="animate-fade-up delay-1 mt-6 max-w-[22rem] text-base leading-relaxed text-neutral-600 sm:max-w-xl sm:text-lg">
-            Use the scorecard stats you already track after a round to see
-            where you gain and lose strokes compared to golfers at your
-            handicap level. No sensors, no subscription, and no Tour-pro
-            baseline.
+            Enter your scorecard stats after a round. See exactly where you
+            gained and lost strokes compared to golfers at your level.
           </p>
           <div className="animate-fade-up delay-2 mt-8 sm:mt-10">
             <LandingCta utmSource={utmSource} />
           </div>
+        </div>
+      </section>
+
+      {/* Sample preview */}
+      <section data-testid="sample-preview" className="border-t border-cream-200 px-4 py-14 sm:py-16">
+        <div className="mx-auto max-w-4xl">
+          <p className="mt-2 text-sm text-neutral-600">
+            A strokes gained breakdown showing where your score separated from your peers.
+          </p>
+          <div className="mt-6">
+            <SampleResultPreview {...sample.preview} />
+          </div>
+          <div className="mt-6">
+            <LandingCta
+              utmSource={utmSource}
+              eventName="sample_preview_cta_clicked"
+              testId="sample-preview-cta"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Social proof bar */}
+      <section data-testid="social-proof-bar" className="border-t border-cream-200 bg-cream-100 px-4 py-5">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center
+          gap-x-8 gap-y-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
+          <span>Compared against amateur peers, not Tour pros</span>
+          <span className="hidden sm:inline text-cream-200">|</span>
+          <span>Open methodology &amp; published data sources</span>
+          <span className="hidden sm:inline text-cream-200">|</span>
+          <span>Free — no account required</span>
         </div>
       </section>
 
@@ -92,28 +121,6 @@ export default async function Home({ searchParams }: HomePageProps) {
         </div>
       </section>
 
-      {/* What you get */}
-      <section data-testid="sample-preview" className="border-t border-cream-200 px-4 py-14 sm:py-16">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="font-display text-2xl tracking-tight text-neutral-950 sm:text-3xl">
-            What you get
-          </h2>
-          <p className="mt-2 text-sm text-neutral-600">
-            A strokes gained breakdown showing where your score separated from your peers.
-          </p>
-          <div className="mt-6">
-            <SampleResultPreview {...sample.preview} />
-          </div>
-          <div className="mt-6">
-            <LandingCta
-              utmSource={utmSource}
-              eventName="sample_preview_cta_clicked"
-              testId="sample-preview-cta"
-            />
-          </div>
-        </div>
-      </section>
-
       <section
         data-testid="what-is-sg"
         className="border-t border-cream-200 px-4 py-20 sm:py-24"
@@ -124,18 +131,19 @@ export default async function Home({ searchParams }: HomePageProps) {
           </h2>
           <div className="mt-6 max-w-3xl space-y-4 text-sm leading-relaxed text-neutral-600 sm:text-base">
             <p>
-              Strokes Gained shows where your score separated from your peers by
-              category, not just raw totals. This tool provides proxy SG — a
-              scorecard-based estimate, not shot-level tracking.
+              Strokes Gained breaks your score into categories and measures each
+              against golfers at your level. Instead of just knowing your total,
+              you see exactly where you gained and lost strokes.
             </p>
             <p>
               Losing strokes to Tour players is expected. Comparing you to your
               handicap peers is what makes practice decisions useful.
             </p>
             <p>
-              Off the Tee covers driving/penalties, Approach covers GIR
-              performance, Around the Green covers scrambling, and Putting
-              covers putt efficiency.
+              Off the Tee covers driving and penalties. Approach covers greens
+              in regulation. Around the Green covers scrambling. Putting covers
+              putt efficiency. Each category benchmarked against golfers at your
+              handicap.
             </p>
             <p>
               We publish our exact formulas, data sources, and limitations.{" "}
