@@ -6,7 +6,6 @@
 import type { StrokesGainedCategory, StrokesGainedResult } from "./types";
 import {
   BRACKET_LABELS,
-  CATEGORY_LABELS,
   CATEGORY_ORDER,
 } from "./constants";
 import { formatSG } from "./format";
@@ -34,19 +33,5 @@ export function buildCompactSGRow(result: StrokesGainedResult): string {
     .filter((key) => !skippedSet.has(key))
     .map((key) => `${OG_CATEGORY_ABBREV[key]} ${formatSG(result.categories[key])}`)
     .join("  ");
-}
-
-/** Find the weakest (most negative) SG category label. Null if all >= 0. */
-export function findWeakestCategoryFromResult(result: StrokesGainedResult): string | null {
-  const skippedSet = new Set(result.skippedCategories);
-  let weakest: { key: StrokesGainedCategory; value: number } | null = null;
-  for (const key of CATEGORY_ORDER) {
-    if (skippedSet.has(key)) continue;
-    const value = result.categories[key];
-    if (value < 0 && (weakest === null || value < weakest.value)) {
-      weakest = { key, value };
-    }
-  }
-  return weakest ? CATEGORY_LABELS[weakest.key] : null;
 }
 

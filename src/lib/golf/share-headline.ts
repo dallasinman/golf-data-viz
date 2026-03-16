@@ -5,6 +5,7 @@
 
 import type { StrokesGainedResult, StrokesGainedCategory } from "./types";
 import { CATEGORY_LABELS, CATEGORY_ORDER, BRACKET_LABELS } from "./constants";
+import { truncateText } from "./og-card-data";
 
 export type HeadlinePattern =
   | "skull"
@@ -27,6 +28,13 @@ export interface ShareHeadline {
   sentiment: HeadlineSentiment;
 }
 
+/** Hex colors for OG image sentiment rendering. */
+export const SENTIMENT_COLORS: Record<HeadlineSentiment, string> = {
+  negative: "#fca5a5", // coral — losses
+  positive: "#a8d5ba", // light green — gains
+  neutral: "#fefcf3", // cream — split, shrug, score-only
+};
+
 /** Short abbreviations for compact clipboard/fallback text */
 const ABBREV: Record<StrokesGainedCategory, string> = {
   "off-the-tee": "OTT",
@@ -45,12 +53,6 @@ function fmtSigned(value: number): string {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}`;
 }
 
-/** Truncate text with ellipsis if over max */
-function truncLine(text: string, max: number): string {
-  if (text.length <= max) return text;
-  return text.slice(0, max - 1) + "\u2026";
-}
-
 export function generateShareHeadline(
   result: StrokesGainedResult,
   meta: { score: number; courseName: string },
@@ -67,7 +69,7 @@ export function generateShareHeadline(
 
   // --- score-only: <= 1 active category ---
   if (active.length <= 1) {
-    const line = truncLine(`Shot ${meta.score} at ${meta.courseName}`, 70);
+    const line = truncateText(`Shot ${meta.score} at ${meta.courseName}`, 70);
     return {
       line,
       clipboardPrefix: line,

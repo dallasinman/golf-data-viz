@@ -10,7 +10,7 @@ import {
   buildCompactSGRow,
   truncateText,
 } from "@/lib/golf/og-card-data";
-import { generateShareHeadline } from "@/lib/golf/share-headline";
+import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
 
 export const runtime = "edge";
 
@@ -119,11 +119,7 @@ export async function GET(request: NextRequest) {
     courseName: input.course,
   });
 
-  const headlineColor = {
-    negative: "#fca5a5",
-    positive: "#a8d5ba",
-    neutral: "#fefcf3",
-  }[headline.sentiment];
+  const headlineColor = SENTIMENT_COLORS[headline.sentiment];
 
   const familiarLine = buildFamiliarStats({
     handicapIndex: input.handicapIndex,

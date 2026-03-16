@@ -7,7 +7,7 @@ import {
   buildCompactSGRow,
   truncateText,
 } from "@/lib/golf/og-card-data";
-import { generateShareHeadline } from "@/lib/golf/share-headline";
+import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
 
 // Node runtime needed for admin client (service role key)
 export const runtime = "nodejs";
@@ -83,11 +83,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     courseName: snapshot.courseName,
   });
 
-  const headlineColor = {
-    negative: "#fca5a5",
-    positive: "#a8d5ba",
-    neutral: "#fefcf3",
-  }[headline.sentiment];
+  const headlineColor = SENTIMENT_COLORS[headline.sentiment];
 
   const familiarLine = buildFamiliarStats({
     handicapIndex: snapshot.handicapIndex,
