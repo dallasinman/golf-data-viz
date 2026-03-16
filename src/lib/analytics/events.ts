@@ -70,8 +70,8 @@ export type AnalyticsEventProps = {
   sample_preview_cta_clicked: { utm_source?: string };
   form_started: { utm_source?: string };
   calculation_completed: { utm_source?: string };
-  download_png_clicked: { has_share_param: boolean; utm_source?: string };
-  copy_link_clicked: { share_type: "canonical" | "encoded"; surface: "results_page"; utm_source?: string };
+  download_png_clicked: { has_share_param: boolean; utm_source?: string; headline_pattern?: string | null };
+  copy_link_clicked: { share_type: "canonical" | "encoded"; surface: "results_page"; utm_source?: string; headline_pattern?: string | null };
   shared_round_viewed: { referrer: string; utm_source: string };
   round_saved: EmptyPayload;
   gir_estimated: EmptyPayload;

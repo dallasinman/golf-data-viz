@@ -8,6 +8,7 @@ import type {
 } from "@/lib/golf/types";
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/golf/constants";
 import { formatHandicap, formatScoringBreakdown, buildFamiliarStats } from "@/lib/golf/format";
+import { generateShareHeadline } from "@/lib/golf/share-headline";
 import { RadarChart } from "@/components/charts/radar-chart";
 import { ConfidenceBadge } from "./confidence-badge";
 
@@ -40,6 +41,8 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
       skipped: skippedSet.has(key),
       estimated: estimatedSet.has(key),
     }));
+
+    const headline = generateShareHeadline(result, { score, courseName });
 
     const familiarStats = roundInput ? buildFamiliarStats(roundInput) : [];
     const scoringBreakdown = roundInput
@@ -99,6 +102,19 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
 
           {/* Gold separator */}
           <div className="mt-3 h-px bg-accent-500/50" />
+
+          {/* Headline — sentiment-colored */}
+          <p
+            className={`mt-2.5 text-sm font-medium ${
+              headline.sentiment === "negative"
+                ? "text-red-300"
+                : headline.sentiment === "positive"
+                  ? "text-green-400"
+                  : "text-cream-50"
+            }`}
+          >
+            {headline.line}
+          </p>
 
           {/* Familiar stats + scoring distribution */}
           {familiarStats.length > 0 && (

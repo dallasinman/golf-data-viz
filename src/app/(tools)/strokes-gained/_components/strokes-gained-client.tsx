@@ -28,6 +28,7 @@ import {
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
 import type { SgPhase2Mode } from "@/lib/golf/phase2-mode";
 import { encodeRound } from "@/lib/golf/share-codec";
+import { generateShareHeadline } from "@/lib/golf/share-headline";
 import { captureElementAsPng, downloadBlob } from "@/lib/capture";
 import { RoundInputForm } from "./round-input-form";
 import { ResultsSummary } from "./results-summary";
@@ -373,9 +374,17 @@ export default function StrokesGainedClient({
     await waitForUiPaint();
     const start = Date.now();
     try {
+      const dlHeadline =
+        result && lastInput
+          ? generateShareHeadline(result, {
+              score: lastInput.score,
+              courseName: lastInput.course,
+            })
+          : null;
       trackEvent("download_png_clicked", {
         has_share_param: window.location.search.includes("d="),
         utm_source: getAttributionUtmSource(),
+        headline_pattern: dlHeadline?.pattern ?? null,
       });
       const blob = await captureElementAsPng(shareCardRef.current);
       downloadBlob(blob, "strokes-gained.png");
@@ -392,23 +401,35 @@ export default function StrokesGainedClient({
       ? `${window.location.origin}/strokes-gained/shared/round/${shareToken}`
       : window.location.href;
 
+    const headline =
+      result && lastInput
+        ? generateShareHeadline(result, {
+            score: lastInput.score,
+            courseName: lastInput.course,
+          })
+        : null;
+    const text = headline
+      ? `${headline.clipboardPrefix}\n${url}`
+      : url;
+
     trackEvent("copy_link_clicked", {
       share_type: shareToken ? "canonical" : "encoded",
       surface: "results_page",
       utm_source: getAttributionUtmSource(),
+      headline_pattern: headline?.pattern ?? null,
     });
 
     if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
 
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(text);
       setCopyFailed(false);
       setCopied(true);
       copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback: hidden textarea + execCommand
       const textarea = document.createElement("textarea");
-      textarea.value = url;
+      textarea.value = text;
       textarea.style.position = "fixed";
       textarea.style.left = "-9999px";
       document.body.appendChild(textarea);
@@ -427,7 +448,7 @@ export default function StrokesGainedClient({
         document.body.removeChild(textarea);
       }
     }
-  }, [shareToken]);
+  }, [shareToken, result, lastInput]);
 
   // Claim a saved round — used both by auth modal callback and auto-claim effect
   const attemptClaim = useCallback(async () => {

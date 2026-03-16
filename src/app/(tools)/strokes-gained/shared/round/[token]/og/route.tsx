@@ -5,9 +5,9 @@ import { toStrokesGainedResult } from "@/lib/golf/round-detail-adapter";
 import { buildFamiliarStats } from "@/lib/golf/format";
 import {
   buildCompactSGRow,
-  findWeakestCategoryFromResult,
   truncateText,
 } from "@/lib/golf/og-card-data";
+import { generateShareHeadline } from "@/lib/golf/share-headline";
 
 // Node runtime needed for admin client (service role key)
 export const runtime = "nodejs";
@@ -78,7 +78,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const result = toStrokesGainedResult(snapshot);
   const courseName = truncateText(snapshot.courseName, 58);
   const compactSG = buildCompactSGRow(result);
-  const weakest = findWeakestCategoryFromResult(result);
+  const headline = generateShareHeadline(result, {
+    score: snapshot.score,
+    courseName: snapshot.courseName,
+  });
+
+  const headlineColor = {
+    negative: "#fca5a5",
+    positive: "#a8d5ba",
+    neutral: "#fefcf3",
+  }[headline.sentiment];
 
   const familiarLine = buildFamiliarStats({
     handicapIndex: snapshot.handicapIndex,
@@ -153,8 +162,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             marginTop: 20,
           }}
         >
-          <div style={{ fontSize: 24, color: "#fca5a5", fontWeight: 500 }}>
-            {weakest ? `Lost most strokes on ${weakest}` : ""}
+          <div style={{ fontSize: 24, color: headlineColor, fontWeight: 500 }}>
+            {headline.line}
           </div>
         </div>
 

@@ -53,14 +53,14 @@ export function SharedRoundClient({ snapshot }: SharedRoundClientProps) {
           </button>
 
           <div className="mt-8">
-            <p className="text-sm text-neutral-500">
-              Want to see where you gain and lose strokes?
+            <p className="text-sm font-medium text-neutral-700">
+              Think you can beat this?
             </p>
             <Link
               href="/strokes-gained"
               className="mt-2 inline-block text-sm font-medium text-brand-700 underline decoration-brand-300 underline-offset-2 transition-colors hover:text-brand-900"
             >
-              Get your own SG breakdown →
+              Enter your round and compare →
             </Link>
           </div>
         </div>

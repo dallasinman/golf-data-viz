@@ -8,9 +8,9 @@ import { getSgPhase2Mode } from "@/lib/golf/phase2-mode";
 import { buildFamiliarStats } from "@/lib/golf/format";
 import {
   buildCompactSGRow,
-  findWeakestCategoryFromResult,
   truncateText,
 } from "@/lib/golf/og-card-data";
+import { generateShareHeadline } from "@/lib/golf/share-headline";
 
 export const runtime = "edge";
 
@@ -114,7 +114,16 @@ export async function GET(request: NextRequest) {
     : calculateStrokesGained(input, benchmark);
   const courseName = truncateText(input.course, 58);
   const compactSG = buildCompactSGRow(result);
-  const weakest = findWeakestCategoryFromResult(result);
+  const headline = generateShareHeadline(result, {
+    score: input.score,
+    courseName: input.course,
+  });
+
+  const headlineColor = {
+    negative: "#fca5a5",
+    positive: "#a8d5ba",
+    neutral: "#fefcf3",
+  }[headline.sentiment];
 
   const familiarLine = buildFamiliarStats({
     handicapIndex: input.handicapIndex,
@@ -189,8 +198,8 @@ export async function GET(request: NextRequest) {
             marginTop: 20,
           }}
         >
-          <div style={{ fontSize: 24, color: "#fca5a5", fontWeight: 500 }}>
-            {weakest ? `Lost most strokes on ${weakest}` : ""}
+          <div style={{ fontSize: 24, color: headlineColor, fontWeight: 500 }}>
+            {headline.line}
           </div>
         </div>
 
