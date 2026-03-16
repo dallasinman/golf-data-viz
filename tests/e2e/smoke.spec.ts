@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("home page renders landing headline and CTA", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByTestId("hero-headline")).toBeVisible();
-  await expect(page.getByText("Free post-round benchmark")).toBeVisible();
+  await expect(page.getByText("Strokes Gained Benchmarker")).toBeVisible();
   await expect(page.getByTestId("hero-cta")).toBeVisible();
 });
 
@@ -47,6 +47,16 @@ test("sample preview CTA navigates to /strokes-gained", async ({ page }) => {
   await expect(page).toHaveURL(/\/strokes-gained/);
 });
 
+test("social proof bar is visible between sample preview and how-it-works", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const proofBar = page.getByTestId("social-proof-bar");
+  await expect(proofBar).toBeVisible();
+  await expect(proofBar.getByText("Compared against amateur peers, not Tour pros")).toBeVisible();
+  await expect(proofBar.getByText("Free — no account required")).toBeVisible();
+});
+
 test("no Next.js starter content remains", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("text=To get started")).not.toBeVisible();
@@ -57,7 +67,7 @@ test("strokes-gained page loads", async ({ page }) => {
   await page.goto("/strokes-gained");
   await expect(page.locator("h1")).toContainText("Strokes Gained");
   await expect(page.getByText("Beta")).toBeVisible();
-  await expect(page.getByText("Proxy Strokes Gained", { exact: true })).toBeVisible();
+  await expect(page.getByText("Scorecard Strokes Gained", { exact: true })).toBeVisible();
   await expect(page.locator('button[type="submit"]')).toBeVisible();
 });
 
