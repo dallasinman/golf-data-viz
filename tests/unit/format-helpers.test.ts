@@ -6,7 +6,6 @@ import {
 } from "@/lib/golf/format";
 import {
   buildCompactSGRow,
-  findWeakestCategoryFromResult,
 } from "@/lib/golf/og-card-data";
 import { makeSGResult } from "../fixtures/factories";
 
@@ -202,30 +201,3 @@ describe("buildCompactSGRow", () => {
   });
 });
 
-describe("findWeakestCategoryFromResult", () => {
-  it("returns weakest non-skipped category", () => {
-    const result = makeSGResult({
-      categories: {
-        "off-the-tee": -2.0,
-        approach: -0.5,
-        "around-the-green": -0.3,
-        putting: 0.1,
-      },
-      skippedCategories: ["off-the-tee"],
-    });
-    expect(findWeakestCategoryFromResult(result)).toBe("Approach");
-  });
-
-  it("returns null when all non-skipped are positive", () => {
-    const result = makeSGResult({
-      categories: {
-        "off-the-tee": -2.0,
-        approach: 0.5,
-        "around-the-green": 0.3,
-        putting: 0.1,
-      },
-      skippedCategories: ["off-the-tee"],
-    });
-    expect(findWeakestCategoryFromResult(result)).toBeNull();
-  });
-});
