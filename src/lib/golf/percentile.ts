@@ -97,3 +97,16 @@ export function calculatePercentiles(
   }
   return out;
 }
+
+/**
+ * Build a compact percentile summary string for OG images / share cards.
+ * e.g. "84th %ile  52nd %ile  91st %ile  67th %ile"
+ */
+export function buildPercentileRow(result: StrokesGainedResult): string {
+  const percentiles = calculatePercentiles(result);
+  const skippedSet = new Set(result.skippedCategories);
+  return CATEGORY_ORDER
+    .filter((key) => !skippedSet.has(key) && percentiles[key])
+    .map((key) => percentiles[key]!.shortLabel)
+    .join("  ");
+}

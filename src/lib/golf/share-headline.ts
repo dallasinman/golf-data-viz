@@ -6,7 +6,7 @@
 import type { StrokesGainedResult, StrokesGainedCategory } from "./types";
 import { CATEGORY_LABELS, CATEGORY_ORDER, BRACKET_LABELS } from "./constants";
 import { truncateText } from "./og-card-data";
-import { calculatePercentiles } from "./percentile";
+import { calculatePercentile } from "./percentile";
 
 export type HeadlinePattern =
   | "skull"
@@ -171,10 +171,10 @@ export function generateShareHeadline(
   }
 
   // --- shrug: fallback (percentile-enhanced when a category >= 80th) ---
-  const percentiles = calculatePercentiles(result);
+  const bracketLabel = BRACKET_LABELS[result.benchmarkBracket] ?? result.benchmarkBracket;
   const highPercentile = active
     .filter((key) => result.confidence[key] !== "low")
-    .map((key) => ({ key, pct: percentiles[key]?.percentile ?? 0 }))
+    .map((key) => ({ key, pct: calculatePercentile(key, result.categories[key], bracketLabel).percentile }))
     .sort((a, b) => b.pct - a.pct)
     .find((e) => e.pct >= 80);
 

@@ -11,8 +11,7 @@ import {
   truncateText,
 } from "@/lib/golf/og-card-data";
 import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
-import { calculatePercentiles } from "@/lib/golf/percentile";
-import { CATEGORY_ORDER } from "@/lib/golf/constants";
+import { buildPercentileRow } from "@/lib/golf/percentile";
 
 export const runtime = "edge";
 
@@ -116,12 +115,7 @@ export async function GET(request: NextRequest) {
     : calculateStrokesGained(input, benchmark);
   const courseName = truncateText(input.course, 58);
   const compactSG = buildCompactSGRow(result);
-  const percentiles = calculatePercentiles(result);
-  const skippedSet = new Set(result.skippedCategories);
-  const percentileRow = CATEGORY_ORDER
-    .filter((key) => !skippedSet.has(key) && percentiles[key])
-    .map((key) => percentiles[key]!.shortLabel)
-    .join("  ");
+  const percentileRow = buildPercentileRow(result);
   const headline = generateShareHeadline(result, {
     score: input.score,
     courseName: input.course,

@@ -8,8 +8,7 @@ import {
   truncateText,
 } from "@/lib/golf/og-card-data";
 import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
-import { calculatePercentiles } from "@/lib/golf/percentile";
-import { CATEGORY_ORDER } from "@/lib/golf/constants";
+import { buildPercentileRow } from "@/lib/golf/percentile";
 
 // Node runtime needed for admin client (service role key)
 export const runtime = "nodejs";
@@ -80,12 +79,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const result = toStrokesGainedResult(snapshot);
   const courseName = truncateText(snapshot.courseName, 58);
   const compactSG = buildCompactSGRow(result);
-  const percentiles = calculatePercentiles(result);
-  const skippedSet = new Set(result.skippedCategories);
-  const percentileRow = CATEGORY_ORDER
-    .filter((key) => !skippedSet.has(key) && percentiles[key])
-    .map((key) => percentiles[key]!.shortLabel)
-    .join("  ");
+  const percentileRow = buildPercentileRow(result);
   const headline = generateShareHeadline(result, {
     score: snapshot.score,
     courseName: snapshot.courseName,

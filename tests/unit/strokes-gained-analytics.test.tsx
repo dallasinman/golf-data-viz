@@ -319,12 +319,11 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     await userEvent.click(screen.getByTestId("download-png"));
 
     await waitFor(() => {
-      expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked",
-        expect.objectContaining({
-          has_share_param: true,
-          utm_source: "reddit",
-        }),
-      );
+      expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked", {
+        has_share_param: true,
+        utm_source: "reddit",
+        headline_pattern: expect.any(String),
+      });
     });
   });
 
@@ -385,13 +384,12 @@ describe("StrokesGainedClient analytics instrumentation", () => {
 
     await userEvent.click(screen.getByTestId("copy-link"));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith("copy_link_clicked",
-      expect.objectContaining({
-        share_type: "encoded",
-        surface: "results_page",
-        utm_source: "reddit",
-      }),
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith("copy_link_clicked", {
+      share_type: "encoded",
+      surface: "results_page",
+      utm_source: "reddit",
+      headline_pattern: expect.any(String),
+    });
   });
 
   it("preserves utm attribution for share events after submit rewrites the URL", async () => {
@@ -409,20 +407,18 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     await userEvent.click(screen.getByTestId("copy-link"));
     await userEvent.click(screen.getByTestId("download-png"));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith("copy_link_clicked",
-      expect.objectContaining({
-        share_type: "encoded",
-        surface: "results_page",
-        utm_source: "reddit",
-      }),
-    );
+    expect(mockTrackEvent).toHaveBeenCalledWith("copy_link_clicked", {
+      share_type: "encoded",
+      surface: "results_page",
+      utm_source: "reddit",
+      headline_pattern: expect.any(String),
+    });
     await waitFor(() => {
-      expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked",
-        expect.objectContaining({
-          has_share_param: true,
-          utm_source: "reddit",
-        }),
-      );
+      expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked", {
+        has_share_param: true,
+        utm_source: "reddit",
+        headline_pattern: expect.any(String),
+      });
     });
   });
 });
