@@ -106,8 +106,8 @@ describe("ShareCard", () => {
       />
     );
 
-    // Default factory uses "10-15" bracket
-    expect(screen.getByText(/10–15 HCP/)).toBeTruthy();
+    // Default factory uses "10-15" bracket — may appear in metadata and headline
+    expect(screen.getAllByText(/10–15 HCP/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows SG trust label", () => {

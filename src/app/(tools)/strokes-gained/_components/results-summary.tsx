@@ -10,6 +10,7 @@ import type {
 } from "@/lib/golf/types";
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/golf/constants";
 import { getEmphasizedCategories } from "@/lib/golf/emphasis";
+import { calculatePercentiles } from "@/lib/golf/percentile";
 import { generateTroubleNarrative, type RoundTroubleContext } from "@/lib/golf/trouble-context";
 import { trackEvent } from "@/lib/analytics/client";
 import { ConfidenceBadge } from "./confidence-badge";
@@ -71,6 +72,7 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
   const weakness = sorted.findLast((e) => e.value < -0.05) ?? null;
 
   const emphasizedCategories = getEmphasizedCategories(result);
+  const percentiles = calculatePercentiles(result);
 
   function handleDetailToggle(
     type: "confidence" | "methodology",
@@ -93,7 +95,7 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
     BRACKET_LABELS[result.benchmarkBracket] ?? result.benchmarkBracket;
 
   return (
-    <div className="w-full max-w-lg space-y-6">
+    <div className="w-full space-y-6">
       {/* Total SG — hero card */}
       <div
         className={`animate-fade-up rounded-xl border px-6 py-6 ${
@@ -264,6 +266,32 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
               <span className="mt-0.5 block text-xs font-normal text-neutral-400">
                 {description}
               </span>
+              {!skipped && percentiles[key] && (
+                <span className={`mt-1 flex items-center gap-1.5 text-[11px] ${
+                  result.confidence[key] === "low" ? "text-neutral-400" :
+                  percentiles[key]!.tier === "top" ? "text-data-positive" :
+                  percentiles[key]!.tier === "bottom" ? "text-data-negative" :
+                  "text-neutral-500"
+                }`}>
+                  <span className={`inline-block h-3 w-px rounded-full ${
+                    result.confidence[key] === "low" ? "bg-neutral-300" :
+                    percentiles[key]!.tier === "top" ? "bg-data-positive/50" :
+                    percentiles[key]!.tier === "bottom" ? "bg-data-negative/50" :
+                    "bg-neutral-300"
+                  }`} aria-hidden="true" />
+                  <span>
+                    <span className={`font-mono text-xs tabular-nums ${
+                      result.confidence[key] === "low" ? "" :
+                      percentiles[key]!.tier === "top" || percentiles[key]!.tier === "bottom" ? "font-semibold" : "font-medium"
+                    }`}>
+                      {percentiles[key]!.percentile}%
+                    </span>
+                    <span className="ml-0.5 font-normal">
+                      of {bracketLabel} golfers
+                    </span>
+                  </span>
+                </span>
+              )}
               {key === "off-the-tee" && troubleContext && troubleContext.summary.tee >= 1 && (
                 <span className="mt-0.5 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                   Trouble noted
@@ -364,6 +392,64 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
           </div>
         </div>
       )}
+
+      {/* Standout percentile callout */}
+      {(() => {
+        // Find highest percentile >= 75th with non-low confidence,
+        // excluding the category already featured in the strength card
+        const standoutEntry = CATEGORY_ORDER
+          .filter((cat) =>
+            !skippedSet.has(cat) &&
+            result.confidence[cat] !== "low" &&
+            percentiles[cat] !== null &&
+            percentiles[cat]!.percentile >= 75 &&
+            cat !== strength?.key
+          )
+          .map((cat) => ({ cat, pct: percentiles[cat]! }))
+          .sort((a, b) => b.pct.percentile - a.pct.percentile)[0];
+
+        if (!standoutEntry) return null;
+        const { cat, pct } = standoutEntry;
+
+        return (
+          <div
+            data-testid="percentile-standout"
+            className="animate-fade-up relative overflow-hidden rounded-lg border border-brand-100 bg-gradient-to-br from-brand-50 to-cream-50"
+            style={{ animationDelay: "600ms" }}
+          >
+            {/* Gold accent bar — top edge */}
+            <div className="h-0.5 bg-gradient-to-r from-accent-500/60 via-accent-500 to-accent-500/60" />
+
+            <div className="flex items-center gap-5 px-5 py-4">
+              {/* Hero percentile number */}
+              <div className="flex flex-col items-center">
+                <span className="font-display text-3xl tracking-tight text-brand-800 sm:text-4xl">
+                  {pct.percentile}
+                  <span className="text-lg text-brand-600">%</span>
+                </span>
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-accent-500">
+                  Percentile
+                </span>
+              </div>
+
+              {/* Vertical gold separator */}
+              <div className="h-10 w-px bg-accent-500/30" />
+
+              {/* Context */}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-neutral-950">
+                  Your {CATEGORY_LABELS[cat].toLowerCase()} beats
+                  <span className="text-data-positive"> {pct.percentile}%</span> of
+                  your peers
+                </p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  vs {bracketLabel} golfers
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

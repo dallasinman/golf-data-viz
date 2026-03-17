@@ -9,6 +9,7 @@ import type {
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/golf/constants";
 import { formatHandicap, formatScoringBreakdown, buildFamiliarStats } from "@/lib/golf/format";
 import { generateShareHeadline } from "@/lib/golf/share-headline";
+import { calculatePercentiles } from "@/lib/golf/percentile";
 import { RadarChart } from "@/components/charts/radar-chart";
 import { ConfidenceBadge } from "./confidence-badge";
 
@@ -43,6 +44,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
     }));
 
     const headline = generateShareHeadline(result, { score, courseName });
+    const percentiles = calculatePercentiles(result);
 
     const familiarStats = roundInput ? buildFamiliarStats(roundInput) : [];
     const scoringBreakdown = roundInput
@@ -178,6 +180,17 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
                     >
                       {formatSG(value)}
                     </span>
+                    {percentiles[key] && (
+                      <span className={`ml-2 rounded-full px-1.5 py-px text-[9px] font-medium tabular-nums ${
+                        percentiles[key]!.tier === "top"
+                          ? "bg-brand-50 text-data-positive"
+                          : percentiles[key]!.tier === "bottom"
+                            ? "bg-red-50 text-data-negative"
+                            : "bg-neutral-100 text-neutral-500"
+                      }`}>
+                        {percentiles[key]!.shortLabel}
+                      </span>
+                    )}
                   </span>
                 )}
               </div>

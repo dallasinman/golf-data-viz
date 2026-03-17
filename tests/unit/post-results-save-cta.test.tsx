@@ -130,6 +130,14 @@ describe("PostResultsSaveCta", () => {
     });
 
     it("fires post_results_save_cta_clicked on button click", async () => {
+      mockExecute.mockResolvedValue("test-turnstile-token");
+      mockSaveRound.mockResolvedValue({
+        success: true,
+        roundId: "round-123",
+        claimToken: "claim-abc",
+        isOwned: false,
+      });
+
       const user = userEvent.setup();
       render(<PostResultsSaveCta {...defaultProps} />);
 

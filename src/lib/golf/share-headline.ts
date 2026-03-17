@@ -6,6 +6,7 @@
 import type { StrokesGainedResult, StrokesGainedCategory } from "./types";
 import { CATEGORY_LABELS, CATEGORY_ORDER, BRACKET_LABELS } from "./constants";
 import { truncateText } from "./og-card-data";
+import { calculatePercentiles } from "./percentile";
 
 export type HeadlinePattern =
   | "skull"
@@ -169,7 +170,25 @@ export function generateShareHeadline(
     };
   }
 
-  // --- shrug: fallback ---
+  // --- shrug: fallback (percentile-enhanced when a category >= 80th) ---
+  const percentiles = calculatePercentiles(result);
+  const highPercentile = active
+    .filter((key) => result.confidence[key] !== "low")
+    .map((key) => ({ key, pct: percentiles[key]?.percentile ?? 0 }))
+    .sort((a, b) => b.pct - a.pct)
+    .find((e) => e.pct >= 80);
+
+  if (highPercentile) {
+    const catLabel = CATEGORY_LABELS[highPercentile.key].toLowerCase();
+    const line = `Your ${catLabel} is better than ${highPercentile.pct}% of your peers`;
+    return {
+      line,
+      clipboardPrefix: `${line} \u{1F4AA}`,
+      pattern: "shrug",
+      sentiment: "positive",
+    };
+  }
+
   const pos = result.total > 0;
   const line = pos
     ? v === 0
