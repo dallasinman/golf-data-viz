@@ -180,17 +180,20 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
                     >
                       {formatSG(value)}
                     </span>
-                    {percentiles[key] && (
-                      <span className={`ml-2 rounded-full px-1.5 py-px text-[9px] font-medium tabular-nums ${
-                        percentiles[key]!.tier === "top"
-                          ? "bg-brand-50 text-data-positive"
-                          : percentiles[key]!.tier === "bottom"
-                            ? "bg-red-50 text-data-negative"
-                            : "bg-neutral-100 text-neutral-500"
-                      }`}>
-                        {percentiles[key]!.shortLabel}
-                      </span>
-                    )}
+                    {percentiles[key] && (() => {
+                      const pct = percentiles[key]!;
+                      return (
+                        <span className={`ml-2 rounded-full px-1.5 py-px text-[9px] font-medium tabular-nums ${
+                          pct.tier === "top"
+                            ? "bg-brand-50 text-data-positive"
+                            : pct.tier === "bottom"
+                              ? "bg-red-50 text-data-negative"
+                              : "bg-neutral-100 text-neutral-500"
+                        }`}>
+                          {pct.shortLabel}
+                        </span>
+                      );
+                    })()}
                   </span>
                 )}
               </div>

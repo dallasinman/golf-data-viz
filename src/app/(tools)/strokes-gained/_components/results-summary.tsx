@@ -76,19 +76,17 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
 
   // Find highest percentile >= 75th with non-low confidence,
   // excluding the category already featured in the strength card
-  const standoutPercentile = (() => {
-    const entry = CATEGORY_ORDER
-      .filter((cat) =>
-        !skippedSet.has(cat) &&
-        result.confidence[cat] !== "low" &&
-        percentiles[cat] !== null &&
-        percentiles[cat]!.percentile >= 75 &&
-        cat !== strength?.key
-      )
-      .map((cat) => ({ cat, pct: percentiles[cat]! }))
-      .sort((a, b) => b.pct.percentile - a.pct.percentile)[0];
-    return entry ?? null;
-  })();
+  const standoutCandidates = CATEGORY_ORDER
+    .filter((cat) =>
+      !skippedSet.has(cat) &&
+      result.confidence[cat] !== "low" &&
+      percentiles[cat] !== null &&
+      percentiles[cat]!.percentile >= 75 &&
+      cat !== strength?.key
+    )
+    .map((cat) => ({ cat, pct: percentiles[cat]! }))
+    .sort((a, b) => b.pct.percentile - a.pct.percentile);
+  const standoutPercentile = standoutCandidates[0] ?? null;
 
   function handleDetailToggle(
     type: "confidence" | "methodology",
