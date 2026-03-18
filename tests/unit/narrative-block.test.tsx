@@ -65,6 +65,7 @@ describe("NarrativeBlock", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
+    sessionStorage.clear();
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
       writable: true,
@@ -100,14 +101,13 @@ describe("NarrativeBlock", () => {
     expect(errorCard.textContent).toContain("generate your round analysis");
   });
 
-  it("renders nothing on non-retryable error (rate limited)", async () => {
+  it("renders unavailable message on non-retryable error (rate limited)", async () => {
     mockFetchError(429, "RATE_LIMITED");
-    const { container } = render(<NarrativeBlock input={VALID_INPUT} />);
-    await waitFor(() => {
-      expect(screen.queryByTestId("narrative-loading")).not.toBeInTheDocument();
-    });
+    render(<NarrativeBlock input={VALID_INPUT} />);
+    const unavailable = await screen.findByTestId("narrative-unavailable");
+    expect(unavailable).toBeInTheDocument();
+    expect(unavailable.textContent).toContain("temporarily unavailable");
     expect(screen.queryByTestId("narrative-error")).not.toBeInTheDocument();
-    expect(container.innerHTML).toBe("");
   });
 
   it("retries fetch when Try Again is clicked", async () => {

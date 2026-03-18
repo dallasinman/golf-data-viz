@@ -11,6 +11,7 @@ import {
   truncateText,
 } from "@/lib/golf/og-card-data";
 import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
+import { buildPercentileRow } from "@/lib/golf/percentile";
 
 export const runtime = "edge";
 
@@ -114,6 +115,7 @@ export async function GET(request: NextRequest) {
     : calculateStrokesGained(input, benchmark);
   const courseName = truncateText(input.course, 58);
   const compactSG = buildCompactSGRow(result);
+  const percentileRow = buildPercentileRow(result);
   const headline = generateShareHeadline(result, {
     score: input.score,
     courseName: input.course,
@@ -220,6 +222,21 @@ export async function GET(request: NextRequest) {
             </div>
           </div>
         </div>
+
+        {/* Percentile row */}
+        {percentileRow && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: 8,
+            }}
+          >
+            <div style={{ fontSize: 16, color: "#a8d5ba", opacity: 0.7, letterSpacing: "0.04em" }}>
+              {percentileRow}
+            </div>
+          </div>
+        )}
 
         {/* Watermark */}
         <div

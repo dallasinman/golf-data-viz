@@ -632,7 +632,7 @@ export default function StrokesGainedClient({
         <div
           ref={resultsRef}
           data-testid="sg-results"
-          className="mt-16 space-y-8"
+          className="mt-16"
         >
           {/* Score-first header band for shared link recipients */}
           {isSharedLink && initialComputed && (
@@ -682,263 +682,305 @@ export default function StrokesGainedClient({
             </div>
           )}
 
-          <div className="animate-fade-up">
-            <p className="text-sm font-semibold uppercase tracking-[0.15em] text-brand-800">
-              Results
-            </p>
-            <h2 className="mt-2 font-display text-3xl tracking-tight text-neutral-950 sm:text-4xl">
-              Your Round Breakdown
-            </h2>
-          </div>
-          <details className="animate-fade-up [animation-delay:100ms] rounded-lg border border-cream-200 bg-cream-50 px-4 py-3 text-sm text-neutral-500">
-            <summary className="cursor-pointer font-medium text-neutral-800">
-              How to read these results
-            </summary>
-            <div className="mt-2 space-y-1 border-l-2 border-cream-200 pl-4">
-              <p>Outside the dashed ring = better than peers. Inside = worse.</p>
-              <p>Positive (+) = you gained strokes. Negative (−) = you lost strokes.</p>
-              <p>Focus on your weakest category — that&apos;s where practice helps most.</p>
-              <p>Confidence badges (High/Med/Low) show how much data each category uses. See the methodology page for details.</p>
+          {/* ── CHAPTER 1: AT A GLANCE ── */}
+          <div className={`space-y-6 ${isSharedLink && initialComputed ? "mt-10" : ""}`}>
+            <div className="animate-fade-up" style={{ animationDelay: "0ms" }}>
+              <p className="text-sm font-semibold uppercase tracking-[0.15em] text-brand-800">
+                Results
+              </p>
+              <h2 className="mt-2 font-display text-3xl tracking-tight text-neutral-950 sm:text-4xl">
+                Your Round Breakdown
+              </h2>
             </div>
-          </details>
-          <div className="animate-fade-up [animation-delay:200ms] rounded-xl border border-cream-200 bg-white p-4 shadow-sm sm:p-6">
-            <div style={{ height: 400 }}>
-              <RadarChart
-                data={chartData}
-                bracketLabel={BRACKET_LABELS[result.benchmarkBracket]}
+            <details className="animate-fade-up rounded-lg border border-cream-200 bg-cream-50 px-4 py-3 text-sm text-neutral-500" style={{ animationDelay: "50ms" }}>
+              <summary className="cursor-pointer font-medium text-neutral-800">
+                How to read these results
+              </summary>
+              <div className="mt-2 space-y-1 border-l-2 border-cream-200 pl-4">
+                <p>Outside the dashed ring = better than peers. Inside = worse.</p>
+                <p>Positive (+) = you gained strokes. Negative (−) = you lost strokes.</p>
+                <p>Focus on your weakest category — that&apos;s where practice helps most.</p>
+                <p>Confidence badges (High/Med/Low) show how much data each category uses. See the methodology page for details.</p>
+              </div>
+            </details>
+            <div className="animate-fade-up rounded-xl border border-cream-200 bg-white p-4 shadow-sm sm:p-6" style={{ animationDelay: "100ms" }}>
+              <div style={{ height: 400 }}>
+                <RadarChart
+                  data={chartData}
+                  bracketLabel={BRACKET_LABELS[result.benchmarkBracket]}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Gold section separator */}
+          <div
+            className="mx-auto mt-10 h-px w-16 animate-fade-up bg-accent-500/40"
+            style={{ animationDelay: "150ms" }}
+          />
+
+          {/* ── CHAPTER 2: DEEP DIVE ── */}
+          <div className="mt-10">
+            <h3
+              className="animate-fade-up text-sm font-semibold uppercase tracking-[0.15em] text-brand-800"
+              style={{ animationDelay: "200ms" }}
+            >
+              Category Breakdown
+            </h3>
+            <div className="mt-6 animate-fade-up" style={{ animationDelay: "250ms" }}>
+              <ResultsSummary
+                result={result}
+                benchmarkMeta={benchmarkMeta}
+                troubleContext={troubleContext}
+                onRemoveTroubleContext={() => {
+                  setTroubleContext(null);
+                  trackEvent("trouble_context_removed");
+                  if (savedRoundId) {
+                    void clearTroubleContext(savedRoundId, savedClaimToken);
+                  }
+                }}
               />
             </div>
+
+            {/* Trouble context prompt — shown when eligible and not yet annotated */}
+            {troubleEligible && !troubleContext && !troublePromptDismissed && (
+              <div className="mt-6">
+                <TroubleContextPrompt
+                  onAddContext={() => {
+                    setTroubleModalOpen(true);
+                    trackEvent("trouble_context_started");
+                  }}
+                  onDismiss={() => setTroublePromptDismissed(true)}
+                />
+              </div>
+            )}
+
+            {troubleModalOpen && (
+              <TroubleContextModal
+                onClose={() => setTroubleModalOpen(false)}
+                onApply={(ctx) => {
+                  setTroubleContext(ctx);
+                  setTroubleModalOpen(false);
+                  trackEvent("trouble_context_completed", {
+                    hole_count: ctx.troubleHoles.length,
+                    causes: TROUBLE_CAUSES.filter((c) => ctx.summary[c] > 0),
+                  });
+                  // Best-effort persistence
+                  if (savedRoundId) {
+                    void saveTroubleContext(savedRoundId, ctx, savedClaimToken).then((res) => {
+                      if (res.success) {
+                        trackEvent("trouble_context_saved_with_round", {
+                          hole_count: ctx.troubleHoles.length,
+                        });
+                      } else {
+                        trackEvent("trouble_context_save_failed", {
+                          error_type: "runtime",
+                        });
+                      }
+                    });
+                  }
+                }}
+              />
+            )}
           </div>
-          <ResultsSummary
-            result={result}
-            benchmarkMeta={benchmarkMeta}
-            troubleContext={troubleContext}
-            onRemoveTroubleContext={() => {
-              setTroubleContext(null);
-              trackEvent("trouble_context_removed");
-              if (savedRoundId) {
-                void clearTroubleContext(savedRoundId, savedClaimToken);
-              }
-            }}
+
+          {/* Gold section separator (conditional on insights chapter) */}
+          {lastInput && !isSharedLink && (
+            <div
+              className="mx-auto mt-10 h-px w-16 animate-fade-up bg-accent-500/40"
+              style={{ animationDelay: "300ms" }}
+            />
+          )}
+
+          {/* ── CHAPTER 3: INSIGHTS ── */}
+          {lastInput && !isSharedLink && (
+            <div className="mt-10 animate-fade-up" style={{ animationDelay: "350ms" }}>
+              <NarrativeBlock
+                input={lastInput}
+                troubleContext={troubleContext}
+                isSharedLink={false}
+              />
+            </div>
+          )}
+
+          {/* Gold section separator */}
+          <div
+            className="mx-auto mt-10 h-px w-16 animate-fade-up bg-accent-500/40"
+            style={{ animationDelay: "400ms" }}
           />
 
-          {/* Trouble context prompt — shown when eligible and not yet annotated */}
-          {troubleEligible && !troubleContext && !troublePromptDismissed && (
-            <TroubleContextPrompt
-              onAddContext={() => {
-                setTroubleModalOpen(true);
-                trackEvent("trouble_context_started");
-              }}
-              onDismiss={() => setTroublePromptDismissed(true)}
-            />
-          )}
-
-          {troubleModalOpen && (
-            <TroubleContextModal
-              onClose={() => setTroubleModalOpen(false)}
-              onApply={(ctx) => {
-                setTroubleContext(ctx);
-                setTroubleModalOpen(false);
-                trackEvent("trouble_context_completed", {
-                  hole_count: ctx.troubleHoles.length,
-                  causes: TROUBLE_CAUSES.filter((c) => ctx.summary[c] > 0),
-                });
-                // Best-effort persistence
-                if (savedRoundId) {
-                  void saveTroubleContext(savedRoundId, ctx, savedClaimToken).then((res) => {
-                    if (res.success) {
-                      trackEvent("trouble_context_saved_with_round", {
-                        hole_count: ctx.troubleHoles.length,
-                      });
-                    } else {
-                      trackEvent("trouble_context_save_failed", {
-                        error_type: "runtime",
-                      });
-                    }
-                  });
-                }
-              }}
-            />
-          )}
-
-          {/* AI Narrative */}
-          {lastInput && (
-            <NarrativeBlock
-              input={lastInput}
-              troubleContext={troubleContext}
-              isSharedLink={!!initialInput}
-            />
-          )}
-
-          {/* Share actions */}
-          <div className="animate-fade-up [animation-delay:450ms] flex gap-3">
-            <button
-              type="button"
-              data-testid="download-png"
-              onClick={handleDownloadPng}
-              disabled={downloading}
-              className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {downloading ? "Preparing..." : "Download PNG"}
-            </button>
-            <button
-              type="button"
-              data-testid="copy-link"
-              onClick={handleCopyLink}
-              className={`rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-medium transition-all duration-200 hover:border-brand-800/30 hover:bg-cream-50 ${
-                copyFailed ? "text-red-600" : "text-neutral-800"
-              }`}
-            >
-              {copyButtonText}
-            </button>
-          </div>
-          <p className="text-xs text-neutral-500">
-            Shared links include your entered round stats in encoded (reversible)
-            form.
-          </p>
-
-          {/* Post-results save CTA */}
-          {!saveSuccess && saveEnabled && (
-            <PostResultsSaveCta
-              input={lastInput}
-              turnstileSiteKey={turnstileSiteKey}
-              isAuthenticated={!!user}
-              onSaveComplete={(res) => {
-                setSavedRoundId(res.roundId);
-                setSavedRoundOwned(res.isOwned);
-                setSaveSuccess(true);
-                if (res.isOwned) {
-                  void createShareToken(res.roundId).then((tokenRes) => {
-                    if (tokenRes.success) setShareToken(tokenRes.token);
-                  });
-                }
-                if (!res.isOwned) {
-                  saveSuccessTimerRef.current = setTimeout(() => setSaveSuccess(false), 3000);
-                }
-                if (res.claimToken && !res.isOwned) {
-                  setSavedClaimToken(res.claimToken);
-                  try { localStorage.setItem(`claim:${res.roundId}`, JSON.stringify({ roundId: res.roundId, claimToken: res.claimToken })); } catch { /* localStorage unavailable */ }
-                }
-              }}
-            />
-          )}
-
-          {/* Save success — authenticated */}
-          {saveSuccess && savedRoundOwned && (
-            <div
-              data-testid="save-success-authed"
-              className="rounded-xl border border-green-200 bg-green-50 px-5 py-4"
-            >
-              <div className="flex items-center gap-2 text-sm font-medium text-green-800">
-                <CircleCheck className="h-5 w-5 shrink-0" />
-                Round added to your history.
-              </div>
-              <Link
-                href="/strokes-gained/history"
-                onClick={() => trackEvent("history_link_clicked", { surface: "post_save_confirmation" })}
-                className="mt-2 inline-block text-sm font-medium text-brand-800 underline hover:text-brand-600"
-              >
-                {isFromHistory ? "See updated history" : "View your trends"} &rarr;
-              </Link>
-            </div>
-          )}
-
-          {/* Save success — anonymous */}
-          {saveSuccess && !savedRoundOwned && (
-            <div
-              data-testid="save-success"
-              role="status"
-              className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
-            >
-              <CircleCheck className="h-5 w-5 shrink-0" />
-              Round saved.
-            </div>
-          )}
-
-          {/* Post-save claim CTA — shown only for truly anonymous users (no client session) */}
-          {savedRoundId && savedClaimToken && !savedRoundOwned && !user && claimStatus === "idle" && (
-            <div
-              data-testid="claim-cta"
-              className="rounded-xl border border-brand-200 bg-brand-50/50 px-5 py-4"
-            >
-              <p className="text-sm font-medium text-neutral-900">
-                Keep this round and track what changes
-              </p>
-              <p className="mt-1 text-xs text-neutral-600">
-                Create a free account to keep this round and see your SG trends, biggest mover, and round history over time.
-              </p>
+          {/* ── CHAPTER 4: SHARE & SAVE ── */}
+          <div className="mt-10 space-y-5">
+            {/* Share actions */}
+            <div className="animate-fade-up flex gap-3" style={{ animationDelay: "450ms" }}>
               <button
                 type="button"
-                onClick={() => {
-                  setClaimAuthModalOpen(true);
-                  trackEvent("auth_modal_opened", { surface: "post_save_claim_cta" });
-                }}
-                data-testid="claim-cta-btn"
-                className="mt-3 rounded-lg bg-brand-800 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md active:translate-y-0"
+                data-testid="download-png"
+                onClick={handleDownloadPng}
+                disabled={downloading}
+                className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Create account
+                {downloading ? "Preparing..." : "Download PNG"}
+              </button>
+              <button
+                type="button"
+                data-testid="copy-link"
+                onClick={handleCopyLink}
+                className={`rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-medium transition-all duration-200 hover:border-brand-800/30 hover:bg-cream-50 ${
+                  copyFailed ? "text-red-600" : "text-neutral-800"
+                }`}
+              >
+                {copyButtonText}
               </button>
             </div>
-          )}
+            <p className="text-xs text-neutral-500">
+              Shared links include your entered round stats in encoded (reversible)
+              form.
+            </p>
 
-          {claimStatus === "claiming" && (
-            <div
-              data-testid="claim-pending"
-              role="status"
-              className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600"
-            >
-              Linking round to your account...
-            </div>
-          )}
+            {/* Post-results save CTA */}
+            {!saveSuccess && saveEnabled && (
+              <PostResultsSaveCta
+                input={lastInput}
+                turnstileSiteKey={turnstileSiteKey}
+                isAuthenticated={!!user}
+                onSaveComplete={(res) => {
+                  setSavedRoundId(res.roundId);
+                  setSavedRoundOwned(res.isOwned);
+                  setSaveSuccess(true);
+                  if (res.isOwned) {
+                    void createShareToken(res.roundId).then((tokenRes) => {
+                      if (tokenRes.success) setShareToken(tokenRes.token);
+                    });
+                  }
+                  if (!res.isOwned) {
+                    saveSuccessTimerRef.current = setTimeout(() => setSaveSuccess(false), 3000);
+                  }
+                  if (res.claimToken && !res.isOwned) {
+                    setSavedClaimToken(res.claimToken);
+                    try { localStorage.setItem(`claim:${res.roundId}`, JSON.stringify({ roundId: res.roundId, claimToken: res.claimToken })); } catch { /* localStorage unavailable */ }
+                  }
+                }}
+              />
+            )}
 
-          {claimStatus === "claimed" && (
-            <div
-              data-testid="claim-success"
-              className="rounded-xl border border-green-200 bg-green-50 px-5 py-4"
-            >
-              <p className="text-sm font-medium text-green-800">
-                Round linked to your account!
-              </p>
-              <Link
-                href="/strokes-gained/history"
-                className="mt-2 inline-block text-sm font-medium text-brand-800 underline hover:text-brand-600"
+            {/* Save success — authenticated */}
+            {saveSuccess && savedRoundOwned && (
+              <div
+                data-testid="save-success-authed"
+                className="rounded-xl border border-green-200 bg-green-50 px-5 py-4"
               >
-                View your round history &rarr;
-              </Link>
-            </div>
-          )}
+                <div className="flex items-center gap-2 text-sm font-medium text-green-800">
+                  <CircleCheck className="h-5 w-5 shrink-0" />
+                  Round added to your history.
+                </div>
+                <Link
+                  href="/strokes-gained/history"
+                  onClick={() => trackEvent("history_link_clicked", { surface: "post_save_confirmation" })}
+                  className="mt-2 inline-block text-sm font-medium text-brand-800 underline hover:text-brand-600"
+                >
+                  {isFromHistory ? "See updated history" : "View your trends"} &rarr;
+                </Link>
+              </div>
+            )}
 
-          {claimStatus === "failed" && (
-            <div
-              data-testid="claim-error"
-              role="alert"
-              className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-            >
-              Could not link round to your account. Your results are still saved.
-            </div>
-          )}
+            {/* Save success — anonymous */}
+            {saveSuccess && !savedRoundOwned && (
+              <div
+                data-testid="save-success"
+                role="status"
+                className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+              >
+                <CircleCheck className="h-5 w-5 shrink-0" />
+                Round saved.
+              </div>
+            )}
 
-          <AuthModal
-            open={claimAuthModalOpen}
-            onClose={() => setClaimAuthModalOpen(false)}
-            onSuccess={handleClaimAuthSuccess}
-            onGoogleAuthStart={() => {
-              if (savedRoundId && savedClaimToken) {
-                try {
-                  localStorage.setItem(
-                    "pending-oauth-claim",
-                    JSON.stringify({ roundId: savedRoundId, claimToken: savedClaimToken })
-                  );
-                } catch { /* localStorage unavailable */ }
-              }
-            }}
-          />
+            {/* Post-save claim CTA — shown only for truly anonymous users (no client session) */}
+            {savedRoundId && savedClaimToken && !savedRoundOwned && !user && claimStatus === "idle" && (
+              <div
+                data-testid="claim-cta"
+                className="rounded-xl border border-brand-200 bg-brand-50/50 px-5 py-4"
+              >
+                <p className="text-sm font-medium text-neutral-900">
+                  Keep this round and track what changes
+                </p>
+                <p className="mt-1 text-xs text-neutral-600">
+                  Create a free account to keep this round and see your SG trends, biggest mover, and round history over time.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClaimAuthModalOpen(true);
+                    trackEvent("auth_modal_opened", { surface: "post_save_claim_cta" });
+                  }}
+                  data-testid="claim-cta-btn"
+                  className="mt-3 rounded-lg bg-brand-800 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md active:translate-y-0"
+                >
+                  Create account
+                </button>
+              </div>
+            )}
+
+            {claimStatus === "claiming" && (
+              <div
+                data-testid="claim-pending"
+                role="status"
+                className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600"
+              >
+                Linking round to your account...
+              </div>
+            )}
+
+            {claimStatus === "claimed" && (
+              <div
+                data-testid="claim-success"
+                className="rounded-xl border border-green-200 bg-green-50 px-5 py-4"
+              >
+                <p className="text-sm font-medium text-green-800">
+                  Round linked to your account!
+                </p>
+                <Link
+                  href="/strokes-gained/history"
+                  className="mt-2 inline-block text-sm font-medium text-brand-800 underline hover:text-brand-600"
+                >
+                  View your round history &rarr;
+                </Link>
+              </div>
+            )}
+
+            {claimStatus === "failed" && (
+              <div
+                data-testid="claim-error"
+                role="alert"
+                className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+              >
+                Could not link round to your account. Your results are still saved.
+              </div>
+            )}
+
+            <AuthModal
+              open={claimAuthModalOpen}
+              onClose={() => setClaimAuthModalOpen(false)}
+              onSuccess={handleClaimAuthSuccess}
+              onGoogleAuthStart={() => {
+                if (savedRoundId && savedClaimToken) {
+                  try {
+                    localStorage.setItem(
+                      "pending-oauth-claim",
+                      JSON.stringify({ roundId: savedRoundId, claimToken: savedClaimToken })
+                    );
+                  } catch { /* localStorage unavailable */ }
+                }
+              }}
+            />
+          </div>
 
           {/* Recipient CTA — shown only for shared link recipients */}
           {isSharedLink && (
             <div
               data-testid="recipient-cta"
-              className="animate-fade-up rounded-xl border border-brand-200 bg-brand-50/50 px-5 py-5 text-center"
+              className="mt-10 animate-fade-up rounded-xl border border-brand-200 bg-brand-50/50 px-5 py-5 text-center"
             >
               <p className="font-display text-lg font-bold tracking-tight text-neutral-950">
                 What does your game look like?
@@ -954,6 +996,14 @@ export default function StrokesGainedClient({
               </a>
             </div>
           )}
+
+          {/* Methodology footer */}
+          <div
+            className="mt-10 animate-fade-up border-t border-neutral-100 pt-6 text-center text-xs text-neutral-400"
+            style={{ animationDelay: "500ms" }}
+          >
+            <p>SG &middot; Benchmarks v{benchmarkMeta.version}</p>
+          </div>
 
           {/* Off-screen share card for PNG capture */}
           <div className="fixed left-[-9999px] top-0" aria-hidden="true">

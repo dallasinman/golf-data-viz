@@ -8,6 +8,7 @@ import {
   truncateText,
 } from "@/lib/golf/og-card-data";
 import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
+import { buildPercentileRow } from "@/lib/golf/percentile";
 
 // Node runtime needed for admin client (service role key)
 export const runtime = "nodejs";
@@ -78,6 +79,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const result = toStrokesGainedResult(snapshot);
   const courseName = truncateText(snapshot.courseName, 58);
   const compactSG = buildCompactSGRow(result);
+  const percentileRow = buildPercentileRow(result);
   const headline = generateShareHeadline(result, {
     score: snapshot.score,
     courseName: snapshot.courseName,
@@ -184,6 +186,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             </div>
           </div>
         </div>
+
+        {/* Percentile row */}
+        {percentileRow && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: 8,
+            }}
+          >
+            <div style={{ fontSize: 16, color: "#a8d5ba", opacity: 0.7, letterSpacing: "0.04em" }}>
+              {percentileRow}
+            </div>
+          </div>
+        )}
 
         {/* Watermark */}
         <div

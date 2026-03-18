@@ -322,6 +322,7 @@ describe("StrokesGainedClient analytics instrumentation", () => {
       expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked", {
         has_share_param: true,
         utm_source: "reddit",
+        headline_pattern: expect.any(String),
       });
     });
   });
@@ -387,6 +388,7 @@ describe("StrokesGainedClient analytics instrumentation", () => {
       share_type: "encoded",
       surface: "results_page",
       utm_source: "reddit",
+      headline_pattern: expect.any(String),
     });
   });
 
@@ -409,11 +411,13 @@ describe("StrokesGainedClient analytics instrumentation", () => {
       share_type: "encoded",
       surface: "results_page",
       utm_source: "reddit",
+      headline_pattern: expect.any(String),
     });
     await waitFor(() => {
       expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked", {
         has_share_param: true,
         utm_source: "reddit",
+        headline_pattern: expect.any(String),
       });
     });
   });
