@@ -1,0 +1,61 @@
+name: Staging Smoke
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: staging-smoke
+  cancel-in-progress: true
+
+jobs:
+  staging-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      PLAYWRIGHT_SKIP_WEBSERVER: "true"
+      PLAYWRIGHT_BASE_URL: https://staging.golfdataviz.com
+      NEXT_PUBLIC_SUPABASE_URL: https://uxelgkeagzjnwmjspcda.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      PLAYWRIGHT_E2E_EMAIL: ${{ secrets.STAGING_PLAYWRIGHT_E2E_EMAIL }}
+      PLAYWRIGHT_E2E_PASSWORD: ${{ secrets.STAGING_PLAYWRIGHT_E2E_PASSWORD }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium webkit
+
+      - name: Wait for protected staging deployment
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            status=$(curl -sS -o /dev/null -w "%{http_code}" \
+              -H "x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET}" \
+              -H "x-vercel-set-bypass-cookie: true" \
+              "${PLAYWRIGHT_BASE_URL}/")
+            if [ "${status}" = "200" ]; then
+              echo "staging is ready"
+              exit 0
+            fi
+            echo "staging not ready yet (status ${status}), retrying..."
+            sleep 10
+          done
+          echo "staging never became ready"
+          exit 1
+
+      - name: Run remote browser smoke
+        shell: bash
+        run: npx playwright test tests/e2e/production-smoke.spec.ts --project=production-chromium --project=production-webkit
+
+      - name: Run OAuth claim handoff smoke
+        shell: bash
+        run: npx playwright test tests/e2e/oauth-claim-handoff.spec.ts --project=functional

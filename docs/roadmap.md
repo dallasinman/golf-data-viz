@@ -1,6 +1,6 @@
 # Golf Data Viz — Product Roadmap (v2)
 
-> **Supersedes previous roadmap.** Based on 2-round research sprint completed 2026-03-17. See plan `squishy-knitting-hamming.md` for full research backing.
+> **Supersedes previous roadmap.** Based on 2-round research sprint completed 2026-03-17.
 
 ## Thesis
 
