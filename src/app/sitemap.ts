@@ -55,12 +55,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ];
 
-  const learnPages: MetadataRoute.Sitemap = LEARN_PAGES.map((slug) => ({
-    url: `${baseUrl}/learn/${slug}`,
-    lastModified: now,
-    changeFrequency: "monthly" as const,
-    priority: 0.7,
-  }));
+  const learnPages: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/learn`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    ...LEARN_PAGES.map((slug) => ({
+      url: `${baseUrl}/learn/${slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+  ];
 
   return [...existing, ...benchmarkPages, ...learnPages];
 }

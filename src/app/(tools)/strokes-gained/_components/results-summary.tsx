@@ -182,7 +182,7 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
           </span>
         )}
         {" "}&middot;{" "}
-        <Link href={"/benchmarks/" + bracketToSlug(result.benchmarkBracket)} className="underline hover:text-neutral-600">
+        <Link href={result.benchmarkBracket === "plus" ? "/methodology" : "/benchmarks/" + bracketToSlug(result.benchmarkBracket)} className="underline hover:text-neutral-600">
           Benchmarks
         </Link>{" "}
         v{benchmarkMeta.version}

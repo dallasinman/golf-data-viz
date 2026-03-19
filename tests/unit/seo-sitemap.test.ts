@@ -4,8 +4,8 @@ import sitemap from "@/app/sitemap";
 describe("sitemap", () => {
   const entries = sitemap();
 
-  it("returns 16 total entries (4 existing + 12 new)", () => {
-    expect(entries).toHaveLength(16);
+  it("returns 17 total entries (4 existing + 13 new)", () => {
+    expect(entries).toHaveLength(17);
   });
 
   it("contains /benchmarks/30-plus (not /benchmarks/30+)", () => {
@@ -35,5 +35,10 @@ describe("sitemap", () => {
   it("contains /benchmarks index page", () => {
     const urls = entries.map((e) => e.url);
     expect(urls.some((u) => u.endsWith("/benchmarks"))).toBe(true);
+  });
+
+  it("contains /learn index page", () => {
+    const urls = entries.map((e) => e.url);
+    expect(urls.some((u) => u.endsWith("/learn"))).toBe(true);
   });
 });
