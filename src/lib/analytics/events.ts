@@ -64,6 +64,7 @@ export type AnalyticsEvent =
   | "post_results_save_cta_clicked"
   | "local_round_restored"
   | "download_receipt_clicked"
+  | "download_story_clicked"
   | "shared_round_cta_clicked"
   | "recipient_started_own_calc"
   | "recipient_completed_own_calc"
@@ -208,10 +209,11 @@ export type AnalyticsEventProps = {
   post_results_save_cta_viewed: EmptyPayload;
   post_results_save_cta_clicked: EmptyPayload;
   local_round_restored: EmptyPayload;
-  download_receipt_clicked: EmptyPayload;
-  shared_round_cta_clicked: EmptyPayload;
-  recipient_started_own_calc: EmptyPayload;
-  recipient_completed_own_calc: EmptyPayload;
+  download_receipt_clicked: { has_share_param: boolean; utm_source?: string; headline_pattern?: string | null };
+  download_story_clicked: { has_share_param: boolean; utm_source?: string; headline_pattern?: string | null };
+  shared_round_cta_clicked: { surface: "encoded_share" | "token_share"; sentiment: "positive" | "negative" | "neutral" };
+  recipient_started_own_calc: { utm_source?: string; utm_medium?: string };
+  recipient_completed_own_calc: { utm_source?: string; utm_medium?: string; handicap_bracket: string };
   probability_calculated: EmptyPayload;
   widget_cta_clicked: EmptyPayload;
   referral_tier_unlocked: EmptyPayload;

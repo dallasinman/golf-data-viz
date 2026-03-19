@@ -37,6 +37,11 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
+export interface CaptureOptions {
+  pixelRatio?: number;   // default: 2
+  skipFonts?: boolean;   // default: true
+}
+
 /**
  * Capture a DOM element as a PNG blob.
  *
@@ -44,14 +49,15 @@ function dataUrlToBlob(dataUrl: string): Blob {
  * inlines styles, and renders to a canvas.
  */
 export async function captureElementAsPng(
-  element: HTMLElement
+  element: HTMLElement,
+  options?: CaptureOptions,
 ): Promise<Blob> {
+  const merged = { pixelRatio: 2, skipFonts: true, ...options };
   try {
     const dataUrl = await Promise.race([
       toPng(element, {
-        pixelRatio: 2,
-        // Avoid remote font fetches during capture; this can hang under strict CSP.
-        skipFonts: true,
+        pixelRatio: merged.pixelRatio,
+        skipFonts: merged.skipFonts,
       }),
       new Promise<string>((_, reject) => {
         setTimeout(() => reject(new Error("capture timeout")), CAPTURE_TIMEOUT_MS);
