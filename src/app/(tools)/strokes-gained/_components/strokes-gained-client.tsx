@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { CircleCheck } from "lucide-react";
+import { CircleCheck, Smartphone } from "lucide-react";
 import { trackEvent } from "@/lib/analytics/client";
 import type {
   RoundInput,
@@ -28,11 +28,15 @@ import {
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
 import type { SgPhase2Mode } from "@/lib/golf/phase2-mode";
 import { encodeRound } from "@/lib/golf/share-codec";
+import { buildShareUrl } from "@/lib/golf/share-url";
 import { generateShareHeadline } from "@/lib/golf/share-headline";
 import { captureElementAsPng, downloadBlob } from "@/lib/capture";
 import { RoundInputForm } from "./round-input-form";
 import { ResultsSummary } from "./results-summary";
 import { ShareCard } from "./share-card";
+import { ReceiptCard } from "./receipt-card";
+import { StoryCard } from "./story-card";
+import { RecipientCta } from "./recipient-cta";
 import { TroubleContextPrompt } from "./trouble-context-prompt";
 import { TroubleContextModal } from "./trouble-context-modal";
 import { NarrativeBlock } from "./narrative-block";
@@ -65,11 +69,21 @@ interface StrokesGainedClientProps {
   samplePreview: SamplePreviewData;
   sampleInput: RoundInput;
   from?: "history";
+  handicapPrefill?: number;
 }
 
 function getUtmSource(): string | undefined {
   if (typeof window === "undefined") return undefined;
   return new URLSearchParams(window.location.search).get("utm_source") ?? undefined;
+}
+
+function getUtmMedium(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return new URLSearchParams(window.location.search).get("utm_medium") ?? undefined;
+}
+
+function isRecipientFunnel(): boolean {
+  return getUtmSource() === "share" && getUtmMedium() === "cta";
 }
 
 async function waitForUiPaint(): Promise<void> {
@@ -84,12 +98,14 @@ export default function StrokesGainedClient({
   samplePreview,
   sampleInput,
   from,
+  handicapPrefill,
 }: StrokesGainedClientProps) {
   // from=history adaptation: show returning-user copy unless viewing a shared link
   const isFromHistory = from === "history" && !initialInput;
   // Shared link recipient: initialInput present AND not navigating from history.
   // State so it clears when the recipient submits their own round.
   const [isSharedLink, setIsSharedLink] = useState(!!initialInput && from !== "history");
+  const [showEncodedRecipientCta, setShowEncodedRecipientCta] = useState(false);
   const benchmarkMeta = getBenchmarkMeta();
 
   const phase2Mode = getClientPhase2Mode();
@@ -118,6 +134,8 @@ export default function StrokesGainedClient({
   const [copyFailed, setCopyFailed] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingReceipt, setDownloadingReceipt] = useState(false);
+  const [downloadingStory, setDownloadingStory] = useState(false);
   const [troubleContext, setTroubleContext] = useState<RoundTroubleContext | null>(null);
   const [troubleModalOpen, setTroubleModalOpen] = useState(false);
   const [troublePromptDismissed, setTroublePromptDismissed] = useState(false);
@@ -129,11 +147,16 @@ export default function StrokesGainedClient({
   const [claimStatus, setClaimStatus] = useState<"idle" | "claiming" | "claimed" | "failed">("idle");
   const [storedRound, setStoredRound] = useState<StoredRound | null>(null);
   const [formKey, setFormKey] = useState(0);
-  const [formInitialValues, setFormInitialValues] = useState<RoundInput | null | undefined>(initialInput);
+  const [formInitialValues, setFormInitialValues] = useState<Partial<RoundInput> | null | undefined>(
+    initialInput ?? (handicapPrefill != null ? { handicapIndex: handicapPrefill } : undefined)
+  );
   const { user } = useSupabaseUser();
   const resultsRef = useRef<HTMLDivElement>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
+  const receiptCardRef = useRef<HTMLDivElement>(null);
+  const storyCardRef = useRef<HTMLDivElement>(null);
   const formStartedRef = useRef(false);
+  const recipientStartedRef = useRef(false);
   const sharedRoundViewedRef = useRef(false);
   const attributionUtmSourceRef = useRef<string | undefined>(undefined);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -204,6 +227,14 @@ export default function StrokesGainedClient({
       }
     }
   }, [initialInput]);
+
+  // Gate encoded-share recipient CTA on client (avoids hydration mismatch)
+  useEffect(() => {
+    if (isSharedLink) {
+      const utmSource = new URLSearchParams(window.location.search).get("utm_source");
+      setShowEncodedRecipientCta(utmSource === "share");
+    }
+  }, [isSharedLink]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -304,6 +335,7 @@ export default function StrokesGainedClient({
     // Clear stale feedback from previous submit
     setSaveSuccess(false);
     setIsSharedLink(false);
+    setShowEncodedRecipientCta(false);
     setTroubleContext(null);
     setTroubleModalOpen(false);
     setTroublePromptDismissed(false);
@@ -324,6 +356,15 @@ export default function StrokesGainedClient({
     });
     if (sgResult.estimatedCategories.length > 0) {
       trackEvent("gir_estimated");
+    }
+
+    // Recipient funnel completion
+    if (isRecipientFunnel()) {
+      trackEvent("recipient_completed_own_calc", {
+        utm_source: getUtmSource(),
+        utm_medium: getUtmMedium(),
+        handicap_bracket: sgResult.benchmarkBracket,
+      });
     }
 
     // Plus handicap analytics — results_viewed fires separately in the
@@ -431,10 +472,54 @@ export default function StrokesGainedClient({
     }
   }, [downloading, shareHeadline]);
 
+  const handleDownloadReceipt = useCallback(async () => {
+    if (!receiptCardRef.current || downloadingReceipt) return;
+    setDownloadingReceipt(true);
+    await waitForUiPaint();
+    const start = Date.now();
+    try {
+      trackEvent("download_receipt_clicked", {
+        has_share_param: window.location.search.includes("d="),
+        utm_source: getAttributionUtmSource(),
+        headline_pattern: shareHeadline?.pattern ?? null,
+      });
+      const blob = await captureElementAsPng(receiptCardRef.current, { pixelRatio: 1 });
+      const courseSlug = lastInput?.course.replace(/\s+/g, "-").toLowerCase() ?? "round";
+      downloadBlob(blob, `${courseSlug}-receipt.png`);
+    } finally {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, 300 - elapsed);
+      setTimeout(() => setDownloadingReceipt(false), remaining);
+    }
+  }, [downloadingReceipt, shareHeadline, lastInput]);
+
+  const handleDownloadStory = useCallback(async () => {
+    if (!storyCardRef.current || downloadingStory) return;
+    setDownloadingStory(true);
+    await waitForUiPaint();
+    const start = Date.now();
+    try {
+      trackEvent("download_story_clicked", {
+        has_share_param: window.location.search.includes("d="),
+        utm_source: getAttributionUtmSource(),
+        headline_pattern: shareHeadline?.pattern ?? null,
+      });
+      const blob = await captureElementAsPng(storyCardRef.current, { pixelRatio: 1 });
+      const courseSlug = lastInput?.course.replace(/\s+/g, "-").toLowerCase() ?? "round";
+      downloadBlob(blob, `${courseSlug}-story.png`);
+    } finally {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, 300 - elapsed);
+      setTimeout(() => setDownloadingStory(false), remaining);
+    }
+  }, [downloadingStory, shareHeadline, lastInput]);
+
   const handleCopyLink = useCallback(async () => {
     const url = shareToken
       ? `${window.location.origin}/strokes-gained/shared/round/${shareToken}`
-      : window.location.href;
+      : lastInput
+        ? buildShareUrl({ encodedPayload: encodeRound(lastInput), medium: "copy_link" })
+        : window.location.href;
 
     const text = shareHeadline
       ? `${shareHeadline.clipboardPrefix}\n${url}`
@@ -476,7 +561,7 @@ export default function StrokesGainedClient({
         document.body.removeChild(textarea);
       }
     }
-  }, [shareToken, shareHeadline]);
+  }, [shareToken, shareHeadline, lastInput]);
 
   // Claim a saved round — used both by auth modal callback and auto-claim effect
   const attemptClaim = useCallback(async () => {
@@ -620,6 +705,13 @@ export default function StrokesGainedClient({
             formStartedRef.current = true;
             trackEvent("form_started", {
               utm_source: getAttributionUtmSource(),
+            });
+          }
+          if (!recipientStartedRef.current && isRecipientFunnel()) {
+            recipientStartedRef.current = true;
+            trackEvent("recipient_started_own_calc", {
+              utm_source: getUtmSource(),
+              utm_medium: getUtmMedium(),
             });
           }
         }}
@@ -830,14 +922,33 @@ export default function StrokesGainedClient({
 
           {/* ── CHAPTER 4: SHARE & SAVE ── */}
           <div className="mt-10 space-y-5">
-            {/* Share actions */}
-            <div className="animate-fade-up flex gap-3" style={{ animationDelay: "450ms" }}>
+            {/* Share actions — Receipt (primary), Story, PNG, Copy Link (secondary) */}
+            <div className="animate-fade-up flex flex-wrap gap-3" style={{ animationDelay: "450ms" }}>
+              <button
+                type="button"
+                data-testid="download-receipt"
+                onClick={handleDownloadReceipt}
+                disabled={downloadingReceipt}
+                className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {downloadingReceipt ? "Preparing..." : "Download Receipt"}
+              </button>
+              <button
+                type="button"
+                data-testid="download-story"
+                onClick={handleDownloadStory}
+                disabled={downloadingStory}
+                className="inline-flex items-center gap-1.5 rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-all duration-200 hover:border-brand-800/30 hover:bg-cream-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Smartphone className="h-4 w-4" />
+                {downloadingStory ? "Preparing..." : "Story"}
+              </button>
               <button
                 type="button"
                 data-testid="download-png"
                 onClick={handleDownloadPng}
                 disabled={downloading}
-                className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-all duration-200 hover:border-brand-800/30 hover:bg-cream-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {downloading ? "Preparing..." : "Download PNG"}
               </button>
@@ -995,25 +1106,13 @@ export default function StrokesGainedClient({
             />
           </div>
 
-          {/* Recipient CTA — shown only for shared link recipients */}
-          {isSharedLink && (
-            <div
-              data-testid="recipient-cta"
-              className="mt-10 animate-fade-up rounded-xl border border-brand-200 bg-brand-50/50 px-5 py-5 text-center"
-            >
-              <p className="font-display text-lg font-bold tracking-tight text-neutral-950">
-                What does your game look like?
-              </p>
-              <p className="mt-1 text-sm text-neutral-600">
-                Enter your round stats and see how you compare to your handicap peers.
-              </p>
-              <a
-                href="/strokes-gained"
-                className="mt-3 inline-block rounded-lg bg-brand-800 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md active:translate-y-0"
-              >
-                Try It Free
-              </a>
-            </div>
+          {/* Recipient CTA — shown for shared link recipients with UTM */}
+          {showEncodedRecipientCta && (
+            <RecipientCta
+              senderHandicap={lastInput.handicapIndex}
+              senderResult={result}
+              surface="encoded_share"
+            />
           )}
 
           {/* Methodology footer */}
@@ -1024,7 +1123,7 @@ export default function StrokesGainedClient({
             <p>SG &middot; Benchmarks v{benchmarkMeta.version}</p>
           </div>
 
-          {/* Off-screen share card for PNG capture */}
+          {/* Off-screen cards for PNG capture */}
           <div className="fixed left-[-9999px] top-0" aria-hidden="true">
             <ShareCard
               ref={shareCardRef}
@@ -1035,6 +1134,24 @@ export default function StrokesGainedClient({
               hasTroubleContext={troubleContext !== null}
               roundInput={lastInput}
             />
+            {shareHeadline && (
+              <>
+                <ReceiptCard
+                  ref={receiptCardRef}
+                  result={result}
+                  roundInput={lastInput}
+                  qrUrl={buildShareUrl({ encodedPayload: encodeRound(lastInput), medium: "receipt_qr" })}
+                  headline={shareHeadline}
+                />
+                <StoryCard
+                  ref={storyCardRef}
+                  result={result}
+                  chartData={chartData}
+                  roundInput={lastInput}
+                  headline={shareHeadline}
+                />
+              </>
+            )}
           </div>
         </div>
       )}

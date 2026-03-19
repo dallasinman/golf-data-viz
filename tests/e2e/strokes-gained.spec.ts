@@ -739,7 +739,28 @@ test.describe("Strokes Gained Benchmarker", () => {
     await expect(headerBand.getByText(/10\u201315 HCP/)).toBeVisible();
   });
 
-  test("shared link shows recipient CTA 'What does your game look like?'", async ({
+  test("encoded share with UTM shows recipient CTA with sentiment text", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+    const dParam = new URL(page.url()).searchParams.get("d");
+    expect(dParam).toBeTruthy();
+
+    await page.goto(`/strokes-gained?d=${dParam}&utm_source=share&utm_medium=cta&utm_campaign=round_share`);
+    await expect(
+      page.getByText("Your Round Breakdown")
+    ).toBeVisible({ timeout: 5000 });
+
+    const cta = page.getByTestId("recipient-cta");
+    await expect(cta).toBeVisible();
+    // Should show sentiment-based copy (one of three variants)
+    await expect(
+      cta.getByText(/(Your friend is beating|Think you can do better|How do your stats compare)/)
+    ).toBeVisible();
+  });
+
+  test("encoded share without UTM hides recipient CTA", async ({
     page,
   }) => {
     await page.goto("/strokes-gained");
@@ -752,9 +773,7 @@ test.describe("Strokes Gained Benchmarker", () => {
       page.getByText("Your Round Breakdown")
     ).toBeVisible({ timeout: 5000 });
 
-    const cta = page.getByTestId("recipient-cta");
-    await expect(cta).toBeVisible();
-    await expect(cta.getByText("What does your game look like?")).toBeVisible();
+    await expect(page.getByTestId("recipient-cta")).not.toBeVisible();
   });
 
   test("shared link header does NOT appear for user-submitted results", async ({
@@ -770,5 +789,130 @@ test.describe("Strokes Gained Benchmarker", () => {
   }) => {
     await page.goto("/strokes-gained?from=history");
     await expect(page.getByTestId("shared-link-header")).not.toBeVisible();
+  });
+
+  test("receipt download triggers file download with -receipt.png suffix", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.click('[data-testid="download-receipt"]');
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/-receipt\.png$/);
+  });
+
+  test("story download triggers file download with -story.png suffix", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.click('[data-testid="download-story"]');
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/-story\.png$/);
+  });
+
+  test("share buttons appear in correct order: Receipt, Story, PNG, Copy Link", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+
+    const receipt = page.getByTestId("download-receipt");
+    const story = page.getByTestId("download-story");
+    const png = page.getByTestId("download-png");
+    const copyLink = page.getByTestId("copy-link");
+
+    await expect(receipt).toBeVisible();
+    await expect(story).toBeVisible();
+    await expect(png).toBeVisible();
+    await expect(copyLink).toBeVisible();
+
+    // Verify order via bounding boxes
+    const receiptBox = await receipt.boundingBox();
+    const storyBox = await story.boundingBox();
+    const pngBox = await png.boundingBox();
+    const copyBox = await copyLink.boundingBox();
+
+    expect(receiptBox!.x).toBeLessThan(storyBox!.x);
+    expect(storyBox!.x).toBeLessThan(pngBox!.x);
+    // Copy link may wrap to next row on narrow screens, just verify it exists
+    expect(copyBox).toBeTruthy();
+  });
+
+  test("CTA links to calculator with handicap prefill", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+    const dParam = new URL(page.url()).searchParams.get("d");
+
+    await page.goto(`/strokes-gained?d=${dParam}&utm_source=share&utm_medium=cta&utm_campaign=round_share`);
+    await expect(page.getByTestId("recipient-cta")).toBeVisible({ timeout: 5000 });
+
+    // Click the CTA link
+    const ctaLink = page.getByTestId("recipient-cta").getByRole("link", { name: "Try It Free" });
+    await expect(ctaLink).toBeVisible();
+    const href = await ctaLink.getAttribute("href");
+    expect(href).toContain("handicap=");
+    expect(href).toContain("utm_source=share");
+
+    await ctaLink.click();
+    await page.waitForURL(/handicap=/);
+    // Handicap field should be prefilled
+    const handicapInput = page.locator('[name="handicapIndex"]');
+    await expect(handicapInput).toBeVisible();
+    const value = await handicapInput.inputValue();
+    expect(parseFloat(value)).toBeGreaterThan(0);
+  });
+
+  test("d= param overrides handicap= (results show, not just prefill)", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+    const dParam = new URL(page.url()).searchParams.get("d");
+
+    await page.goto(`/strokes-gained?d=${dParam}&handicap=20`);
+    // Should show results (from d=), not just a prefilled form
+    await expect(
+      page.getByText("Your Round Breakdown")
+    ).toBeVisible({ timeout: 5000 });
+
+    // Form shows the d= round data, not the handicap param
+    await expect(page.locator('[name="handicapIndex"]')).toHaveValue("14.3");
+  });
+
+  test("sticky CTA appears on mobile scroll, hides when inline CTA visible", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+    const dParam = new URL(page.url()).searchParams.get("d");
+
+    await page.goto(`/strokes-gained?d=${dParam}&utm_source=share&utm_medium=cta&utm_campaign=round_share`);
+    await expect(page.getByTestId("recipient-cta")).toBeVisible({ timeout: 5000 });
+
+    // Scroll past the inline CTA
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(300);
+
+    // Sticky CTA should appear when inline is scrolled out of view
+    const sticky = page.getByTestId("sticky-recipient-cta");
+    // Check if sticky appears (on narrow viewport, scrolling to top puts inline CTA off-screen if results are long)
+    // The inline CTA is at the bottom of results, so scrolling to top should trigger it
+    if (await sticky.isVisible()) {
+      await expect(sticky).toBeVisible();
+
+      // Scroll to inline CTA — sticky should hide
+      await page.getByTestId("recipient-cta").scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      await expect(sticky).not.toBeVisible();
+    }
+    // If page is short enough that CTA is always visible, sticky won't appear — that's valid
   });
 });

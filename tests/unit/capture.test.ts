@@ -97,4 +97,37 @@ describe("captureElementAsPng", () => {
       })
     );
   });
+
+  it("uses default pixelRatio: 2 and skipFonts: true when no options given", async () => {
+    mockToPng.mockResolvedValue(VALID_PNG_DATA_URL);
+
+    await captureElementAsPng(document.createElement("div"));
+
+    expect(mockToPng).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ pixelRatio: 2, skipFonts: true })
+    );
+  });
+
+  it("overrides pixelRatio but keeps skipFonts when { pixelRatio: 1 }", async () => {
+    mockToPng.mockResolvedValue(VALID_PNG_DATA_URL);
+
+    await captureElementAsPng(document.createElement("div"), { pixelRatio: 1 });
+
+    expect(mockToPng).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ pixelRatio: 1, skipFonts: true })
+    );
+  });
+
+  it("overrides skipFonts but keeps pixelRatio when { skipFonts: false }", async () => {
+    mockToPng.mockResolvedValue(VALID_PNG_DATA_URL);
+
+    await captureElementAsPng(document.createElement("div"), { skipFonts: false });
+
+    expect(mockToPng).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ pixelRatio: 2, skipFonts: false })
+    );
+  });
 });
