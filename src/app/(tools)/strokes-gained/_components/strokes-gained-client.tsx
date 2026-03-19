@@ -91,7 +91,8 @@ async function waitForUiPaint(): Promise<void> {
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 }
 
-const MIN_CAPTURE_LOADING_MS = 600;
+const CAPTURE_PREP_DELAY_MS = 150;
+const MIN_CAPTURE_LOADING_MS = 1200;
 
 export default function StrokesGainedClient({
   initialInput,
@@ -456,6 +457,7 @@ export default function StrokesGainedClient({
     if (!shareCardRef.current || downloading) return;
     setDownloading(true);
     await waitForUiPaint();
+    await new Promise<void>((resolve) => setTimeout(resolve, CAPTURE_PREP_DELAY_MS));
     const start = Date.now();
     try {
       trackEvent("download_png_clicked", {
@@ -477,6 +479,7 @@ export default function StrokesGainedClient({
     if (!receiptCardRef.current || downloadingReceipt) return;
     setDownloadingReceipt(true);
     await waitForUiPaint();
+    await new Promise<void>((resolve) => setTimeout(resolve, CAPTURE_PREP_DELAY_MS));
     const start = Date.now();
     try {
       trackEvent("download_receipt_clicked", {
@@ -498,6 +501,7 @@ export default function StrokesGainedClient({
     if (!storyCardRef.current || downloadingStory) return;
     setDownloadingStory(true);
     await waitForUiPaint();
+    await new Promise<void>((resolve) => setTimeout(resolve, CAPTURE_PREP_DELAY_MS));
     const start = Date.now();
     try {
       trackEvent("download_story_clicked", {
