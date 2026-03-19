@@ -33,6 +33,9 @@ const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://golfdataviz.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  verification: {
+    google: "_ddmHOx2n1cpI3NBKLerB9m180DZ0hKYdrsQ1X0euHI",
+  },
   title: {
     default: "Golf Data Viz",
     template: "%s | Golf Data Viz",
