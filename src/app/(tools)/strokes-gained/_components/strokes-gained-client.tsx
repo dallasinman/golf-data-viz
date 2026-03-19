@@ -43,7 +43,14 @@ import { NarrativeBlock } from "./narrative-block";
 import { PostResultsSaveCta } from "./post-results-save-cta";
 import { LastRoundBanner } from "./last-round-banner";
 import { RadarChart } from "@/components/charts/radar-chart";
-import { readStoredRound, LAST_ROUND_KEY, type StoredRound } from "@/lib/golf/local-storage";
+import {
+  readStoredRound,
+  readStoredAnonClaim,
+  writeStoredAnonClaim,
+  clearStoredAnonClaim,
+  LAST_ROUND_KEY,
+  type StoredRound,
+} from "@/lib/golf/local-storage";
 import { saveTroubleContext, clearTroubleContext, claimRound, createShareToken } from "../actions";
 import { LaunchTrustPanel } from "./launch-trust-panel";
 import { SampleResultPreview } from "@/components/sample-result-preview";
@@ -60,6 +67,33 @@ function getClientPhase2Mode(): SgPhase2Mode {
 
 function getCalculator(mode: SgPhase2Mode) {
   return mode === "full" ? calculateStrokesGainedV3 : calculateStrokesGained;
+}
+
+function roundInputsMatch(a: RoundInput, b: RoundInput): boolean {
+  return (
+    a.course === b.course &&
+    a.date === b.date &&
+    a.score === b.score &&
+    a.handicapIndex === b.handicapIndex &&
+    a.courseRating === b.courseRating &&
+    a.slopeRating === b.slopeRating &&
+    (a.fairwaysHit ?? null) === (b.fairwaysHit ?? null) &&
+    a.fairwayAttempts === b.fairwayAttempts &&
+    (a.greensInRegulation ?? null) === (b.greensInRegulation ?? null) &&
+    a.totalPutts === b.totalPutts &&
+    a.penaltyStrokes === b.penaltyStrokes &&
+    a.eagles === b.eagles &&
+    a.birdies === b.birdies &&
+    a.pars === b.pars &&
+    a.bogeys === b.bogeys &&
+    a.doubleBogeys === b.doubleBogeys &&
+    a.triplePlus === b.triplePlus &&
+    (a.upAndDownAttempts ?? null) === (b.upAndDownAttempts ?? null) &&
+    (a.upAndDownConverted ?? null) === (b.upAndDownConverted ?? null) &&
+    (a.sandSaves ?? null) === (b.sandSaves ?? null) &&
+    (a.sandSaveAttempts ?? null) === (b.sandSaveAttempts ?? null) &&
+    (a.threePutts ?? null) === (b.threePutts ?? null)
+  );
 }
 
 interface StrokesGainedClientProps {
@@ -163,9 +197,6 @@ export default function StrokesGainedClient({
   const sharedRoundViewedRef = useRef(false);
   const attributionUtmSourceRef = useRef<string | undefined>(undefined);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
   const isSampleSubmitRef = useRef(false);
   const claimRequestInFlightRef = useRef(false);
 
@@ -242,8 +273,6 @@ export default function StrokesGainedClient({
   useEffect(() => {
     return () => {
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-      if (saveSuccessTimerRef.current)
-        clearTimeout(saveSuccessTimerRef.current);
     };
   }, []);
 
@@ -279,6 +308,18 @@ export default function StrokesGainedClient({
       }
     } catch { /* localStorage unavailable or corrupt entry */ }
   }, []);
+
+  useEffect(() => {
+    if (!initialInput) return;
+
+    const storedClaim = readStoredAnonClaim();
+    if (!storedClaim) return;
+    if (!roundInputsMatch(storedClaim.input, initialInput)) return;
+
+    setSavedRoundId(storedClaim.roundId);
+    setSavedClaimToken(storedClaim.claimToken);
+    setSaveSuccess(true);
+  }, [initialInput]);
 
   // Read last round from localStorage on mount (no shared link, not from history)
   useEffect(() => {
@@ -346,8 +387,6 @@ export default function StrokesGainedClient({
     setShareToken(null);
     setClaimStatus("idle");
     claimRequestInFlightRef.current = false;
-    if (saveSuccessTimerRef.current)
-      clearTimeout(saveSuccessTimerRef.current);
 
     trackEvent("calculation_completed", {
       utm_source: getAttributionUtmSource(),
@@ -586,6 +625,7 @@ export default function StrokesGainedClient({
           localStorage.removeItem(`claim:${savedRoundId}`);
           localStorage.removeItem("pending-oauth-claim");
         } catch { /* localStorage unavailable */ }
+        clearStoredAnonClaim();
       } else {
         setClaimStatus("failed");
         trackEvent("round_claim_failed", { reason: result.code });
@@ -984,16 +1024,25 @@ export default function StrokesGainedClient({
                   setSavedRoundOwned(res.isOwned);
                   setSaveSuccess(true);
                   if (res.isOwned) {
+                    clearStoredAnonClaim();
                     void createShareToken(res.roundId).then((tokenRes) => {
                       if (tokenRes.success) setShareToken(tokenRes.token);
                     });
                   }
-                  if (!res.isOwned) {
-                    saveSuccessTimerRef.current = setTimeout(() => setSaveSuccess(false), 3000);
-                  }
-                  if (res.claimToken && !res.isOwned) {
+                  if (res.claimToken && !res.isOwned && lastInput) {
                     setSavedClaimToken(res.claimToken);
-                    try { localStorage.setItem(`claim:${res.roundId}`, JSON.stringify({ roundId: res.roundId, claimToken: res.claimToken })); } catch { /* localStorage unavailable */ }
+                    try {
+                      localStorage.setItem(
+                        `claim:${res.roundId}`,
+                        JSON.stringify({ roundId: res.roundId, claimToken: res.claimToken })
+                      );
+                    } catch { /* localStorage unavailable */ }
+                    writeStoredAnonClaim({
+                      roundId: res.roundId,
+                      claimToken: res.claimToken,
+                      input: lastInput,
+                      timestamp: new Date().toISOString(),
+                    });
                   }
                 }}
               />
