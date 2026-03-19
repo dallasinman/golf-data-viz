@@ -6,6 +6,7 @@ import type { LineCustomSvgLayerProps } from "@nivo/line";
 import type { TrendSeries, RoundSgSnapshot } from "@/lib/golf/trends";
 import { computeYDomain } from "@/lib/golf/trends";
 import { MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS } from "@/lib/golf/constants";
+import { presentSG } from "@/lib/golf/format";
 import { trackEvent } from "@/lib/analytics/client";
 
 interface SgTrendChartProps {
@@ -187,7 +188,7 @@ export function SgTrendChart({ series, rounds }: SgTrendChartProps) {
                   />
                   {categoryLabel}:{" "}
                   <span className="font-mono">
-                    {value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
+                    {presentSG(value, 1).formatted}
                   </span>
                 </p>
               </div>

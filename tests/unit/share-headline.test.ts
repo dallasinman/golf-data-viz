@@ -490,6 +490,39 @@ describe("generateShareHeadline", () => {
     });
   });
 
+  describe("no signed zero in output", () => {
+    it("split pattern does not produce +0.0 or -0.0", () => {
+      // Force a split with one near-zero category
+      const result = makeResult({
+        total: 0.3,
+        categories: {
+          approach: 1.5,
+          putting: -1.2,
+          "off-the-tee": 0.03,
+          "around-the-green": -0.03,
+        },
+      });
+      const h = generateShareHeadline(result, defaultMeta);
+      expect(h.line).not.toMatch(/[+-]0\.0/);
+      expect(h.clipboardPrefix).not.toMatch(/[+-]0\.0/);
+    });
+
+    it("shrug pattern clipboard does not produce +0.0 or -0.0", () => {
+      const result = makeResult({
+        total: 0.02,
+        categories: {
+          "off-the-tee": 0.03,
+          approach: 0.03,
+          "around-the-green": -0.03,
+          putting: -0.01,
+        },
+      });
+      const h = generateShareHeadline(result, defaultMeta);
+      expect(h.line).not.toMatch(/[+-]0\.0/);
+      expect(h.clipboardPrefix).not.toMatch(/[+-]0\.0/);
+    });
+  });
+
   describe("edge cases", () => {
     it("all positive categories -> shrug positive", () => {
       const result = makeResult({

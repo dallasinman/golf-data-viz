@@ -3,11 +3,98 @@ import {
   findWeakestCategory,
   formatScoringBreakdown,
   buildFamiliarStats,
+  presentSG,
+  formatSG,
 } from "@/lib/golf/format";
 import {
   buildCompactSGRow,
 } from "@/lib/golf/og-card-data";
 import { makeSGResult } from "../fixtures/factories";
+
+describe("presentSG", () => {
+  it("returns neutral tone and unsigned zero for 0", () => {
+    const sg = presentSG(0);
+    expect(sg.formatted).toBe("0.00");
+    expect(sg.tone).toBe("neutral");
+    expect(sg.isPeerAverage).toBe(true);
+  });
+
+  it("returns neutral tone and unsigned zero for -0", () => {
+    const sg = presentSG(-0);
+    expect(sg.formatted).toBe("0.00");
+    expect(sg.tone).toBe("neutral");
+    expect(sg.isPeerAverage).toBe(true);
+  });
+
+  it("returns neutral tone for +0.03 (within threshold)", () => {
+    const sg = presentSG(0.03);
+    expect(sg.formatted).toBe("0.00");
+    expect(sg.tone).toBe("neutral");
+    expect(sg.isPeerAverage).toBe(true);
+  });
+
+  it("returns neutral tone for -0.03 (within threshold)", () => {
+    const sg = presentSG(-0.03);
+    expect(sg.formatted).toBe("0.00");
+    expect(sg.tone).toBe("neutral");
+    expect(sg.isPeerAverage).toBe(true);
+  });
+
+  it("returns neutral tone for +0.05 (at threshold boundary)", () => {
+    const sg = presentSG(0.05);
+    expect(sg.formatted).toBe("0.00");
+    expect(sg.tone).toBe("neutral");
+    expect(sg.isPeerAverage).toBe(true);
+  });
+
+  it("returns positive tone for +0.5", () => {
+    const sg = presentSG(0.5);
+    expect(sg.formatted).toBe("+0.50");
+    expect(sg.tone).toBe("positive");
+    expect(sg.isPeerAverage).toBe(false);
+  });
+
+  it("returns negative tone for -0.5", () => {
+    const sg = presentSG(-0.5);
+    expect(sg.formatted).toBe("-0.50");
+    expect(sg.tone).toBe("negative");
+    expect(sg.isPeerAverage).toBe(false);
+  });
+
+  it("supports 1-decimal precision for near-zero", () => {
+    const sg = presentSG(0.03, 1);
+    expect(sg.formatted).toBe("0.0");
+    expect(sg.isPeerAverage).toBe(true);
+  });
+
+  it("supports 1-decimal precision for non-zero", () => {
+    const sg = presentSG(1.23, 1);
+    expect(sg.formatted).toBe("+1.2");
+    expect(sg.isPeerAverage).toBe(false);
+  });
+});
+
+describe("formatSG", () => {
+  it("no longer produces +0.00", () => {
+    expect(formatSG(0)).toBe("0.00");
+    expect(formatSG(0.03)).toBe("0.00");
+    expect(formatSG(0.05)).toBe("0.00");
+  });
+
+  it("no longer produces -0.00", () => {
+    expect(formatSG(-0)).toBe("0.00");
+    expect(formatSG(-0.03)).toBe("0.00");
+    expect(formatSG(-0.05)).toBe("0.00");
+  });
+
+  it("formats positive values with + prefix", () => {
+    expect(formatSG(1.5)).toBe("+1.50");
+  });
+
+  it("formats negative values with - prefix", () => {
+    expect(formatSG(-1.5)).toBe("-1.50");
+  });
+});
 
 describe("findWeakestCategory", () => {
   it("returns the most negative category", () => {
@@ -76,6 +163,39 @@ describe("findWeakestCategory", () => {
         skippedCategories: ["off-the-tee"],
       })
     ).toBeNull();
+  });
+
+  it("ignores neutral-range negatives (within threshold)", () => {
+    expect(
+      findWeakestCategory({
+        sgOffTheTee: -0.03,
+        sgApproach: 0.1,
+        sgAroundTheGreen: -0.04,
+        sgPutting: 0.0,
+      })
+    ).toBeNull();
+  });
+
+  it("returns null when all negatives are within threshold", () => {
+    expect(
+      findWeakestCategory({
+        sgOffTheTee: -0.05,
+        sgApproach: -0.05,
+        sgAroundTheGreen: -0.05,
+        sgPutting: -0.05,
+      })
+    ).toBeNull();
+  });
+
+  it("still finds weakest when below threshold", () => {
+    expect(
+      findWeakestCategory({
+        sgOffTheTee: -0.03,
+        sgApproach: -0.06,
+        sgAroundTheGreen: 0.1,
+        sgPutting: 0.0,
+      })
+    ).toBe("Approach");
   });
 });
 
@@ -198,6 +318,18 @@ describe("buildCompactSGRow", () => {
       skippedCategories: ["around-the-green"],
     });
     expect(buildCompactSGRow(result)).toBe("OTT +0.30  APP -0.80  PUTT -0.50");
+  });
+
+  it("shows unsigned zero for near-zero values", () => {
+    const result = makeSGResult({
+      categories: {
+        "off-the-tee": 0.03,
+        approach: -0.8,
+        "around-the-green": -0.5,
+        putting: 0.0,
+      },
+    });
+    expect(buildCompactSGRow(result)).toBe("OTT 0.00  APP -0.80  ATG -0.50  PUTT 0.00");
   });
 });
 

@@ -65,6 +65,75 @@ describe("Biggest Strength / Biggest Weakness callouts", () => {
   });
 });
 
+describe("Peer-average neutral state", () => {
+  it("shows neutral styling and Peer average label for near-zero categories", () => {
+    const result = makeSGResult({
+      categories: {
+        "off-the-tee": 0.03,
+        approach: -0.03,
+        "around-the-green": -0.5,
+        putting: 0.5,
+      },
+    });
+
+    render(<ResultsSummary result={result} benchmarkMeta={meta} />);
+
+    const peerLabels = screen.getAllByTestId("peer-average-label");
+    expect(peerLabels.length).toBe(2); // OTT and Approach are near-zero
+    expect(peerLabels[0].textContent).toBe("Peer average");
+  });
+
+  it("excludes peer-average categories from Biggest Strength/Weakness callouts", () => {
+    const result = makeSGResult({
+      categories: {
+        "off-the-tee": 0.03,
+        approach: -0.03,
+        "around-the-green": -0.5,
+        putting: 0.5,
+      },
+    });
+
+    render(<ResultsSummary result={result} benchmarkMeta={meta} />);
+
+    const strengthLabel = screen.getByText("Biggest Strength").closest("div")?.parentElement;
+    expect(strengthLabel?.textContent).toContain("Putting");
+
+    const weaknessLabel = screen.getByText("Biggest Weakness").closest("div")?.parentElement;
+    expect(weaknessLabel?.textContent).toContain("Around the Green");
+  });
+
+  it("does not display -0.00 in rendered output", () => {
+    const result = makeSGResult({
+      categories: {
+        "off-the-tee": -0.03,
+        approach: 0.03,
+        "around-the-green": -0.5,
+        putting: 0.5,
+      },
+    });
+
+    const { container } = render(<ResultsSummary result={result} benchmarkMeta={meta} />);
+    expect(container.textContent).not.toContain("-0.00");
+    expect(container.textContent).not.toContain("+0.00");
+  });
+
+  it("shows neutral hero card styling when total is near-zero", () => {
+    const result = makeSGResult({
+      total: 0.02,
+      categories: {
+        "off-the-tee": 0.03,
+        approach: -0.03,
+        "around-the-green": -0.01,
+        putting: 0.03,
+      },
+    });
+
+    const { container } = render(<ResultsSummary result={result} benchmarkMeta={meta} />);
+    // Total should show "0.00" without sign
+    expect(container.textContent).toContain("0.00");
+  });
+});
+
 describe("Plus handicap disclosure", () => {
   it("shows plus handicap disclosure for plus bracket", () => {
     const result = makeSGResult({

@@ -13,7 +13,8 @@ import type { ViewerEntitlements } from "@/lib/billing/entitlements";
 import { CATEGORY_LABELS } from "@/lib/golf/constants";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import type { LessonReportSnapshot } from "@/lib/golf/round-queries";
-import { formatCompactDate, formatDate, formatHandicap, formatSG } from "@/lib/golf/format";
+import { formatCompactDate, formatDate, formatHandicap, formatSG, presentSG } from "@/lib/golf/format";
+import { SG_NEAR_ZERO_THRESHOLD } from "@/lib/golf/constants";
 import {
   createLessonReportShareToken,
   generateLessonReport,
@@ -230,12 +231,12 @@ export function LessonReportView({
         <StatCard
           label="Primary Focus Area"
           value={report.focusArea.label}
-          tone={report.focusArea.averageSg < 0 ? "negative" : "neutral"}
+          tone={Math.abs(report.focusArea.averageSg) <= SG_NEAR_ZERO_THRESHOLD ? "neutral" : report.focusArea.averageSg < 0 ? "negative" : "neutral"}
         />
         <StatCard
           label="Strongest Area"
           value={report.strongestArea.label}
-          tone={report.strongestArea.averageSg >= 0 ? "positive" : "neutral"}
+          tone={Math.abs(report.strongestArea.averageSg) <= SG_NEAR_ZERO_THRESHOLD ? "neutral" : report.strongestArea.averageSg >= 0 ? "positive" : "neutral"}
         />
       </div>
 
@@ -377,14 +378,23 @@ export function LessonReportView({
                     {formatHandicap(round.handicapIndex)} HCP
                   </p>
                 </div>
+                {(() => {
+                  const sg = presentSG(round.sgTotal);
+                  return (
                 <p
                   className={[
                     "font-mono text-lg font-semibold",
-                    round.sgTotal >= 0 ? "text-data-positive" : "text-data-negative",
+                    sg.tone === "neutral"
+                      ? "text-neutral-500"
+                      : sg.tone === "positive"
+                        ? "text-data-positive"
+                        : "text-data-negative",
                   ].join(" ")}
                 >
-                  {formatSG(round.sgTotal)}
+                  {sg.formatted}
                 </p>
+                  );
+                })()}
               </div>
             </div>
           ))}
