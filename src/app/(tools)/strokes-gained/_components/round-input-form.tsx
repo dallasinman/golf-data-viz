@@ -53,6 +53,10 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 const inputClass =
   "block w-full rounded-lg border-2 border-cream-200 bg-cream-100 px-3 py-2.5 text-sm transition-all duration-200 placeholder:text-neutral-400 focus:border-brand-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-800/20 hover:border-cream-200/80";
 
+const handleWheel: React.WheelEventHandler<HTMLInputElement> = (e) => {
+  e.currentTarget.blur();
+};
+
 export function RoundInputForm({
   onSubmit,
   initialValues,
@@ -158,6 +162,7 @@ export function RoundInputForm({
                   inputMode="decimal"
                   step="0.1"
                   min="0"
+                  onWheel={handleWheel}
                   className={`${inputClass} rounded-l-none`}
                   {...register("handicapIndex")}
                 />
@@ -204,6 +209,7 @@ export function RoundInputForm({
               type="number"
               inputMode="decimal"
               step="0.1"
+              onWheel={handleWheel}
               className={inputClass}
               placeholder="e.g. 72.0"
               {...register("courseRating")}
@@ -217,6 +223,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               placeholder="e.g. 130"
               {...register("slopeRating")}
@@ -234,6 +241,7 @@ export function RoundInputForm({
           <input
             type="number"
             inputMode="numeric"
+            onWheel={handleWheel}
             className={inputClass}
             placeholder="e.g. 87"
             {...register("score")}
@@ -248,6 +256,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               {...register("fairwaysHit")}
             />
@@ -260,6 +269,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               {...register("fairwayAttempts")}
             />
@@ -274,6 +284,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               {...register("greensInRegulation")}
             />
@@ -286,6 +297,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               {...register("totalPutts")}
             />
@@ -299,6 +311,7 @@ export function RoundInputForm({
           <input
             type="number"
             inputMode="numeric"
+            onWheel={handleWheel}
             className={inputClass}
             placeholder="0"
             {...register("penaltyStrokes")}
@@ -330,6 +343,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               placeholder="0"
               {...register("eagles")}
@@ -339,6 +353,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               {...register("birdies")}
             />
@@ -347,6 +362,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               {...register("pars")}
             />
@@ -355,6 +371,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               {...register("bogeys")}
             />
@@ -363,6 +380,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               placeholder="0"
               {...register("doubleBogeys")}
@@ -372,6 +390,7 @@ export function RoundInputForm({
             <input
               type="number"
               inputMode="numeric"
+              onWheel={handleWheel}
               className={inputClass}
               placeholder="0"
               {...register("triplePlus")}
@@ -394,6 +413,19 @@ export function RoundInputForm({
         </button>
         {showOptional && (
           <div className="space-y-4 rounded-lg border-2 border-cream-200 p-4">
+            <div className="rounded-lg border border-brand-100 bg-brand-50/40 px-4 py-3">
+              <p className="text-sm font-medium text-neutral-800">
+                What counts as an up &amp; down?
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-neutral-600">
+                Count an up-and-down when you miss the green and finish the hole
+                in 2 shots from off the green. It does not have to be a par save.
+              </p>
+              <p className="mt-1.5 text-sm text-neutral-500">
+                <strong className="font-medium text-neutral-700">Attempts</strong> = missed-green chances you&apos;re counting.{" "}
+                <strong className="font-medium text-neutral-700">Made</strong> = the ones finished in 2 shots from off the green.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 label="Up & Down Attempts"
@@ -403,6 +435,7 @@ export function RoundInputForm({
                 <input
                   type="number"
                   inputMode="numeric"
+                  onWheel={handleWheel}
                   className={inputClass}
                   {...register("upAndDownAttempts")}
                 />
@@ -415,6 +448,7 @@ export function RoundInputForm({
                 <input
                   type="number"
                   inputMode="numeric"
+                  onWheel={handleWheel}
                   className={inputClass}
                   {...register("upAndDownConverted")}
                 />
@@ -428,6 +462,7 @@ export function RoundInputForm({
                 <input
                   type="number"
                   inputMode="numeric"
+                  onWheel={handleWheel}
                   className={inputClass}
                   {...register("sandSaveAttempts")}
                 />
@@ -439,6 +474,7 @@ export function RoundInputForm({
                 <input
                   type="number"
                   inputMode="numeric"
+                  onWheel={handleWheel}
                   className={inputClass}
                   {...register("sandSaves")}
                 />
@@ -452,6 +488,7 @@ export function RoundInputForm({
               <input
                 type="number"
                 inputMode="numeric"
+                onWheel={handleWheel}
                 className={inputClass}
                 {...register("threePutts")}
               />

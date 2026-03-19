@@ -3,7 +3,7 @@
  */
 
 import type { StrokesGainedCategory } from "./types";
-import { CATEGORY_LABELS } from "./constants";
+import { CATEGORY_LABELS, SG_NEAR_ZERO_THRESHOLD } from "./constants";
 
 /** Format a handicap index for user-facing display.
  *  Negative values (plus handicaps) display with a "+" prefix.
@@ -16,10 +16,37 @@ export function formatHandicap(handicapIndex: number): string {
   return handicapIndex.toFixed(1);
 }
 
-/** Format a strokes gained value with sign prefix and 2 decimal places. */
+export interface SgPresentation {
+  /** Formatted string — e.g. "0.00", "+1.23", "-0.45" */
+  formatted: string;
+  /** Color intent — neutral for peer-average values */
+  tone: "positive" | "negative" | "neutral";
+  /** True when the value is within the near-zero threshold */
+  isPeerAverage: boolean;
+}
+
+/** Classify an SG value and format it with sign handling and near-zero neutralisation. */
+export function presentSG(value: number, precision: 1 | 2 = 2): SgPresentation {
+  if (Math.abs(value) <= SG_NEAR_ZERO_THRESHOLD) {
+    return {
+      formatted: (0).toFixed(precision),
+      tone: "neutral",
+      isPeerAverage: true,
+    };
+  }
+  const sign = value > 0 ? "+" : "";
+  return {
+    formatted: `${sign}${value.toFixed(precision)}`,
+    tone: value > 0 ? "positive" : "negative",
+    isPeerAverage: false,
+  };
+}
+
+/** Format a strokes gained value with sign prefix and 2 decimal places.
+ *  Near-zero values (within ±SG_NEAR_ZERO_THRESHOLD) display as unsigned zero.
+ */
 export function formatSG(value: number): string {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}`;
+  return presentSG(value, 2).formatted;
 }
 
 /** Format a date string (YYYY-MM-DD) for display. */
@@ -81,7 +108,7 @@ export function findWeakestCategory(snapshot: {
   let weakest: { key: StrokesGainedCategory; value: number } | null = null;
   for (const entry of mapping) {
     if (skippedSet.has(entry.key)) continue;
-    if (entry.value < 0 && (weakest === null || entry.value < weakest.value)) {
+    if (entry.value < -SG_NEAR_ZERO_THRESHOLD && (weakest === null || entry.value < weakest.value)) {
       weakest = entry;
     }
   }

@@ -13,7 +13,8 @@ import type { ViewerEntitlements } from "@/lib/billing/entitlements";
 import { CATEGORY_LABELS } from "@/lib/golf/constants";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import type { LessonReportSnapshot } from "@/lib/golf/round-queries";
-import { formatCompactDate, formatDate, formatHandicap, formatSG } from "@/lib/golf/format";
+import { formatCompactDate, formatDate, formatHandicap, formatSG, presentSG } from "@/lib/golf/format";
+import { SG_NEAR_ZERO_THRESHOLD } from "@/lib/golf/constants";
 import {
   createLessonReportShareToken,
   generateLessonReport,
@@ -230,12 +231,12 @@ export function LessonReportView({
         <StatCard
           label="Primary Focus Area"
           value={report.focusArea.label}
-          tone={report.focusArea.averageSg < 0 ? "negative" : "neutral"}
+          tone={Math.abs(report.focusArea.averageSg) <= SG_NEAR_ZERO_THRESHOLD ? "neutral" : report.focusArea.averageSg < 0 ? "negative" : "neutral"}
         />
         <StatCard
           label="Strongest Area"
           value={report.strongestArea.label}
-          tone={report.strongestArea.averageSg >= 0 ? "positive" : "neutral"}
+          tone={Math.abs(report.strongestArea.averageSg) <= SG_NEAR_ZERO_THRESHOLD ? "neutral" : report.strongestArea.averageSg >= 0 ? "positive" : "neutral"}
         />
       </div>
 
@@ -267,12 +268,21 @@ export function LessonReportView({
                 interactive={false}
               />
             </div>
-            <p className="mt-2 font-mono text-lg text-data-negative">
-              {formatSG(report.focusArea.averageSg)}
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-              The most negative average category with usable confidence across these rounds.
-            </p>
+            {(() => {
+              const sg = presentSG(report.focusArea.averageSg);
+              return (
+              <>
+              <p className={`mt-2 font-mono text-lg ${sg.tone === "neutral" ? "text-neutral-500" : "text-data-negative"}`}>
+                {sg.formatted}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                {sg.isPeerAverage
+                  ? "This category is at peer average across the selected rounds."
+                  : "The most negative average category with usable confidence across these rounds."}
+              </p>
+              </>
+              );
+            })()}
           </div>
 
           <div className="rounded-2xl border border-card-border bg-white p-5 shadow-sm">
@@ -289,12 +299,21 @@ export function LessonReportView({
                 interactive={false}
               />
             </div>
-            <p className="mt-2 font-mono text-lg text-data-positive">
-              {formatSG(report.strongestArea.averageSg)}
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-              Your most positive average category across the selected rounds.
-            </p>
+            {(() => {
+              const sg = presentSG(report.strongestArea.averageSg);
+              return (
+              <>
+              <p className={`mt-2 font-mono text-lg ${sg.tone === "neutral" ? "text-neutral-500" : "text-data-positive"}`}>
+                {sg.formatted}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+                {sg.isPeerAverage
+                  ? "This category is at peer average across the selected rounds."
+                  : "Your most positive average category across the selected rounds."}
+              </p>
+              </>
+              );
+            })()}
           </div>
 
           <div className="rounded-2xl border border-card-border bg-white p-5 shadow-sm">
@@ -377,14 +396,23 @@ export function LessonReportView({
                     {formatHandicap(round.handicapIndex)} HCP
                   </p>
                 </div>
+                {(() => {
+                  const sg = presentSG(round.sgTotal);
+                  return (
                 <p
                   className={[
                     "font-mono text-lg font-semibold",
-                    round.sgTotal >= 0 ? "text-data-positive" : "text-data-negative",
+                    sg.tone === "neutral"
+                      ? "text-neutral-500"
+                      : sg.tone === "positive"
+                        ? "text-data-positive"
+                        : "text-data-negative",
                   ].join(" ")}
                 >
-                  {formatSG(round.sgTotal)}
+                  {sg.formatted}
                 </p>
+                  );
+                })()}
               </div>
             </div>
           ))}

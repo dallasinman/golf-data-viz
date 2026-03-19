@@ -1,7 +1,8 @@
 import type { RoundInput, StrokesGainedResult } from "./types";
 import type { RoundTroubleContext } from "./trouble-context";
 import { generateTroubleNarrative } from "./trouble-context";
-import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "./constants";
+import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER, SG_NEAR_ZERO_THRESHOLD } from "./constants";
+import { formatSG } from "./format";
 
 export const NARRATIVE_SYSTEM_PROMPT = `You are a golf performance analyst writing for mid-handicap recreational golfers.
 Your job is to translate strokes gained statistics into a clear, compelling 3-5 sentence narrative about a golfer's round.
@@ -19,12 +20,9 @@ Rules:
 - Format as a single paragraph — no bullet points, no headers
 - If trouble context is provided, incorporate it into the narrative
 - Include confidence caveats when a category has "low" confidence
-- End with one sentence about the single most impactful area for improvement, framed as observation not advice ("your biggest opportunity is..." not "you should...")`;
-
-function formatSgValue(value: number): string {
-  if (value === 0) return "0.00";
-  return value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2);
-}
+- If a category is marked [PEER AVERAGE], describe it as neutral — matching the peer group. Do not praise or criticize peer-average categories.
+- If all categories are peer-average, describe the round as broadly matching the peer group rather than implying a benchmark copy. Do not invent a weakness.
+- If at least one category is clearly negative (not peer-average), end with one sentence about the single most impactful area for improvement, framed as observation not advice ("your biggest opportunity is..." not "you should..."). If all categories are peer-average, skip this sentence.`;
 
 export function buildNarrativeUserPrompt(
   input: RoundInput,
@@ -45,9 +43,13 @@ export function buildNarrativeUserPrompt(
 
   const sgLines = CATEGORY_ORDER.map((cat) => {
     const label = CATEGORY_LABELS[cat];
-    const value = formatSgValue(result.categories[cat]);
+    const rawValue = result.categories[cat];
+    const value = formatSG(rawValue);
     const confidence = result.confidence[cat];
-    return `- ${label}: ${value} (confidence: ${confidence})`;
+    const peerAvgTag = Math.abs(rawValue) <= SG_NEAR_ZERO_THRESHOLD
+      ? " [PEER AVERAGE — do not praise or criticize]"
+      : "";
+    return `- ${label}: ${value} (confidence: ${confidence})${peerAvgTag}`;
   });
 
   const estimatedNote =
@@ -71,7 +73,7 @@ ${girLine}
 ${scoringLine}
 
 Strokes Gained vs ${bracketLabel} peers:
-- Total: ${formatSgValue(result.total)}
+- Total: ${formatSG(result.total)}
 ${sgLines.join("\n")}
 ${troubleText}${estimatedNote}
 

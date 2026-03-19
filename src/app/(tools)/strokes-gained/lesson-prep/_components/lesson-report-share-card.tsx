@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import type { LessonReportSnapshot } from "@/lib/golf/round-queries";
-import { formatDate, formatSG } from "@/lib/golf/format";
+import { formatDate, formatSG, presentSG } from "@/lib/golf/format";
 
 function confidenceTone(level: string): string {
   switch (level) {
@@ -61,7 +61,7 @@ export const LessonReportShareCard = forwardRef<
           <p className="mt-2 font-display text-2xl tracking-tight text-neutral-950">
             {report.focusArea.label}
           </p>
-          <p className="mt-1 font-mono text-lg text-data-negative">
+          <p className={`mt-1 font-mono text-lg ${presentSG(report.focusArea.averageSg).tone === "neutral" ? "text-neutral-500" : "text-data-negative"}`}>
             {formatSG(report.focusArea.averageSg)}
           </p>
           <p className={`mt-2 text-xs font-medium uppercase tracking-[0.18em] ${confidenceTone(report.focusArea.confidence)}`}>
@@ -76,7 +76,7 @@ export const LessonReportShareCard = forwardRef<
           <p className="mt-2 font-display text-2xl tracking-tight text-neutral-950">
             {report.strongestArea.label}
           </p>
-          <p className="mt-1 font-mono text-lg text-data-positive">
+          <p className={`mt-1 font-mono text-lg ${presentSG(report.strongestArea.averageSg).tone === "neutral" ? "text-neutral-500" : "text-data-positive"}`}>
             {formatSG(report.strongestArea.averageSg)}
           </p>
           <p className={`mt-2 text-xs font-medium uppercase tracking-[0.18em] ${confidenceTone(report.strongestArea.confidence)}`}>

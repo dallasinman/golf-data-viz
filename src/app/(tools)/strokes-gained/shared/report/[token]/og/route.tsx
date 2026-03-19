@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getLessonReportByShareToken } from "@/lib/golf/round-queries";
-import { formatSG } from "@/lib/golf/format";
+import { formatSG, presentSG } from "@/lib/golf/format";
 
 export const runtime = "nodejs";
 
@@ -92,7 +92,7 @@ export async function GET(
             <div style={{ marginTop: 12, fontSize: 34, fontWeight: 700 }}>
               {report.focusArea.label}
             </div>
-            <div style={{ marginTop: 8, fontSize: 24, color: "#dc2626" }}>
+            <div style={{ marginTop: 8, fontSize: 24, color: presentSG(report.focusArea.averageSg).tone === "neutral" ? "#737373" : "#dc2626" }}>
               {formatSG(report.focusArea.averageSg)}
             </div>
           </div>
@@ -114,7 +114,7 @@ export async function GET(
             <div style={{ marginTop: 12, fontSize: 34, fontWeight: 700 }}>
               {report.strongestArea.label}
             </div>
-            <div style={{ marginTop: 8, fontSize: 24, color: "#16a34a" }}>
+            <div style={{ marginTop: 8, fontSize: 24, color: presentSG(report.strongestArea.averageSg).tone === "neutral" ? "#737373" : "#16a34a" }}>
               {formatSG(report.strongestArea.averageSg)}
             </div>
           </div>

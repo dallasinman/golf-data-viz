@@ -9,7 +9,7 @@ import {
 } from "@/lib/golf/round-detail-adapter";
 import { getBenchmarkMeta } from "@/lib/golf/benchmarks";
 import { BRACKET_LABELS } from "@/lib/golf/constants";
-import { formatHandicap, formatSG, formatDate, formatScoringBreakdown, buildFamiliarStats } from "@/lib/golf/format";
+import { formatHandicap, formatDate, formatScoringBreakdown, buildFamiliarStats, presentSG } from "@/lib/golf/format";
 import { RadarChart } from "@/components/charts/radar-chart";
 import { ResultsSummary } from "./results-summary";
 import { ShareCard } from "./share-card";
@@ -80,24 +80,35 @@ export function RoundLayout({
             </span>
             <span className="mt-1 text-xs uppercase tracking-wider text-brand-100/70">Score</span>
           </div>
+          {(() => {
+            const totalSg = presentSG(snapshot.sgTotal);
+            return (
           <div className="flex flex-col items-center">
             <div
               className={`flex h-16 w-16 items-center justify-center rounded-full border-2 sm:h-20 sm:w-20 ${
-                snapshot.sgTotal >= 0
-                  ? "border-data-positive bg-data-positive/15"
-                  : "border-data-negative bg-data-negative/15"
+                totalSg.tone === "neutral"
+                  ? "border-neutral-400 bg-neutral-400/15"
+                  : totalSg.tone === "positive"
+                    ? "border-data-positive bg-data-positive/15"
+                    : "border-data-negative bg-data-negative/15"
               }`}
             >
               <span
                 className={`font-mono text-lg font-bold sm:text-xl ${
-                  snapshot.sgTotal >= 0 ? "text-green-400" : "text-red-300"
+                  totalSg.tone === "neutral"
+                    ? "text-neutral-300"
+                    : totalSg.tone === "positive"
+                      ? "text-green-400"
+                      : "text-red-300"
                 }`}
               >
-                {formatSG(snapshot.sgTotal)}
+                {totalSg.formatted}
               </span>
             </div>
             <span className="mt-1 text-xs text-brand-100/70">SG vs peers</span>
           </div>
+            );
+          })()}
         </div>
 
         <p className="mt-2 text-sm text-brand-100/70">

@@ -7,16 +7,11 @@ import type {
   RoundInput,
 } from "@/lib/golf/types";
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/golf/constants";
-import { formatHandicap, formatScoringBreakdown, buildFamiliarStats } from "@/lib/golf/format";
+import { formatHandicap, formatScoringBreakdown, buildFamiliarStats, presentSG } from "@/lib/golf/format";
 import { generateShareHeadline } from "@/lib/golf/share-headline";
 import { calculatePercentiles } from "@/lib/golf/percentile";
 import { RadarChart } from "@/components/charts/radar-chart";
 import { ConfidenceBadge } from "./confidence-badge";
-
-function formatSG(value: number): string {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}`;
-}
 
 interface ShareCardProps {
   result: StrokesGainedResult;
@@ -72,24 +67,35 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
               </span>
               <span className="mt-0.5 text-[10px] uppercase tracking-wider text-brand-100/70">Score</span>
             </div>
+            {(() => {
+              const totalSg = presentSG(result.total);
+              return (
             <div className="flex flex-col items-center">
               <div
                 className={`flex h-16 w-16 items-center justify-center rounded-full border-2 ${
-                  result.total >= 0
-                    ? "border-data-positive bg-data-positive/15"
-                    : "border-data-negative bg-data-negative/15"
+                  totalSg.tone === "neutral"
+                    ? "border-neutral-400 bg-neutral-400/15"
+                    : totalSg.tone === "positive"
+                      ? "border-data-positive bg-data-positive/15"
+                      : "border-data-negative bg-data-negative/15"
                 }`}
               >
                 <span
                   className={`font-mono text-lg font-bold ${
-                    result.total >= 0 ? "text-green-400" : "text-red-300"
+                    totalSg.tone === "neutral"
+                      ? "text-neutral-300"
+                      : totalSg.tone === "positive"
+                        ? "text-green-400"
+                        : "text-red-300"
                   }`}
                 >
-                  {formatSG(result.total)}
+                  {totalSg.formatted}
                 </span>
               </div>
               <span className="mt-0.5 text-[10px] text-brand-100/70">SG vs peers</span>
             </div>
+              );
+            })()}
           </div>
 
           <p className="mt-2 text-xs text-brand-100/70">
@@ -144,7 +150,9 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
 
           {/* Category rows */}
           <div className="mt-4 space-y-1.5">
-            {entries.map(({ key, label, value, skipped }, i) => (
+            {entries.map(({ key, label, value, skipped }, i) => {
+              const sg = presentSG(value);
+              return (
               <div
                 key={key}
                 className={`flex items-center justify-between overflow-hidden rounded-md ${
@@ -155,7 +163,11 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
                 {!skipped && (
                   <span
                     className={`w-1 self-stretch ${
-                      value >= 0 ? "bg-data-positive" : "bg-data-negative"
+                      sg.tone === "neutral"
+                        ? "bg-neutral-400"
+                        : sg.tone === "positive"
+                          ? "bg-data-positive"
+                          : "bg-data-negative"
                     }`}
                   />
                 )}
@@ -175,10 +187,14 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
                     />
                     <span
                       className={`font-mono text-sm font-semibold ${
-                        value >= 0 ? "text-data-positive" : "text-data-negative"
+                        sg.tone === "neutral"
+                          ? "text-neutral-500"
+                          : sg.tone === "positive"
+                            ? "text-data-positive"
+                            : "text-data-negative"
                       }`}
                     >
-                      {formatSG(value)}
+                      {sg.formatted}
                     </span>
                     {percentiles[key] && (() => {
                       const pct = percentiles[key]!;
@@ -197,7 +213,8 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
                   </span>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <p className="mt-3 text-center text-[10px] text-neutral-400">

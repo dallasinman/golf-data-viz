@@ -7,6 +7,7 @@ import type { StrokesGainedResult, StrokesGainedCategory } from "./types";
 import { CATEGORY_LABELS, CATEGORY_ORDER, BRACKET_LABELS } from "./constants";
 import { truncateText } from "./og-card-data";
 import { calculatePercentile } from "./percentile";
+import { presentSG } from "./format";
 
 export type HeadlinePattern =
   | "skull"
@@ -49,9 +50,9 @@ function fmtAbs(value: number): string {
   return Math.abs(value).toFixed(1);
 }
 
-/** Format signed value to 1 decimal (+1.5 / -1.2) */
+/** Format signed value to 1 decimal with near-zero neutralisation */
 function fmtSigned(value: number): string {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}`;
+  return presentSG(value, 1).formatted;
 }
 
 export function generateShareHeadline(

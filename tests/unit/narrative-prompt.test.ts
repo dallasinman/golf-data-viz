@@ -183,6 +183,31 @@ describe("buildNarrativeUserPrompt", () => {
     expect(prompt).not.toContain("Trouble context:");
   });
 
+  it("annotates peer-average categories with [PEER AVERAGE]", () => {
+    const result = makeResult({
+      categories: {
+        "off-the-tee": 0.03,
+        approach: -1.15,
+        "around-the-green": -0.03,
+        putting: 0.15,
+      },
+    });
+    const prompt = buildNarrativeUserPrompt(makeInput(), result);
+    // OTT and ATG are within threshold
+    expect(prompt).toContain("Off the Tee: 0.00 (confidence: high) [PEER AVERAGE");
+    expect(prompt).toContain("Around the Green: 0.00 (confidence: medium) [PEER AVERAGE");
+    // Approach and Putting are outside threshold — no tag
+    expect(prompt).toContain("Approach: -1.15 (confidence: high)\n");
+    expect(prompt).toContain("Putting: +0.15 (confidence: high)\n");
+  });
+
+  it("system prompt includes peer-average guidance", () => {
+    expect(NARRATIVE_SYSTEM_PROMPT).toContain("PEER AVERAGE");
+    expect(NARRATIVE_SYSTEM_PROMPT).toContain("Do not praise or criticize peer-average categories");
+    expect(NARRATIVE_SYSTEM_PROMPT).toContain("Do not invent a weakness");
+    expect(NARRATIVE_SYSTEM_PROMPT).toContain("If all categories are peer-average, skip this sentence");
+  });
+
   it("omits trouble context when empty", () => {
     const troubleContext: RoundTroubleContext = {
       troubleHoles: [],

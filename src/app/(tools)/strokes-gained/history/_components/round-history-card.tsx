@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import { CATEGORY_ORDER, CATEGORY_LABELS, SG_NEAR_ZERO_THRESHOLD } from "@/lib/golf/constants";
+import { presentSG } from "@/lib/golf/format";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics/client";
 
@@ -24,14 +25,13 @@ function formatDate(dateStr: string): string {
 }
 
 function sgColor(value: number): string {
+  if (Math.abs(value) <= SG_NEAR_ZERO_THRESHOLD) return "text-neutral-600";
   if (value > 0) return "text-data-positive";
-  if (value < 0) return "text-red-600";
-  return "text-neutral-600";
+  return "text-red-600";
 }
 
 function sgSign(value: number): string {
-  if (value > 0) return `+${value.toFixed(1)}`;
-  return value.toFixed(1);
+  return presentSG(value, 1).formatted;
 }
 
 function accentBarColor(sgTotal: number): string {

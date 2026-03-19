@@ -20,7 +20,7 @@ import {
   type RoundTroubleContext,
 } from "@/lib/golf/trouble-context";
 import { BRACKET_LABELS } from "@/lib/golf/constants";
-import { formatHandicap, formatSG } from "@/lib/golf/format";
+import { formatHandicap, presentSG } from "@/lib/golf/format";
 import {
   calculateStrokesGained,
   toRadarChartData,
@@ -655,30 +655,45 @@ export default function StrokesGainedClient({
                   </span>
                 </div>
                 {/* SG badge — inline on mobile, circle on sm+ */}
+                {(() => {
+                  const totalSg = presentSG(result.total);
+                  return (
                 <div className="mt-3 sm:mt-0">
                   <span
                     className={`font-mono text-base font-bold sm:hidden ${
-                      result.total >= 0 ? "text-green-400" : "text-red-300"
+                      totalSg.tone === "neutral"
+                        ? "text-neutral-300"
+                        : totalSg.tone === "positive"
+                          ? "text-green-400"
+                          : "text-red-300"
                     }`}
                   >
-                    {formatSG(result.total)} SG
+                    {totalSg.formatted} SG
                   </span>
                   <div
                     className={`hidden sm:flex sm:h-16 sm:w-16 sm:items-center sm:justify-center sm:rounded-full sm:border-2 ${
-                      result.total >= 0
-                        ? "sm:border-data-positive sm:bg-data-positive/15"
-                        : "sm:border-data-negative sm:bg-data-negative/15"
+                      totalSg.tone === "neutral"
+                        ? "sm:border-neutral-400 sm:bg-neutral-400/15"
+                        : totalSg.tone === "positive"
+                          ? "sm:border-data-positive sm:bg-data-positive/15"
+                          : "sm:border-data-negative sm:bg-data-negative/15"
                     }`}
                   >
                     <span
                       className={`font-mono text-lg font-bold ${
-                        result.total >= 0 ? "text-green-400" : "text-red-300"
+                        totalSg.tone === "neutral"
+                          ? "text-neutral-300"
+                          : totalSg.tone === "positive"
+                            ? "text-green-400"
+                            : "text-red-300"
                       }`}
                     >
-                      {formatSG(result.total)}
+                      {totalSg.formatted}
                     </span>
                   </div>
                 </div>
+                  );
+                })()}
               </div>
               <p className="mt-2 text-sm text-brand-100/70">
                 {formatHandicap(lastInput.handicapIndex)} index &middot; vs {BRACKET_LABELS[result.benchmarkBracket]}

@@ -8,10 +8,11 @@ import type {
   StrokesGainedCategory,
   StrokesGainedResult,
 } from "@/lib/golf/types";
-import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/golf/constants";
+import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER, SG_NEAR_ZERO_THRESHOLD } from "@/lib/golf/constants";
 import { getEmphasizedCategories } from "@/lib/golf/emphasis";
 import { calculatePercentiles } from "@/lib/golf/percentile";
 import { generateTroubleNarrative, type RoundTroubleContext } from "@/lib/golf/trouble-context";
+import { formatSG, presentSG } from "@/lib/golf/format";
 import { trackEvent } from "@/lib/analytics/client";
 import { bracketToSlug } from "@/lib/seo/slugs";
 import { ConfidenceBadge } from "./confidence-badge";
@@ -34,11 +35,6 @@ const CATEGORY_DESCRIPTIONS: Record<StrokesGainedCategory, string> = {
   "around-the-green": "Scrambling and up-and-down success vs your peers",
   putting: "Putting efficiency vs your peers",
 };
-
-function formatSG(value: number): string {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}`;
-}
 
 interface ResultsSummaryProps {
   result: StrokesGainedResult;
@@ -69,8 +65,8 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
   // Only non-estimated, non-skipped categories participate in callouts
   const calloutEntries = entries.filter((e) => !e.skipped && !e.estimated);
   const sorted = [...calloutEntries].sort((a, b) => b.value - a.value);
-  const strength = sorted.find((e) => e.value > 0.05) ?? null;
-  const weakness = sorted.findLast((e) => e.value < -0.05) ?? null;
+  const strength = sorted.find((e) => e.value > SG_NEAR_ZERO_THRESHOLD) ?? null;
+  const weakness = sorted.findLast((e) => e.value < -SG_NEAR_ZERO_THRESHOLD) ?? null;
 
   const emphasizedCategories = getEmphasizedCategories(result);
   const percentiles = calculatePercentiles(result);
@@ -112,9 +108,16 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
   return (
     <div className="w-full space-y-6">
       {/* Total SG — hero card */}
+      {(() => {
+        const totalPresentation = presentSG(result.total);
+        return (
       <div
         className={`animate-fade-up rounded-xl border px-6 py-6 ${
-          result.total >= 0 ? "border-brand-100 bg-brand-50" : "border-red-100 bg-red-50"
+          totalPresentation.tone === "neutral"
+            ? "border-neutral-200 bg-neutral-50"
+            : totalPresentation.tone === "positive"
+              ? "border-brand-100 bg-brand-50"
+              : "border-red-100 bg-red-50"
         }`}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-neutral-400">
@@ -122,10 +125,14 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
         </p>
         <p
           className={`mt-1 font-display text-4xl tracking-tight sm:text-5xl ${
-            result.total >= 0 ? "text-data-positive" : "text-data-negative"
+            totalPresentation.tone === "neutral"
+              ? "text-neutral-500"
+              : totalPresentation.tone === "positive"
+                ? "text-data-positive"
+                : "text-data-negative"
           }`}
         >
-          {formatSG(result.total)}
+          {totalPresentation.formatted}
         </p>
         {result.totalAnchorMode === "course_adjusted" && (
           <span className="mt-2 inline-block rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-medium text-data-positive">
@@ -138,6 +145,8 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
           </span>
         )}
       </div>
+        );
+      })()}
 
       {/* Benchmark bracket */}
       <p className="text-sm text-neutral-400">Compared to {bracketLabel}</p>
@@ -202,7 +211,7 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
           </p>
           <div className="mt-3 space-y-2.5">
             {emphasizedCategories.map((cat) => {
-              const value = result.categories[cat];
+              const sg = presentSG(result.categories[cat]);
               return (
                 <div
                   key={cat}
@@ -223,10 +232,14 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
                   </div>
                   <span
                     className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
-                      value >= 0 ? "text-data-positive" : "text-data-negative"
+                      sg.tone === "neutral"
+                        ? "text-neutral-500"
+                        : sg.tone === "positive"
+                          ? "text-data-positive"
+                          : "text-data-negative"
                     }`}
                   >
-                    {formatSG(value)}
+                    {sg.formatted}
                   </span>
                 </div>
               );
@@ -252,7 +265,9 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
 
       {/* Per-category breakdown */}
       <ul className="space-y-3">
-        {entries.map(({ key, label, description, value, skipped }, index) => (
+        {entries.map(({ key, label, description, value, skipped }, index) => {
+          const sg = presentSG(value);
+          return (
           <li
             key={key}
             className="animate-fade-up relative flex items-center justify-between rounded-lg border border-card-border"
@@ -262,7 +277,11 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
             {!skipped && (
               <span
                 className={`w-1 self-stretch ${
-                  value >= 0 ? "bg-data-positive" : "bg-data-negative"
+                  sg.tone === "neutral"
+                    ? "bg-neutral-400"
+                    : sg.tone === "positive"
+                      ? "bg-data-positive"
+                      : "bg-data-negative"
                 }`}
               />
             )}
@@ -325,6 +344,14 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
                   Low GIR — less reliable
                 </span>
               )}
+              {!skipped && sg.isPeerAverage && (
+                <span
+                  data-testid="peer-average-label"
+                  className="mt-0.5 inline-block rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500"
+                >
+                  Peer average
+                </span>
+              )}
             </span>
             {skipped ? (
               <span className="px-4 py-3 text-sm italic text-neutral-400">Not Tracked</span>
@@ -338,15 +365,20 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
                 />
                 <span
                   className={`font-mono text-sm font-semibold tabular-nums ${
-                    value >= 0 ? "text-data-positive" : "text-data-negative"
+                    sg.tone === "neutral"
+                      ? "text-neutral-500"
+                      : sg.tone === "positive"
+                        ? "text-data-positive"
+                        : "text-data-negative"
                   }`}
                 >
-                  {formatSG(value)}
+                  {sg.formatted}
                 </span>
               </span>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
       {result.reconciliationUnattributed != null && Math.abs(result.reconciliationUnattributed) > 0.05 && (
         <div
