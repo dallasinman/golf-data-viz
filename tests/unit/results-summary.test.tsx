@@ -261,6 +261,13 @@ describe("Results trust cues", () => {
 });
 
 describe("Presentation trust gating", () => {
+  const emptyCategoryReasons = {
+    "off-the-tee": [],
+    approach: [],
+    "around-the-green": [],
+    putting: [],
+  };
+
   it("shows a Round Summary trust card and suppresses editorial modules for caveated rounds", () => {
     const result = makeSGResult({
       categories: {
@@ -280,6 +287,7 @@ describe("Presentation trust gating", () => {
           promotableCategories: ["off-the-tee"],
           roundReasons: ["atg_fallback_additional_suppression"],
           categoryReasons: {
+            ...emptyCategoryReasons,
             "around-the-green": ["atg_fallback"],
             approach: ["atg_fallback_scoring_divergence"],
             putting: ["atg_fallback_approach_instability"],
@@ -309,7 +317,7 @@ describe("Presentation trust gating", () => {
           mode: "quarantined",
           promotableCategories: [],
           roundReasons: ["round_trust_quarantined"],
-          categoryReasons: {},
+          categoryReasons: emptyCategoryReasons,
         }}
       />
     );

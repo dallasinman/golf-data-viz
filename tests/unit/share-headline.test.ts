@@ -585,6 +585,13 @@ describe("generateShareHeadline", () => {
   });
 
   describe("presentation trust", () => {
+    const emptyCategoryReasons = {
+      "off-the-tee": [],
+      approach: [],
+      "around-the-green": [],
+      putting: [],
+    };
+
     it("falls back to neutral patterns for caveated rounds", () => {
       const result = makeResult({
         total: 0.4,
@@ -602,6 +609,7 @@ describe("generateShareHeadline", () => {
           promotableCategories: ["off-the-tee"],
           roundReasons: ["atg_fallback_additional_suppression"],
           categoryReasons: {
+            ...emptyCategoryReasons,
             approach: ["atg_fallback_scoring_divergence"],
             putting: ["atg_fallback_approach_instability"],
             "around-the-green": ["atg_fallback"],

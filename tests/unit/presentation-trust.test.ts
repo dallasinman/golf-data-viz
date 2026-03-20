@@ -45,7 +45,6 @@ describe("derivePresentationTrust", () => {
       input: makeRound(),
       result: makeSGResult(),
       roundTrustStatus: "quarantined",
-      roundTrustReasons: ["score_breakdown_mismatch"],
     });
 
     expect(trust.mode).toBe("quarantined");

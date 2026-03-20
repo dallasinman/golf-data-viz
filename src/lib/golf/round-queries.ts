@@ -227,14 +227,30 @@ async function rebuildLessonReportSnapshot(
 
   if (options.persist) {
     const serializedReportData = rebuiltSnapshot.reportData as unknown as Json;
-    void options.supabase
-      .from("lesson_reports")
-      .update({
-        round_count: rebuiltSnapshot.roundCount,
-        report_version: rebuiltSnapshot.reportVersion,
-        report_data: serializedReportData,
-      })
-      .eq("id", snapshot.id);
+    void (async () => {
+      try {
+        const { error } = await options.supabase
+          .from("lesson_reports")
+          .update({
+            round_count: rebuiltSnapshot.roundCount,
+            report_version: rebuiltSnapshot.reportVersion,
+            report_data: serializedReportData,
+          })
+          .eq("id", snapshot.id);
+
+        if (error) {
+          console.warn("[lesson-report] Failed to persist rebuilt report snapshot", {
+            reportId: snapshot.id,
+            error: error.message,
+          });
+        }
+      } catch (error: unknown) {
+        console.warn("[lesson-report] Unexpected error persisting rebuilt report snapshot", {
+          reportId: snapshot.id,
+          error,
+        });
+      }
+    })();
   }
 
   return rebuiltSnapshot;
