@@ -92,6 +92,12 @@ export default async function StrokesGainedPage({ searchParams }: PageProps) {
   const saveEnabled = getRoundSaveAvailability().enabled;
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null;
 
+  // Parse handicap prefill from CTA links (?handicap=14.3)
+  const handicapParam = typeof params.handicap === "string" ? params.handicap : undefined;
+  const handicapPrefill = handicapParam ? parseFloat(handicapParam) : undefined;
+  const validHandicapPrefill = handicapPrefill != null && !isNaN(handicapPrefill)
+    && handicapPrefill >= -9.9 && handicapPrefill <= 54 ? handicapPrefill : undefined;
+
   const sample = getSampleResult();
 
   return (
@@ -102,6 +108,7 @@ export default async function StrokesGainedPage({ searchParams }: PageProps) {
       samplePreview={sample.preview}
       sampleInput={sample.input}
       from={from}
+      handicapPrefill={validHandicapPrefill}
     />
   );
 }

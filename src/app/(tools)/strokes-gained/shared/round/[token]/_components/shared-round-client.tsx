@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Link from "next/link";
 import { Download } from "lucide-react";
 import type { RoundDetailSnapshot } from "@/lib/golf/types";
 import {
@@ -10,6 +9,7 @@ import {
 } from "@/app/(tools)/strokes-gained/_components/round-layout";
 import { captureElementAsPng, downloadBlob } from "@/lib/capture";
 import { trackEvent } from "@/lib/analytics/client";
+import { RecipientCta } from "@/app/(tools)/strokes-gained/_components/recipient-cta";
 
 interface SharedRoundClientProps {
   snapshot: RoundDetailSnapshot;
@@ -52,17 +52,11 @@ export function SharedRoundClient({ snapshot }: SharedRoundClientProps) {
             Download PNG
           </button>
 
-          <div className="mt-8">
-            <p className="text-sm font-medium text-neutral-700">
-              Think you can beat this?
-            </p>
-            <Link
-              href="/strokes-gained"
-              className="mt-2 inline-block text-sm font-medium text-brand-700 underline decoration-brand-300 underline-offset-2 transition-colors hover:text-brand-900"
-            >
-              Enter your round and compare →
-            </Link>
-          </div>
+          <RecipientCta
+            senderHandicap={snapshot.handicapIndex}
+            senderResult={derived.sgResult}
+            surface="token_share"
+          />
         </div>
       }
     />
