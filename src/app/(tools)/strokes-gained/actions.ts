@@ -10,6 +10,7 @@ import { getInterpolatedBenchmark } from "@/lib/golf/benchmarks";
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
 import { getSgPhase2Mode } from "@/lib/golf/phase2-mode";
+import { getServerPuttingHardeningMode } from "@/lib/golf/putting-hardening-mode";
 import { checkRateLimit, extractClientIp } from "@/lib/rate-limit";
 import { captureMonitoringException } from "@/lib/monitoring/sentry";
 import { assessRoundTrust } from "@/lib/golf/round-trust";
@@ -216,10 +217,17 @@ export async function saveRound(
     const validatedInput = parsed.data as RoundInput;
     const benchmark = getInterpolatedBenchmark(validatedInput.handicapIndex);
     const phase2Mode = getSgPhase2Mode();
+    const puttingHardeningMode = getServerPuttingHardeningMode();
+    const persistedPuttingMode =
+      puttingHardeningMode === "full" ? "full" : "off";
 
-    const sgV1 = calculateStrokesGained(validatedInput, benchmark);
+    const sgV1 = calculateStrokesGained(validatedInput, benchmark, {
+      puttingHardeningMode: persistedPuttingMode,
+    });
     const sg = phase2Mode === "full"
-      ? calculateStrokesGainedV3(validatedInput, benchmark)
+      ? calculateStrokesGainedV3(validatedInput, benchmark, {
+          puttingHardeningMode: persistedPuttingMode,
+        })
       : sgV1;
     const trust = assessRoundTrust(validatedInput);
 
@@ -354,7 +362,9 @@ export async function saveRound(
     // Shadow mode: compute V3, persist comparison record, log delta
     if (phase2Mode === "shadow") {
       try {
-        const sgV3 = calculateStrokesGainedV3(validatedInput, benchmark);
+        const sgV3 = calculateStrokesGainedV3(validatedInput, benchmark, {
+          puttingHardeningMode: persistedPuttingMode,
+        });
         await supabase.from("sg_shadow_comparisons").insert({
           round_id: roundId,
           v1_total: sgV1.total,
@@ -377,6 +387,31 @@ export async function saveRound(
       } catch (shadowErr) {
         // Shadow mode is best-effort — never block the save
         console.warn("[saveRound] Shadow comparison failed:", shadowErr);
+      }
+    }
+
+    if (puttingHardeningMode === "shadow") {
+      try {
+        const shadowCandidate = phase2Mode === "full"
+          ? calculateStrokesGainedV3(validatedInput, benchmark, {
+              puttingHardeningMode: "full",
+            })
+          : calculateStrokesGained(validatedInput, benchmark, {
+              puttingHardeningMode: "full",
+            });
+        console.log("[saveRound] Putting hardening shadow", {
+          persistedPutting: sg.categories.putting.toFixed(2),
+          candidatePutting: shadowCandidate.categories.putting.toFixed(2),
+          delta: (
+            shadowCandidate.categories.putting - sg.categories.putting
+          ).toFixed(2),
+          methodologyVersion: shadowCandidate.methodologyVersion,
+        });
+      } catch (puttingShadowErr) {
+        console.warn(
+          "[saveRound] Putting hardening shadow comparison failed:",
+          puttingShadowErr
+        );
       }
     }
 

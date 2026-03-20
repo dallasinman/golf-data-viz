@@ -57,6 +57,10 @@ const handleWheel: React.WheelEventHandler<HTMLInputElement> = (e) => {
   e.currentTarget.blur();
 };
 
+function isOnePuttsEnabled(): boolean {
+  return process.env["NEXT_PUBLIC_ONE_PUTTS_ENABLED"] === "on";
+}
+
 export function RoundInputForm({
   onSubmit,
   initialValues,
@@ -66,6 +70,7 @@ export function RoundInputForm({
   const [isPlusHandicap, setIsPlusHandicap] = useState(
     initialValues?.handicapIndex != null && initialValues.handicapIndex < 0
   );
+  const onePuttsEnabled = isOnePuttsEnabled();
 
   const {
     register,
@@ -480,19 +485,36 @@ export function RoundInputForm({
                 />
               </FormField>
             </div>
-            <FormField
-              label="Three-Putts"
-              hint="Holes where you took 3 or more putts"
-              error={errors.threePutts?.message}
-            >
-              <input
-                type="number"
-                inputMode="numeric"
-                onWheel={handleWheel}
-                className={inputClass}
-                {...register("threePutts")}
-              />
-            </FormField>
+            <div className={`grid gap-4 ${onePuttsEnabled ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+              {onePuttsEnabled && (
+                <FormField
+                  label="One-putts"
+                  hint="Optional. Helps build a more complete picture of your short game."
+                  error={errors.onePutts?.message}
+                >
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    onWheel={handleWheel}
+                    className={inputClass}
+                    {...register("onePutts")}
+                  />
+                </FormField>
+              )}
+              <FormField
+                label="Three-Putts"
+                hint="Holes where you took 3 or more putts"
+                error={errors.threePutts?.message}
+              >
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  onWheel={handleWheel}
+                  className={inputClass}
+                  {...register("threePutts")}
+                />
+              </FormField>
+            </div>
           </div>
         )}
       </div>

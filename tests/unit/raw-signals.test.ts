@@ -10,7 +10,6 @@ import {
   SG_WEIGHTS,
 } from "@/lib/golf/strokes-gained";
 import {
-  getBracketForHandicap,
   getInterpolatedBenchmark,
 } from "@/lib/golf/benchmarks";
 import { makeRound } from "../fixtures/factories";

@@ -13,6 +13,7 @@ describe("share-codec", () => {
 
     it("preserves all optional fields when present", () => {
       const input = makeRound({
+        onePutts: 6,
         upAndDownAttempts: 8,
         upAndDownConverted: 4,
         sandSaveAttempts: 3,
@@ -26,6 +27,7 @@ describe("share-codec", () => {
 
     it("preserves round when all optional fields are absent", () => {
       const input = makeRound();
+      delete input.onePutts;
       delete input.upAndDownAttempts;
       delete input.upAndDownConverted;
       delete input.sandSaveAttempts;
@@ -38,6 +40,7 @@ describe("share-codec", () => {
       expect(decoded).toBeDefined();
       expect(decoded!.course).toBe(input.course);
       expect(decoded!.score).toBe(input.score);
+      expect(decoded!.onePutts).toBeUndefined();
       expect(decoded!.upAndDownAttempts).toBeUndefined();
       expect(decoded!.threePutts).toBeUndefined();
     });

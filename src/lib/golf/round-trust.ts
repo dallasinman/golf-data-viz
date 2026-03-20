@@ -1,6 +1,6 @@
 import type { RoundInput } from "./types";
 
-export type RoundTrustStatus = "trusted" | "quarantined";
+export type RoundTrustStatus = "pending" | "trusted" | "quarantined";
 
 export interface RoundTrustAssessment {
   status: RoundTrustStatus;

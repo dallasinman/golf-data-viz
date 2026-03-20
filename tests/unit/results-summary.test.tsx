@@ -259,3 +259,63 @@ describe("Results trust cues", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
+
+describe("Presentation trust gating", () => {
+  it("shows a Round Summary trust card and suppresses editorial modules for caveated rounds", () => {
+    const result = makeSGResult({
+      categories: {
+        "off-the-tee": 0.2,
+        approach: 1.4,
+        "around-the-green": -0.8,
+        putting: 0.6,
+      },
+    });
+
+    render(
+      <ResultsSummary
+        result={result}
+        benchmarkMeta={meta}
+        presentationTrust={{
+          mode: "caveated",
+          promotableCategories: ["off-the-tee"],
+          roundReasons: ["atg_fallback_additional_suppression"],
+          categoryReasons: {
+            "around-the-green": ["atg_fallback"],
+            approach: ["atg_fallback_scoring_divergence"],
+            putting: ["atg_fallback_approach_instability"],
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText("Round Summary")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Your total SG is course-adjusted. Individual category estimates are based on scorecard stats and may not reflect shot-by-shot performance."
+      )
+    ).toBeVisible();
+    expect(screen.queryByText("Key Insights")).toBeNull();
+    expect(screen.queryByText("Biggest Strength")).toBeNull();
+    expect(screen.queryByText("Biggest Weakness")).toBeNull();
+    expect(screen.queryByTestId("percentile-standout")).toBeNull();
+  });
+
+  it("uses stronger amber styling for quarantined rounds", () => {
+    render(
+      <ResultsSummary
+        result={makeSGResult()}
+        benchmarkMeta={meta}
+        presentationTrust={{
+          mode: "quarantined",
+          promotableCategories: [],
+          roundReasons: ["round_trust_quarantined"],
+          categoryReasons: {},
+        }}
+      />
+    );
+
+    const card = screen.getByTestId("presentation-trust-card");
+    expect(card.className).toContain("border-amber-200");
+    expect(card.className).toContain("bg-amber-50");
+  });
+});

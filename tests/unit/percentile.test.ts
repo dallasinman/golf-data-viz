@@ -3,7 +3,6 @@ import {
   calculatePercentile,
   calculatePercentiles,
   formatOrdinal,
-  type PercentileResult,
 } from "@/lib/golf/percentile";
 import type {
   StrokesGainedResult,

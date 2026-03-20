@@ -10,7 +10,9 @@ import { ConfidenceBadge } from "@/app/(tools)/strokes-gained/_components/confid
 import { SgTrendChart } from "@/app/(tools)/strokes-gained/history/_components/sg-trend-chart";
 import { trackEvent } from "@/lib/analytics/client";
 import type { ViewerEntitlements } from "@/lib/billing/entitlements";
+import { buildLessonReportAnalyticsContext } from "@/lib/golf/analytics";
 import { CATEGORY_LABELS } from "@/lib/golf/constants";
+import { isPresentationTrustEnabled } from "@/lib/golf/presentation-trust";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import type { LessonReportSnapshot } from "@/lib/golf/round-queries";
 import { formatCompactDate, formatDate, formatHandicap, formatSG, presentSG } from "@/lib/golf/format";
@@ -82,6 +84,8 @@ export function LessonReportView({
   surface,
 }: LessonReportViewProps) {
   const report = snapshot.reportData;
+  const trustMode = isPresentationTrustEnabled() ? report.trustMode : "assertive";
+  const isCaveatedReport = trustMode === "caveated";
   const router = useRouter();
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -92,9 +96,10 @@ export function LessonReportView({
     if (surface === "shared") {
       trackEvent("shared_lesson_report_viewed", {
         referrer: document.referrer || "direct",
+        ...buildLessonReportAnalyticsContext(report.assertiveRoundCount),
       });
     }
-  }, [surface]);
+  }, [report.assertiveRoundCount, surface]);
 
   async function handleDownloadPng() {
     if (!shareCardRef.current) return;
@@ -113,6 +118,7 @@ export function LessonReportView({
       if (result.created) {
         trackEvent("lesson_report_share_token_created", {
           report_id: snapshot.id,
+          ...buildLessonReportAnalyticsContext(report.assertiveRoundCount),
         });
       }
 
@@ -124,6 +130,7 @@ export function LessonReportView({
         trackEvent("lesson_report_share_link_copied", {
           report_id: snapshot.id,
           surface: "lesson_report_owner",
+          ...buildLessonReportAnalyticsContext(report.assertiveRoundCount),
         });
       } catch {
         setMessage(`Share link ready: ${result.shareUrl}`);
@@ -140,6 +147,7 @@ export function LessonReportView({
       }
       trackEvent("lesson_report_regenerated", {
         round_count: snapshot.selectedRoundIds.length,
+        ...buildLessonReportAnalyticsContext(report.assertiveRoundCount),
       });
       router.push(`/strokes-gained/lesson-prep/${result.reportId}`);
       router.refresh();
@@ -229,12 +237,12 @@ export function LessonReportView({
         <StatCard label="Rounds" value={String(report.summary.roundCount)} />
         <StatCard label="Avg Score" value={report.summary.averageScore.toFixed(1)} />
         <StatCard
-          label="Primary Focus Area"
+          label={isCaveatedReport ? "Round Pattern" : "Primary Focus Area"}
           value={report.focusArea.label}
           tone={Math.abs(report.focusArea.averageSg) <= SG_NEAR_ZERO_THRESHOLD ? "neutral" : report.focusArea.averageSg < 0 ? "negative" : "neutral"}
         />
         <StatCard
-          label="Strongest Area"
+          label={isCaveatedReport ? "Reliable Signal" : "Strongest Area"}
           value={report.strongestArea.label}
           tone={Math.abs(report.strongestArea.averageSg) <= SG_NEAR_ZERO_THRESHOLD ? "neutral" : report.strongestArea.averageSg >= 0 ? "positive" : "neutral"}
         />
@@ -256,17 +264,19 @@ export function LessonReportView({
         <div className="space-y-4">
           <div className="rounded-2xl border border-card-border bg-white p-5 shadow-sm">
             <p className="text-xs uppercase tracking-[0.16em] text-neutral-400">
-              Primary Focus Area
+              {isCaveatedReport ? "Round Pattern" : "Primary Focus Area"}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <h2 className="font-display text-2xl tracking-tight text-neutral-950">
                 {report.focusArea.label}
               </h2>
-              <ConfidenceBadge
-                level={report.focusArea.confidence}
-                category={report.focusArea.category}
-                interactive={false}
-              />
+              {!isCaveatedReport && (
+                <ConfidenceBadge
+                  level={report.focusArea.confidence}
+                  category={report.focusArea.category}
+                  interactive={false}
+                />
+              )}
             </div>
             {(() => {
               const sg = presentSG(report.focusArea.averageSg);
@@ -276,7 +286,9 @@ export function LessonReportView({
                 {sg.formatted}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                {sg.isPeerAverage
+                {isCaveatedReport
+                  ? "There are not enough reliable rounds yet to name a primary focus area."
+                  : sg.isPeerAverage
                   ? "This category is at peer average across the selected rounds."
                   : "The most negative average category with usable confidence across these rounds."}
               </p>
@@ -287,17 +299,19 @@ export function LessonReportView({
 
           <div className="rounded-2xl border border-card-border bg-white p-5 shadow-sm">
             <p className="text-xs uppercase tracking-[0.16em] text-neutral-400">
-              Strongest Area
+              {isCaveatedReport ? "Reliable Signal" : "Strongest Area"}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <h2 className="font-display text-2xl tracking-tight text-neutral-950">
                 {report.strongestArea.label}
               </h2>
-              <ConfidenceBadge
-                level={report.strongestArea.confidence}
-                category={report.strongestArea.category}
-                interactive={false}
-              />
+              {!isCaveatedReport && (
+                <ConfidenceBadge
+                  level={report.strongestArea.confidence}
+                  category={report.strongestArea.category}
+                  interactive={false}
+                />
+              )}
             </div>
             {(() => {
               const sg = presentSG(report.strongestArea.averageSg);
@@ -307,7 +321,9 @@ export function LessonReportView({
                 {sg.formatted}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                {sg.isPeerAverage
+                {isCaveatedReport
+                  ? "There are not enough reliable rounds yet to name a strongest area."
+                  : sg.isPeerAverage
                   ? "This category is at peer average across the selected rounds."
                   : "Your most positive average category across the selected rounds."}
               </p>

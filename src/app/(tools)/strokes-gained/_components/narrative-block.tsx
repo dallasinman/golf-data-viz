@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { trackEvent } from "@/lib/analytics/client";
-import type { RoundInput } from "@/lib/golf/types";
+import type { PresentationTrust, RoundInput } from "@/lib/golf/types";
 import type { RoundTroubleContext } from "@/lib/golf/trouble-context";
 import { encodeRound } from "@/lib/golf/share-codec";
 
 interface NarrativeBlockProps {
   input: RoundInput;
   troubleContext?: RoundTroubleContext | null;
+  presentationTrust?: PresentationTrust | null;
   isSharedLink?: boolean;
 }
 
@@ -31,9 +32,13 @@ function mapErrorCode(
 export function NarrativeBlock({
   input,
   troubleContext,
+  presentationTrust,
   isSharedLink = false,
 }: NarrativeBlockProps) {
   const cacheKey = useMemo(() => "narrative:" + encodeRound(input), [input]);
+  const trustMode = presentationTrust?.mode;
+  const isCaveated = trustMode === "caveated";
+  const isQuarantined = trustMode === "quarantined";
   const [state, setState] = useState<NarrativeState>(() => {
     try {
       const cached = sessionStorage.getItem(cacheKey);
@@ -114,14 +119,14 @@ export function NarrativeBlock({
   }, [inputKey, troubleKey, cacheKey]);
 
   useEffect(() => {
-    if (isSharedLink) return;
+    if (isSharedLink || isCaveated || isQuarantined) return;
     if (hadCacheHit.current) return;
     fetchNarrative();
 
     return () => {
       abortRef.current?.abort();
     };
-  }, [fetchNarrative, isSharedLink]);
+  }, [fetchNarrative, isCaveated, isQuarantined, isSharedLink]);
 
   // Cleanup copy timer on unmount
   useEffect(() => {
@@ -131,7 +136,22 @@ export function NarrativeBlock({
   }, []);
 
   // Don't render for shared links or non-retryable errors
-  if (isSharedLink) return null;
+  if (isSharedLink || isQuarantined) return null;
+  if (isCaveated) {
+    return (
+      <div
+        className="animate-fade-up [animation-delay:350ms] rounded-xl border border-cream-200 bg-white p-6 shadow-sm"
+        data-testid="narrative-neutral"
+      >
+        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.15em] text-brand-800">
+          Round Summary
+        </p>
+        <p className="text-sm leading-relaxed text-neutral-700">
+          Your total SG is course-adjusted. Category estimates are based on scorecard stats, so use this round as a directional summary rather than a strongest-versus-weakest verdict.
+        </p>
+      </div>
+    );
+  }
   if (state.status === "error" && !state.retryable) {
     return (
       <div

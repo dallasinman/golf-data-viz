@@ -60,6 +60,7 @@ describe("Round mapper → DB integration", () => {
 
   it("mapped row with all optional fields inserts successfully", async () => {
     const round = makeUniqueRound({
+      onePutts: 6,
       upAndDownAttempts: 8,
       upAndDownConverted: 4,
       sandSaveAttempts: 3,
@@ -83,6 +84,7 @@ describe("Round mapper → DB integration", () => {
 
   it("mapped row with no optional fields (all null) inserts successfully", async () => {
     const round = makeUniqueRound();
+    delete round.onePutts;
     delete round.upAndDownAttempts;
     delete round.upAndDownConverted;
     delete round.sandSaves;

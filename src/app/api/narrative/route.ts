@@ -6,6 +6,10 @@ import { getInterpolatedBenchmark } from "@/lib/golf/benchmarks";
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
 import { captureMonitoringException } from "@/lib/monitoring/sentry";
 import {
+  derivePresentationTrust,
+  isPresentationTrustEnabled,
+} from "@/lib/golf/presentation-trust";
+import {
   NARRATIVE_SYSTEM_PROMPT,
   buildNarrativeUserPrompt,
 } from "@/lib/golf/narrative-prompt";
@@ -100,6 +104,27 @@ export async function POST(request: NextRequest) {
   const input = parsed.data;
   const benchmark = getInterpolatedBenchmark(input.handicapIndex);
   const result = calculateStrokesGainedV3(input, benchmark);
+  if (isPresentationTrustEnabled()) {
+    const presentationTrust = derivePresentationTrust({ input, result });
+
+    if (presentationTrust.mode === "quarantined") {
+      const narrative =
+        "This round’s total SG can still be viewed, but the scorecard inputs need review before category-level storytelling is reliable.";
+      return NextResponse.json({
+        narrative,
+        word_count: narrative.split(/\s+/).length,
+      });
+    }
+
+    if (presentationTrust.mode === "caveated") {
+      const narrative =
+        "Your total SG is course-adjusted. Category estimates are based on scorecard stats, so use this round as a directional summary rather than a strongest-versus-weakest verdict.";
+      return NextResponse.json({
+        narrative,
+        word_count: narrative.split(/\s+/).length,
+      });
+    }
+  }
 
   // Build prompt
   const userPrompt = buildNarrativeUserPrompt(input, result, troubleContext);

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 
 // Mock the client component to avoid pulling in server actions / server-only
 vi.mock("@/app/(tools)/strokes-gained/_components/strokes-gained-client", () => ({
@@ -8,6 +8,10 @@ vi.mock("@/app/(tools)/strokes-gained/_components/strokes-gained-client", () => 
 import { generateMetadata } from "@/app/(tools)/strokes-gained/page";
 import { encodeRound } from "@/lib/golf/share-codec";
 import { makeRound } from "../fixtures/factories";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 function makeSearchParams(d?: string): Promise<Record<string, string | undefined>> {
   return Promise.resolve(d ? { d } : {});
@@ -37,5 +41,24 @@ describe("generateMetadata", () => {
 
     const title = meta.title as string;
     expect(title).toBe("Strokes Gained Benchmarker");
+  });
+
+  it("uses neutral metadata for caveated rounds", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SG_PRESENTATION_TRUST", "on");
+    const round = makeRound({
+      greensInRegulation: 7,
+      totalPutts: 31,
+      pars: 6,
+      bogeys: 5,
+      doubleBogeys: 4,
+      triplePlus: 2,
+    });
+    const encoded = encodeRound(round);
+
+    const meta = await generateMetadata({ searchParams: makeSearchParams(encoded) });
+
+    const description = meta.description as string;
+    expect(description).toContain("estimate");
+    expect(description).not.toContain("Lost most strokes");
   });
 });

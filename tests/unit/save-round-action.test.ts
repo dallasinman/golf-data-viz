@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { RoundInput } from "@/lib/golf/types";
-import { makeRound } from "../fixtures/factories";
+import { makeRound, makeSGResult } from "../fixtures/factories";
 
 const {
   mockInsert,
@@ -65,6 +65,8 @@ vi.mock("next/headers", () => ({
 
 import { SupabaseConfigError } from "@/lib/supabase/errors";
 import { saveRound } from "@/app/(tools)/strokes-gained/actions";
+import * as strokesGainedModule from "@/lib/golf/strokes-gained";
+import * as strokesGainedV3Module from "@/lib/golf/strokes-gained-v3";
 
 const verification = {
   turnstileToken: "turnstile-token",
@@ -425,6 +427,117 @@ describe("saveRound server action", () => {
     expect(insertedRow.trust_reasons).toContain("high_hcp_scoring_spike");
   });
 
+  it("keeps persisted math in off mode while shadow mode runs a full comparison", async () => {
+    vi.stubEnv("SG_PHASE2_MODE", "off");
+    vi.stubEnv("SG_PUTTING_HARDENING_MODE", "shadow");
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const persistedResult = makeSGResult({
+      methodologyVersion: "2.1.0",
+      categories: {
+        "off-the-tee": 0.3,
+        approach: -0.8,
+        "around-the-green": -0.5,
+        putting: -0.5,
+      },
+      diagnostics: { threePuttImpact: 0.3 },
+    });
+    const shadowCandidate = makeSGResult({
+      methodologyVersion: "2.1.0",
+      categories: {
+        "off-the-tee": 0.3,
+        approach: -0.8,
+        "around-the-green": -0.5,
+        putting: -0.2,
+      },
+      total: -1.2,
+      diagnostics: { threePuttImpact: 0.3 },
+    });
+
+    const v1Spy = vi
+      .spyOn(strokesGainedModule, "calculateStrokesGained")
+      .mockImplementation((_input, _benchmark, options) =>
+        options?.puttingHardeningMode === "full"
+          ? shadowCandidate
+          : persistedResult
+      );
+
+    await saveRound(makeRound({ threePutts: 4 }), verification);
+
+    expect(v1Spy).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ puttingHardeningMode: "off" })
+    );
+    expect(v1Spy).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ puttingHardeningMode: "full" })
+    );
+    expect(mockInsert.mock.calls[0][0].sg_putting).toBe(-0.5);
+    expect(consoleLog).toHaveBeenCalledWith(
+      "[saveRound] Putting hardening shadow",
+      expect.objectContaining({
+        persistedPutting: "-0.50",
+        candidatePutting: "-0.20",
+        delta: "0.30",
+        methodologyVersion: "2.1.0",
+      })
+    );
+  });
+
+  it("persists full hardening through the V3 save path when enabled", async () => {
+    vi.stubEnv("SG_PHASE2_MODE", "full");
+    vi.stubEnv("SG_PUTTING_HARDENING_MODE", "full");
+
+    const v1Spy = vi
+      .spyOn(strokesGainedModule, "calculateStrokesGained")
+      .mockReturnValue(
+        makeSGResult({
+          methodologyVersion: "2.1.0",
+          diagnostics: { threePuttImpact: 0.3 },
+        })
+      );
+    const v3Spy = vi
+      .spyOn(strokesGainedV3Module, "calculateStrokesGainedV3")
+      .mockReturnValue(
+        makeSGResult({
+          methodologyVersion: "3.3.0",
+          calibrationVersion: "seed-1.1.0",
+          categories: {
+            "off-the-tee": 0.3,
+            approach: -0.8,
+            "around-the-green": -0.5,
+            putting: -0.2,
+          },
+          total: -1.2,
+          diagnostics: { threePuttImpact: 0.3 },
+        })
+      );
+
+    await saveRound(makeRound({ threePutts: 4 }), verification);
+
+    expect(v1Spy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ puttingHardeningMode: "full" })
+    );
+    expect(v3Spy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ puttingHardeningMode: "full" })
+    );
+    expect(mockInsert.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        sg_putting: -0.2,
+        methodology_version: "3.3.0",
+        calibration_version: "seed-1.1.0",
+      })
+    );
+  });
+
   it("inserts parsed.data (coerced/sanitized), not raw input", async () => {
     const rawInput = {
       course: "Test Course",
@@ -444,6 +557,7 @@ describe("saveRound server action", () => {
       bogeys: "7" as unknown as number,
       doubleBogeys: "2" as unknown as number,
       triplePlus: "1" as unknown as number,
+      onePutts: "" as unknown as number,
       threePutts: "" as unknown as number,
     } as RoundInput;
 
@@ -454,6 +568,7 @@ describe("saveRound server action", () => {
     expect(insertedRow.score).toBe(87);
     expect(typeof insertedRow.handicap_index).toBe("number");
     expect(insertedRow.handicap_index).toBe(14.3);
+    expect(insertedRow.one_putts).toBeNull();
     expect(insertedRow.three_putts).toBeNull();
   });
 

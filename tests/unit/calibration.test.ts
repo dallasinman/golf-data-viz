@@ -6,7 +6,7 @@ import { makeRound } from "../fixtures/factories";
 describe("loadCalibrationConfig", () => {
   it("loads config with correct version", () => {
     const config = loadCalibrationConfig();
-    expect(config.version).toBe("seed-1.0.0");
+    expect(config.version).toBe("seed-1.1.0");
   });
 
   it("has all three profiles", () => {
@@ -35,7 +35,7 @@ describe("loadCalibrationConfig", () => {
 
 describe("getCalibrationVersion", () => {
   it("returns the version string from JSON", () => {
-    expect(getCalibrationVersion()).toBe("seed-1.0.0");
+    expect(getCalibrationVersion()).toBe("seed-1.1.0");
   });
 
   it("matches CALIBRATION_VERSION constant (single source of truth)", () => {
@@ -114,7 +114,7 @@ describe("calibrateRawSignals", () => {
       puttingDelta: 0.05,
     };
     const result = calibrateRawSignals(rawSignals, "atg-fallback");
-    expect(result["around-the-green"]).toBeCloseTo(0.1 * 3.5, 5); // reduced from 5.0
+    expect(result["around-the-green"]).toBeCloseTo(0.1 * 2.5, 5); // reduced from 5.0
     expect(result["approach"]).toBeCloseTo(0.05 * 8.0, 5); // same as full
   });
 

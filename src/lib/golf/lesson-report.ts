@@ -14,14 +14,22 @@ import {
   type RoundSgSnapshot,
   type TrendSeries,
 } from "@/lib/golf/trends";
+import { derivePresentationTrustFromSnapshot } from "@/lib/golf/presentation-trust";
 import type {
   ConfidenceLevel,
+  PresentationTrustMode,
   RadarChartDatum,
   RoundDetailSnapshot,
   StrokesGainedCategory,
 } from "@/lib/golf/types";
 
 export const LESSON_REPORT_VERSION = "1.0.0" as const;
+export const LESSON_REPORT_CAVEATED_MESSAGE =
+  "Not enough reliable rounds are available yet to name a focus area or strongest area." as const;
+export const LESSON_REPORT_NEUTRAL_FOCUS_LABEL = "Round Pattern" as const;
+export const LESSON_REPORT_NEUTRAL_STRONGEST_LABEL = "Reliable Signal" as const;
+export const LESSON_REPORT_NEUTRAL_TREND_LABEL =
+  "Not enough reliable rounds yet" as const;
 
 export interface LessonReportSummary {
   roundCount: number;
@@ -67,6 +75,8 @@ export interface LessonReportRoundSummary {
 export interface LessonReportData {
   reportVersion: string;
   generatedAt: string;
+  trustMode: Exclude<PresentationTrustMode, "quarantined">;
+  assertiveRoundCount: number;
   summary: LessonReportSummary;
   selectedRounds: LessonReportRoundSummary[];
   trendSeries: TrendSeries[];
@@ -261,6 +271,19 @@ function buildRankedAreas(
   };
 }
 
+function buildNeutralArea(
+  label: string,
+  category: StrokesGainedCategory,
+  confidence: ConfidenceLevel
+): LessonReportArea {
+  return {
+    category,
+    label,
+    averageSg: 0,
+    confidence,
+  };
+}
+
 function collectMethodologyVersions(rounds: RoundDetailSnapshot[]): string[] {
   return Array.from(
     new Set(
@@ -284,6 +307,14 @@ export function buildLessonReportData(
   const sorted = [...snapshots].sort(
     (a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime()
   );
+  const trustByRound = sorted.map((snapshot) => ({
+    snapshot,
+    trust: derivePresentationTrustFromSnapshot(snapshot),
+  }));
+  const assertiveSnapshots = trustByRound
+    .filter(({ trust }) => trust.mode === "assertive")
+    .map(({ snapshot }) => snapshot);
+  const assertiveRoundCount = assertiveSnapshots.length;
   const trendRounds = sorted.map(roundToTrendSnapshot);
   const confidenceByCategory = aggregateCategoryConfidence(sorted);
   const overallConfidence = aggregateOverallConfidence(confidenceByCategory);
@@ -311,11 +342,49 @@ export function buildLessonReportData(
     );
   }
 
-  const { focusArea, strongestArea } = buildRankedAreas(sorted, confidenceByCategory);
+  const trustMode: LessonReportData["trustMode"] =
+    assertiveRoundCount >= 2 ? "assertive" : "caveated";
+
+  if (trustMode === "caveated") {
+    caveats.push(LESSON_REPORT_CAVEATED_MESSAGE);
+  }
+
+  const signalSnapshots =
+    assertiveRoundCount >= 2 ? assertiveSnapshots : sorted;
+  const signalConfidenceByCategory = aggregateCategoryConfidence(signalSnapshots);
+  const { focusArea, strongestArea } =
+    trustMode === "assertive"
+      ? buildRankedAreas(signalSnapshots, signalConfidenceByCategory)
+      : {
+          focusArea: buildNeutralArea(
+            LESSON_REPORT_NEUTRAL_FOCUS_LABEL,
+            "approach",
+            signalConfidenceByCategory.approach
+          ),
+          strongestArea: buildNeutralArea(
+            LESSON_REPORT_NEUTRAL_STRONGEST_LABEL,
+            "putting",
+            signalConfidenceByCategory.putting
+          ),
+        };
+  const trendSignal =
+    trustMode === "assertive"
+      ? buildTrendSignal(signalSnapshots.map(roundToTrendSnapshot))
+      : {
+          category: null,
+          label: LESSON_REPORT_NEUTRAL_TREND_LABEL,
+          direction: "stable" as const,
+          delta: 0,
+          confidence: "recent_movement" as const,
+          copyText:
+            "There are not enough reliable rounds yet to name a focus area, strongest area, or clear trend signal.",
+        };
 
   return {
     reportVersion: LESSON_REPORT_VERSION,
     generatedAt: options.generatedAt ?? new Date().toISOString(),
+    trustMode,
+    assertiveRoundCount,
     summary: {
       roundCount: sorted.length,
       startDate: sorted[0].playedAt,
@@ -340,7 +409,7 @@ export function buildLessonReportData(
       methodologyVersion: round.methodologyVersion,
     })),
     trendSeries: toTrendSeries(trendRounds),
-    trendSignal: buildTrendSignal(trendRounds),
+    trendSignal,
     focusArea,
     strongestArea,
     confidenceSummary: {

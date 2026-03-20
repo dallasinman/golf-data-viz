@@ -22,6 +22,7 @@ import type {
 import { METHODOLOGY_VERSION_V3 } from "./constants";
 import { getBenchmarkVersion } from "./benchmarks";
 import {
+  type StrokesGainedOptions,
   estimateGIR,
   computeRawOttFirDelta,
   computeRawOttPenaltyDelta,
@@ -29,6 +30,7 @@ import {
   computeRawAtgDelta,
   computeGirAdjustedPuttingDelta,
 } from "./strokes-gained";
+import { getPublicPuttingHardeningMode } from "./putting-hardening-mode";
 import { computeTotalAnchor } from "./total-anchor";
 import {
   detectInputPath,
@@ -45,7 +47,8 @@ import {
 
 export function calculateStrokesGainedV3(
   input: RoundInput,
-  benchmark: BracketBenchmark
+  benchmark: BracketBenchmark,
+  options: StrokesGainedOptions = {}
 ): StrokesGainedResult {
   const estimatedCategories: StrokesGainedCategory[] = [];
   const skippedCategories: StrokesGainedCategory[] = [];
@@ -90,6 +93,8 @@ export function calculateStrokesGainedV3(
   // Detect path from ORIGINAL input (before GIR estimation)
   const inputPath = detectInputPath(input);
   const provisionalCategoryValues = calibrateRawSignals(rawSignals, inputPath);
+  const puttingHardeningMode =
+    options.puttingHardeningMode ?? getPublicPuttingHardeningMode();
 
   // ── Confidence (same logic as V1) ──
   const hasUpAndDown =
@@ -129,14 +134,6 @@ export function calculateStrokesGainedV3(
     }
   }
 
-  // ── Layer 5: Reconciliation ──
-  const reconciliation = reconcileCategories(
-    correctedCategoryValues,
-    anchor.value,
-    confidence,
-    skippedCategories
-  );
-
   // Three-putt diagnostic (same as V1)
   let threePuttImpact: number | null = null;
   if (input.threePutts != null) {
@@ -146,6 +143,21 @@ export function calculateStrokesGainedV3(
       Math.max(-0.5, (peerThreePutts - input.threePutts) * 0.3)
     );
   }
+
+  if (puttingHardeningMode === "full" && threePuttImpact != null) {
+    correctedCategoryValues = {
+      ...correctedCategoryValues,
+      putting: correctedCategoryValues.putting + threePuttImpact,
+    };
+  }
+
+  // ── Layer 5: Reconciliation ──
+  const reconciliation = reconcileCategories(
+    correctedCategoryValues,
+    anchor.value,
+    confidence,
+    skippedCategories
+  );
 
   // ── Low-GIR putting caveat ──
   // effectiveInput.greensInRegulation is always set by Layer 1 (GIR estimation),

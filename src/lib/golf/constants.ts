@@ -5,13 +5,13 @@ import type {
 } from "./types";
 
 /** Current methodology version — stamped on every StrokesGainedResult. */
-export const METHODOLOGY_VERSION = "2.0.0" as const;
+export const METHODOLOGY_VERSION = "2.1.0" as const;
 
 /** Phase 2 methodology version for the V3 pipeline. */
-export const METHODOLOGY_VERSION_V3 = "3.2.0" as const;
+export const METHODOLOGY_VERSION_V3 = "3.3.0" as const;
 
 /** Current calibration version — must match coefficients-seed-v1.json "version" field. */
-export const CALIBRATION_VERSION = "seed-1.0.0" as const;
+export const CALIBRATION_VERSION = "seed-1.1.0" as const;
 
 /** Current attribution correction version — must match attribution-correction-v1.json "version" field. */
 export const ATTRIBUTION_CORRECTION_VERSION = "ac-1.0.0" as const;

@@ -583,4 +583,36 @@ describe("generateShareHeadline", () => {
       expect(h.pattern).toBe("skull");
     });
   });
+
+  describe("presentation trust", () => {
+    it("falls back to neutral patterns for caveated rounds", () => {
+      const result = makeResult({
+        total: 0.4,
+        categories: {
+          approach: 2.5,
+          putting: 0.3,
+          "off-the-tee": 0.1,
+          "around-the-green": -0.1,
+        },
+      });
+
+      const headline = generateShareHeadline(result, defaultMeta, {
+        presentationTrust: {
+          mode: "caveated",
+          promotableCategories: ["off-the-tee"],
+          roundReasons: ["atg_fallback_additional_suppression"],
+          categoryReasons: {
+            approach: ["atg_fallback_scoring_divergence"],
+            putting: ["atg_fallback_approach_instability"],
+            "around-the-green": ["atg_fallback"],
+          },
+        },
+      });
+
+      expect(["verdict", "shrug", "score-only"]).toContain(headline.pattern);
+      expect(headline.pattern).not.toBe("weapon");
+      expect(headline.pattern).not.toBe("skull");
+      expect(headline.pattern).not.toBe("split");
+    });
+  });
 });

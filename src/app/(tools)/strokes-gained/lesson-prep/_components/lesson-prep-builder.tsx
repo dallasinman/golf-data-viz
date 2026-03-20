@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreditCard, Lock, Sparkles } from "lucide-react";
 import { trackEvent } from "@/lib/analytics/client";
 import type { ViewerEntitlements } from "@/lib/billing/entitlements";
+import { buildLessonReportAnalyticsContext } from "@/lib/golf/analytics";
 import { MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS } from "@/lib/golf/constants";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import { formatDate } from "@/lib/golf/format";
@@ -136,6 +137,7 @@ export function LessonPrepBuilder({
 
       trackEvent(result.regenerated ? "lesson_report_regenerated" : "lesson_report_generated", {
         round_count: selectedRoundIds.length,
+        ...buildLessonReportAnalyticsContext(result.trustedRoundCount),
       });
       router.push(`/strokes-gained/lesson-prep/${result.reportId}`);
     });

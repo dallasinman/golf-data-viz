@@ -183,6 +183,14 @@ const localStorageStub = {
   clear: () => { for (const k of Object.keys(mockStorage)) delete mockStorage[k]; },
 };
 
+const expectedRoundAnalyticsContext = {
+  presentation_variant: "caveated",
+  putting_hardening_version: "off",
+  has_three_putt_input: false,
+  has_one_putt_input: false,
+  promotable_category_count: 2,
+};
+
 describe("shared_round_viewed analytics event", () => {
   beforeEach(() => {
     mockTrackEvent.mockClear();
@@ -220,9 +228,13 @@ describe("shared_round_viewed analytics event", () => {
   it("includes referrer and utm_source props", () => {
     render(<StrokesGainedClient initialInput={mockInput} />);
 
-    expect(mockTrackEvent).toHaveBeenCalledWith("shared_round_viewed", {
-      referrer: expect.any(String),
-      utm_source: expect.any(String),
-    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "shared_round_viewed",
+      expect.objectContaining({
+        referrer: expect.any(String),
+        utm_source: expect.any(String),
+        ...expectedRoundAnalyticsContext,
+      })
+    );
   });
 });

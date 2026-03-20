@@ -712,6 +712,28 @@ describe("three-putt removal", () => {
     const result = calculateStrokesGained(round, benchmark);
     expect(result.diagnostics.threePuttImpact).toBeNull();
   });
+
+  it("adds three-putt impact into putting SG when hardening mode is full", () => {
+    const benchmark = getInterpolatedBenchmark(14.3);
+    const round = makeRound({ totalPutts: 33, threePutts: 4 });
+
+    const baseline = calculateStrokesGained(round, benchmark, {
+      puttingHardeningMode: "off",
+    });
+    const hardened = calculateStrokesGained(round, benchmark, {
+      puttingHardeningMode: "full",
+    });
+
+    expect(hardened.diagnostics.threePuttImpact).not.toBeNull();
+    expect(hardened.categories.putting).toBeCloseTo(
+      baseline.categories.putting + hardened.diagnostics.threePuttImpact!,
+      10
+    );
+    expect(hardened.total).toBeCloseTo(
+      baseline.total + hardened.diagnostics.threePuttImpact!,
+      10
+    );
+  });
 });
 
 describe("confidence levels", () => {

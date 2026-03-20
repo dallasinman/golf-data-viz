@@ -21,6 +21,14 @@ import type {
 } from "./types";
 import { METHODOLOGY_VERSION, CATEGORY_LABELS } from "./constants";
 import { getBenchmarkVersion } from "./benchmarks";
+import {
+  getPublicPuttingHardeningMode,
+  type PublicPuttingHardeningMode,
+} from "./putting-hardening-mode";
+
+export interface StrokesGainedOptions {
+  puttingHardeningMode?: PublicPuttingHardeningMode;
+}
 
 /**
  * Estimate GIR from scoring distribution when user doesn't track it.
@@ -126,9 +134,10 @@ function calcATG(input: RoundInput, benchmark: BracketBenchmark): number {
 /** Calculate SG: Putting. Returns sg (without three-putt) and threePuttImpact as diagnostic. */
 function calcPutting(
   input: RoundInput,
-  benchmark: BracketBenchmark
+  benchmark: BracketBenchmark,
+  puttingHardeningMode: PublicPuttingHardeningMode
 ): { sg: number; threePuttImpact: number | null } {
-  const sg = computeRawPuttingDelta(input, benchmark) * SG_WEIGHTS.PUTTING_WEIGHT;
+  let sg = computeRawPuttingDelta(input, benchmark) * SG_WEIGHTS.PUTTING_WEIGHT;
 
   // Three-putt impact computed as diagnostic only (not added to sg)
   let threePuttImpact: number | null = null;
@@ -141,13 +150,18 @@ function calcPutting(
     );
   }
 
+  if (puttingHardeningMode === "full" && threePuttImpact != null) {
+    sg += threePuttImpact;
+  }
+
   return { sg, threePuttImpact };
 }
 
 /** Calculate strokes gained across all 4 categories. */
 export function calculateStrokesGained(
   input: RoundInput,
-  benchmark: BracketBenchmark
+  benchmark: BracketBenchmark,
+  options: StrokesGainedOptions = {}
 ): StrokesGainedResult {
   const estimatedCategories: StrokesGainedCategory[] = [];
   const skippedCategories: StrokesGainedCategory[] = [];
@@ -172,7 +186,13 @@ export function calculateStrokesGained(
     }
   }
 
-  const puttingResult = calcPutting(effectiveInput, benchmark);
+  const puttingHardeningMode =
+    options.puttingHardeningMode ?? getPublicPuttingHardeningMode();
+  const puttingResult = calcPutting(
+    effectiveInput,
+    benchmark,
+    puttingHardeningMode
+  );
 
   const categories: Record<StrokesGainedCategory, number> = {
     "off-the-tee": calcOTT(effectiveInput, benchmark),

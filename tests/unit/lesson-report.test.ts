@@ -8,6 +8,10 @@ import {
   buildSelectionHash,
 } from "@/lib/golf/lesson-report";
 import { makeDetailSnapshot } from "../fixtures/factories";
+import {
+  all_caveated_lesson_report,
+  mixed_trusted_lesson_report,
+} from "../fixtures/sg-trust-hardening";
 
 function makeSnapshots(
   overrides: Partial<RoundDetailSnapshot>[] = []
@@ -157,16 +161,35 @@ describe("buildLessonReportData", () => {
 
   it("uses developing-pattern language for 5+ rounds", () => {
     const report = buildLessonReportData(makeSnapshots([
-      { sgPutting: -0.1 },
-      { sgPutting: -0.2 },
-      { sgPutting: -0.3 },
-      { sgPutting: -0.4 },
-      { sgPutting: -0.5 },
+      { sgPutting: -0.1, upAndDownAttempts: 4, upAndDownConverted: 2 },
+      { sgPutting: -0.2, upAndDownAttempts: 4, upAndDownConverted: 2 },
+      { sgPutting: -0.3, upAndDownAttempts: 4, upAndDownConverted: 2 },
+      { sgPutting: -0.4, upAndDownAttempts: 4, upAndDownConverted: 2 },
+      { sgPutting: -0.5, upAndDownAttempts: 4, upAndDownConverted: 2 },
     ]));
 
     expect(report.trendSignal.confidence).toBe("emerging_pattern");
     expect(report.caveats).not.toContain(
       "Trend signals are still early with only 3-4 rounds selected."
     );
+  });
+
+  it("marks the report caveated when fewer than two assertive rounds remain", () => {
+    const report = all_caveated_lesson_report.report;
+
+    expect(report.trustMode).toBe("caveated");
+    expect(report.assertiveRoundCount).toBe(0);
+    expect(report.caveats).toContain(
+      "Not enough reliable rounds are available yet to name a focus area or strongest area."
+    );
+  });
+
+  it("keeps the report assertive when at least two reliable rounds remain", () => {
+    const report = mixed_trusted_lesson_report.report;
+
+    expect(report.trustMode).toBe("assertive");
+    expect(report.assertiveRoundCount).toBe(2);
+    expect(report.focusArea.label).not.toBe("Round Pattern");
+    expect(report.strongestArea.label).not.toBe("Reliable Signal");
   });
 });

@@ -83,9 +83,15 @@ export function makeDetailSnapshot(
     doubleBogeys: 3,
     triplePlus: 0,
     totalPutts: 32,
+    onePutts: null,
+    threePutts: null,
     penaltyStrokes: 1,
     courseRating: 72.1,
     slopeRating: 135,
+    trustStatus: "trusted",
+    trustReasons: [],
+    reconciliationScaleFactor: null,
+    reconciliationFlags: [],
     ...overrides,
   };
 }

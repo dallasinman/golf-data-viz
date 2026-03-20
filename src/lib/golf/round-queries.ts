@@ -6,10 +6,16 @@
  */
 
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database, Json } from "@/lib/supabase/database.types";
 import type { RoundSgSnapshot } from "./trends";
-import type { LessonReportData } from "./lesson-report";
+import {
+  buildLessonReportData,
+  LESSON_REPORT_VERSION,
+  type LessonReportData,
+} from "./lesson-report";
 import type { ConfidenceLevel, RoundDetailSnapshot, StrokesGainedCategory } from "./types";
 import { deriveConfidence } from "./round-detail-adapter";
 
@@ -58,13 +64,15 @@ const DETAIL_COLUMNS = `
   methodology_version, benchmark_bracket, benchmark_version,
   benchmark_handicap, benchmark_interpolation_mode,
   calibration_version, total_anchor_mode,
+  reconciliation_scale_factor, reconciliation_flags,
   confidence_off_the_tee, confidence_approach,
   confidence_around_the_green, confidence_putting,
   estimated_categories, skipped_categories,
   fairways_hit, fairway_attempts, greens_in_regulation,
   up_and_down_attempts, up_and_down_converted,
   eagles, birdies, pars, bogeys, double_bogeys, triple_plus,
-  total_putts, penalty_strokes, course_rating, slope_rating
+  total_putts, one_putts, three_putts, penalty_strokes, course_rating, slope_rating,
+  trust_status, trust_reasons
 `.replace(/\s+/g, " ").trim();
 
 function mapRowToDetailSnapshot(row: Record<string, unknown>): RoundDetailSnapshot {
@@ -125,9 +133,16 @@ function mapRowToDetailSnapshot(row: Record<string, unknown>): RoundDetailSnapsh
     doubleBogeys: (row.double_bogeys as number | null) ?? null,
     triplePlus: (row.triple_plus as number | null) ?? null,
     totalPutts: (row.total_putts as number | null) ?? null,
+    onePutts: (row.one_putts as number | null) ?? null,
+    threePutts: (row.three_putts as number | null) ?? null,
     penaltyStrokes: (row.penalty_strokes as number | null) ?? null,
     courseRating: (row.course_rating as number | null) ?? null,
     slopeRating: (row.slope_rating as number | null) ?? null,
+    trustStatus: (row.trust_status as string | null) ?? null,
+    trustReasons: (row.trust_reasons as string[] | null) ?? [],
+    reconciliationScaleFactor:
+      (row.reconciliation_scale_factor as number | null) ?? null,
+    reconciliationFlags: (row.reconciliation_flags as string[] | null) ?? [],
   };
 }
 
@@ -157,6 +172,72 @@ function mapRowToLessonReportSnapshot(
     regeneratedAt: (row.regenerated_at as string | null) ?? null,
     reportData: row.report_data as LessonReportData,
   };
+}
+
+function hasTrustAwareLessonReportData(
+  reportData: LessonReportData | null | undefined
+): boolean {
+  return (
+    reportData != null &&
+    typeof reportData.trustMode === "string" &&
+    typeof reportData.assertiveRoundCount === "number"
+  );
+}
+
+async function rebuildLessonReportSnapshot(
+  snapshot: LessonReportSnapshot,
+  options: {
+    supabase: SupabaseClient<Database>;
+    userId?: string;
+    persist?: boolean;
+  }
+): Promise<LessonReportSnapshot> {
+  if (snapshot.selectedRoundIds.length === 0) {
+    return snapshot;
+  }
+
+  let query = options.supabase
+    .from("rounds")
+    .select(DETAIL_COLUMNS);
+
+  if (options.userId) {
+    query = query.eq("user_id", options.userId);
+  }
+
+  const { data, error } = await query
+    .in("id", snapshot.selectedRoundIds)
+    .order("played_at", { ascending: true });
+
+  if (error || !data || data.length < 3) {
+    return snapshot;
+  }
+
+  const roundSnapshots = data.map((row) =>
+    mapRowToDetailSnapshot(row as unknown as Record<string, unknown>)
+  );
+  const reportData = buildLessonReportData(roundSnapshots, {
+    generatedAt: snapshot.generatedAt,
+  });
+  const rebuiltSnapshot: LessonReportSnapshot = {
+    ...snapshot,
+    roundCount: roundSnapshots.length,
+    reportVersion: LESSON_REPORT_VERSION,
+    reportData,
+  };
+
+  if (options.persist) {
+    const serializedReportData = rebuiltSnapshot.reportData as unknown as Json;
+    void options.supabase
+      .from("lesson_reports")
+      .update({
+        round_count: rebuiltSnapshot.roundCount,
+        report_version: rebuiltSnapshot.reportVersion,
+        report_data: serializedReportData,
+      })
+      .eq("id", snapshot.id);
+  }
+
+  return rebuiltSnapshot;
 }
 
 /**
@@ -254,7 +335,17 @@ export const getLessonReport = cache(async function getLessonReport(
     .single();
 
   if (error || !data) return null;
-  return mapRowToLessonReportSnapshot(data as unknown as Record<string, unknown>);
+  const snapshot = mapRowToLessonReportSnapshot(
+    data as unknown as Record<string, unknown>
+  );
+  if (hasTrustAwareLessonReportData(snapshot.reportData)) {
+    return snapshot;
+  }
+  return rebuildLessonReportSnapshot(snapshot, {
+    supabase,
+    userId,
+    persist: true,
+  });
 });
 
 export async function getLessonReportBySelection(
@@ -272,7 +363,17 @@ export async function getLessonReportBySelection(
     .single();
 
   if (error || !data) return null;
-  return mapRowToLessonReportSnapshot(data as unknown as Record<string, unknown>);
+  const snapshot = mapRowToLessonReportSnapshot(
+    data as unknown as Record<string, unknown>
+  );
+  if (hasTrustAwareLessonReportData(snapshot.reportData)) {
+    return snapshot;
+  }
+  return rebuildLessonReportSnapshot(snapshot, {
+    supabase,
+    userId,
+    persist: true,
+  });
 }
 
 /**
@@ -301,5 +402,11 @@ export const getLessonReportByShareToken = cache(async function getLessonReportB
     .single();
 
   if (error || !data) return null;
-  return mapRowToLessonReportSnapshot(data as unknown as Record<string, unknown>);
+  const snapshot = mapRowToLessonReportSnapshot(
+    data as unknown as Record<string, unknown>
+  );
+  if (hasTrustAwareLessonReportData(snapshot.reportData)) {
+    return snapshot;
+  }
+  return rebuildLessonReportSnapshot(snapshot, { supabase, persist: false });
 });
