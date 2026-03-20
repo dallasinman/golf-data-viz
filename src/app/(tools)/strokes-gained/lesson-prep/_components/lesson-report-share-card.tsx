@@ -3,8 +3,6 @@
 import { forwardRef } from "react";
 import type { LessonReportSnapshot } from "@/lib/golf/round-queries";
 import { formatDate, formatSG, presentSG } from "@/lib/golf/format";
-import { isPresentationTrustEnabled } from "@/lib/golf/presentation-trust";
-
 function confidenceTone(level: string): string {
   switch (level) {
     case "high":
@@ -21,7 +19,7 @@ export const LessonReportShareCard = forwardRef<
   { snapshot: LessonReportSnapshot }
 >(function LessonReportShareCard({ snapshot }, ref) {
   const report = snapshot.reportData;
-  const trustMode = isPresentationTrustEnabled() ? report.trustMode : "assertive";
+  const trustMode = report.trustMode;
   const isCaveatedReport = trustMode === "caveated";
 
   return (

@@ -680,7 +680,7 @@ describe("GIR estimation", () => {
 });
 
 describe("three-putt removal", () => {
-  it("total SG is the same regardless of threePutts input", () => {
+  it("threePutts input affects total SG via threePuttImpact", () => {
     const benchmark = getInterpolatedBenchmark(14.3);
     const roundWithout = makeRound({ totalPutts: 33 });
     delete roundWithout.threePutts;
@@ -689,9 +689,9 @@ describe("three-putt removal", () => {
     const resultWithout = calculateStrokesGained(roundWithout, benchmark);
     const resultWith = calculateStrokesGained(roundWith, benchmark);
 
-    // Total should be identical — three-putt bonus excluded from total
-    expect(resultWith.total).toBeCloseTo(resultWithout.total, 10);
-    expect(resultWith.categories["putting"]).toBeCloseTo(
+    // With putting hardening always "full", threePutts affects total via threePuttImpact
+    expect(resultWith.total).not.toBeCloseTo(resultWithout.total, 10);
+    expect(resultWith.categories["putting"]).not.toBeCloseTo(
       resultWithout.categories["putting"],
       10
     );

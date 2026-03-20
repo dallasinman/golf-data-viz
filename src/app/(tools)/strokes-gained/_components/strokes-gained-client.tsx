@@ -32,7 +32,6 @@ import { encodeRound } from "@/lib/golf/share-codec";
 import {
   derivePresentationTrust,
   isAssertivePresentationTrust,
-  isPresentationTrustEnabled,
 } from "@/lib/golf/presentation-trust";
 import { generateShareHeadline } from "@/lib/golf/share-headline";
 import { captureElementAsPng, downloadBlob } from "@/lib/capture";
@@ -87,10 +86,6 @@ function getPresentationEmphasisCategories(
   result: StrokesGainedResult,
   input: RoundInput
 ) {
-  if (!isPresentationTrustEnabled()) {
-    return getEmphasizedCategories(result);
-  }
-
   const presentationTrust = derivePresentationTrust({ input, result });
   if (!isAssertivePresentationTrust(presentationTrust)) {
     return [];
@@ -435,10 +430,8 @@ export default function StrokesGainedClient({
     }, 100);
   }
 
-  // isPresentationTrustEnabled() reads a NEXT_PUBLIC_ env var that is
-  // inlined at build time, so it is stable for the lifetime of the bundle.
   const presentationTrust = useMemo(() => {
-    if (!result || !lastInput || !isPresentationTrustEnabled()) {
+    if (!result || !lastInput) {
       return undefined;
     }
 

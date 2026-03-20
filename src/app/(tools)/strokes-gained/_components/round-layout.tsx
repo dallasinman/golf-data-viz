@@ -15,10 +15,7 @@ import {
 import { getBenchmarkMeta } from "@/lib/golf/benchmarks";
 import { BRACKET_LABELS } from "@/lib/golf/constants";
 import { formatHandicap, formatDate, formatScoringBreakdown, buildFamiliarStats, presentSG } from "@/lib/golf/format";
-import {
-  derivePresentationTrustFromSnapshot,
-  isPresentationTrustEnabled,
-} from "@/lib/golf/presentation-trust";
+import { derivePresentationTrustFromSnapshot } from "@/lib/golf/presentation-trust";
 import { RadarChart } from "@/components/charts/radar-chart";
 import { ResultsSummary } from "./results-summary";
 import { ShareCard } from "./share-card";
@@ -37,9 +34,7 @@ export function deriveRoundData(snapshot: RoundDetailSnapshot): RoundLayoutDeriv
   const benchmarkMeta = getBenchmarkMeta();
   const bracketLabel =
     BRACKET_LABELS[sgResult.benchmarkBracket] ?? sgResult.benchmarkBracket;
-  const presentationTrust = isPresentationTrustEnabled()
-    ? derivePresentationTrustFromSnapshot(snapshot)
-    : undefined;
+  const presentationTrust = derivePresentationTrustFromSnapshot(snapshot);
   return { sgResult, chartData, benchmarkMeta, bracketLabel, presentationTrust };
 }
 

@@ -230,6 +230,7 @@ export function isAssertivePresentationTrust(
   return !presentationTrust || presentationTrust.mode === "assertive";
 }
 
+/** Presentation trust is always active — no feature flag. */
 export function isPresentationTrustEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_SG_PRESENTATION_TRUST === "on";
+  return true;
 }

@@ -215,7 +215,7 @@ const mockInput = {
 
 const expectedRoundAnalyticsContext = {
   presentation_variant: "caveated",
-  putting_hardening_version: "off",
+  putting_hardening_version: "full",
   has_three_putt_input: false,
   has_one_putt_input: false,
   promotable_category_count: 2,

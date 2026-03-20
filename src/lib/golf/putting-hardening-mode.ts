@@ -1,16 +1,12 @@
 export type PublicPuttingHardeningMode = "off" | "full";
-export type ServerPuttingHardeningMode = "off" | "shadow" | "full";
+export type ServerPuttingHardeningMode = "off" | "full";
 
+/** Putting hardening is always active — no feature flag. */
 export function getPublicPuttingHardeningMode(): PublicPuttingHardeningMode {
-  return process.env.NEXT_PUBLIC_SG_PUTTING_HARDENING_MODE === "full"
-    ? "full"
-    : "off";
+  return "full";
 }
 
+/** Putting hardening is always active — no feature flag. */
 export function getServerPuttingHardeningMode(): ServerPuttingHardeningMode {
-  const mode = process.env.SG_PUTTING_HARDENING_MODE;
-  if (mode === "shadow" || mode === "full" || mode === "off") {
-    return mode;
-  }
-  return "off";
+  return "full";
 }

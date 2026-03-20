@@ -427,70 +427,8 @@ describe("saveRound server action", () => {
     expect(insertedRow.trust_reasons).toContain("high_hcp_scoring_spike");
   });
 
-  it("keeps persisted math in off mode while shadow mode runs a full comparison", async () => {
-    vi.stubEnv("SG_PHASE2_MODE", "off");
-    vi.stubEnv("SG_PUTTING_HARDENING_MODE", "shadow");
-    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    const persistedResult = makeSGResult({
-      methodologyVersion: "2.1.0",
-      categories: {
-        "off-the-tee": 0.3,
-        approach: -0.8,
-        "around-the-green": -0.5,
-        putting: -0.5,
-      },
-      diagnostics: { threePuttImpact: 0.3 },
-    });
-    const shadowCandidate = makeSGResult({
-      methodologyVersion: "2.1.0",
-      categories: {
-        "off-the-tee": 0.3,
-        approach: -0.8,
-        "around-the-green": -0.5,
-        putting: -0.2,
-      },
-      total: -1.2,
-      diagnostics: { threePuttImpact: 0.3 },
-    });
-
-    const v1Spy = vi
-      .spyOn(strokesGainedModule, "calculateStrokesGained")
-      .mockImplementation((_input, _benchmark, options) =>
-        options?.puttingHardeningMode === "full"
-          ? shadowCandidate
-          : persistedResult
-      );
-
-    await saveRound(makeRound({ threePutts: 4 }), verification);
-
-    expect(v1Spy).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({ puttingHardeningMode: "off" })
-    );
-    expect(v1Spy).toHaveBeenNthCalledWith(
-      2,
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({ puttingHardeningMode: "full" })
-    );
-    expect(mockInsert.mock.calls[0][0].sg_putting).toBe(-0.5);
-    expect(consoleLog).toHaveBeenCalledWith(
-      "[saveRound] Putting hardening shadow",
-      expect.objectContaining({
-        persistedPutting: "-0.50",
-        candidatePutting: "-0.20",
-        delta: "0.30",
-        methodologyVersion: "2.1.0",
-      })
-    );
-  });
-
   it("persists full hardening through the V3 save path when enabled", async () => {
     vi.stubEnv("SG_PHASE2_MODE", "full");
-    vi.stubEnv("SG_PUTTING_HARDENING_MODE", "full");
 
     const v1Spy = vi
       .spyOn(strokesGainedModule, "calculateStrokesGained")
@@ -522,12 +460,10 @@ describe("saveRound server action", () => {
     expect(v1Spy).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
-      expect.objectContaining({ puttingHardeningMode: "full" })
     );
     expect(v3Spy).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
-      expect.objectContaining({ puttingHardeningMode: "full" })
     );
     expect(mockInsert.mock.calls[0][0]).toEqual(
       expect.objectContaining({

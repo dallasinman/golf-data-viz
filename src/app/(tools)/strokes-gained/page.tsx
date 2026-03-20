@@ -3,10 +3,7 @@ import { decodeRound } from "@/lib/golf/share-codec";
 import { getInterpolatedBenchmark } from "@/lib/golf/benchmarks";
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
 import { findWeakestCategory } from "@/lib/golf/format";
-import {
-  derivePresentationTrust,
-  isPresentationTrustEnabled,
-} from "@/lib/golf/presentation-trust";
+import { derivePresentationTrust } from "@/lib/golf/presentation-trust";
 import { buildRoundMetadataDescription } from "@/lib/golf/round-metadata";
 import { getRoundSaveAvailability } from "@/lib/round-save";
 import { getSampleResult } from "@/lib/golf/sample-round";
@@ -54,9 +51,7 @@ export async function generateMetadata({
     sgAroundTheGreen: result.categories["around-the-green"],
     sgPutting: result.categories["putting"],
   });
-  const presentationTrust = isPresentationTrustEnabled()
-    ? derivePresentationTrust({ input, result })
-    : null;
+  const presentationTrust = derivePresentationTrust({ input, result });
   const description = buildRoundMetadataDescription({
     handicapIndex: input.handicapIndex,
     greensInRegulation: input.greensInRegulation,

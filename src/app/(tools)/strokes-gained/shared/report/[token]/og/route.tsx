@@ -1,7 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getLessonReportByShareToken } from "@/lib/golf/round-queries";
 import { formatSG, presentSG } from "@/lib/golf/format";
-import { isPresentationTrustEnabled } from "@/lib/golf/presentation-trust";
 
 export const runtime = "nodejs";
 
@@ -40,8 +39,7 @@ export async function GET(
   }
 
   const report = snapshot.reportData;
-  const isCaveatedReport =
-    isPresentationTrustEnabled() && report.trustMode === "caveated";
+  const isCaveatedReport = report.trustMode === "caveated";
 
   return new ImageResponse(
     (

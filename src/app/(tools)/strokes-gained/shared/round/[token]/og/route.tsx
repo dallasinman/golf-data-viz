@@ -9,10 +9,7 @@ import {
   buildCompactSGRow,
   truncateText,
 } from "@/lib/golf/og-card-data";
-import {
-  derivePresentationTrustFromSnapshot,
-  isPresentationTrustEnabled,
-} from "@/lib/golf/presentation-trust";
+import { derivePresentationTrustFromSnapshot } from "@/lib/golf/presentation-trust";
 import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
 import { buildPresentationPercentileRow } from "@/lib/golf/percentile";
 
@@ -85,9 +82,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   const result = toStrokesGainedResult(snapshot);
-  const presentationTrust = isPresentationTrustEnabled()
-    ? derivePresentationTrustFromSnapshot(snapshot)
-    : undefined;
+  const presentationTrust = derivePresentationTrustFromSnapshot(snapshot);
   const courseName = truncateText(snapshot.courseName, 58);
   const compactSG = buildCompactSGRow(result);
   const percentileRow = buildPresentationPercentileRow(result, presentationTrust);

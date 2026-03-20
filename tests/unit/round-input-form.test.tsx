@@ -99,13 +99,4 @@ describe("RoundInputForm one-putts field flag", () => {
     ).toBeVisible();
   });
 
-  it("hides One-putts when the flag is off", async () => {
-    vi.stubEnv("NEXT_PUBLIC_ONE_PUTTS_ENABLED", "off");
-    const user = userEvent.setup();
-
-    render(<RoundInputForm onSubmit={onSubmit} />);
-    await user.click(screen.getByRole("button", { name: /show more stats/i }));
-
-    expect(screen.queryByRole("spinbutton", { name: /one-putts/i })).toBeNull();
-  });
 });

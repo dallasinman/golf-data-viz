@@ -12,7 +12,6 @@ import { trackEvent } from "@/lib/analytics/client";
 import type { ViewerEntitlements } from "@/lib/billing/entitlements";
 import { buildLessonReportAnalyticsContext } from "@/lib/golf/analytics";
 import { CATEGORY_LABELS } from "@/lib/golf/constants";
-import { isPresentationTrustEnabled } from "@/lib/golf/presentation-trust";
 import type { RoundSgSnapshot } from "@/lib/golf/trends";
 import type { LessonReportSnapshot } from "@/lib/golf/round-queries";
 import { formatCompactDate, formatDate, formatHandicap, formatSG, presentSG } from "@/lib/golf/format";
@@ -84,7 +83,7 @@ export function LessonReportView({
   surface,
 }: LessonReportViewProps) {
   const report = snapshot.reportData;
-  const trustMode = isPresentationTrustEnabled() ? report.trustMode : "assertive";
+  const trustMode = report.trustMode;
   const isCaveatedReport = trustMode === "caveated";
   const router = useRouter();
   const shareCardRef = useRef<HTMLDivElement>(null);

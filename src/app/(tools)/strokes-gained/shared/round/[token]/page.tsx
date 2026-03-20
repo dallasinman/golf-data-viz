@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getRoundByShareToken } from "@/lib/golf/round-queries";
 import { findWeakestCategory } from "@/lib/golf/format";
-import {
-  derivePresentationTrustFromSnapshot,
-  isPresentationTrustEnabled,
-} from "@/lib/golf/presentation-trust";
+import { derivePresentationTrustFromSnapshot } from "@/lib/golf/presentation-trust";
 import { buildRoundMetadataDescription } from "@/lib/golf/round-metadata";
 import { SharedRoundClient } from "./_components/shared-round-client";
 
@@ -23,9 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const title = `Shot ${snapshot.score} at ${snapshot.courseName}`;
   const weakest = findWeakestCategory(snapshot);
-  const presentationTrust = isPresentationTrustEnabled()
-    ? derivePresentationTrustFromSnapshot(snapshot)
-    : null;
+  const presentationTrust = derivePresentationTrustFromSnapshot(snapshot);
   const description = buildRoundMetadataDescription({
     handicapIndex: snapshot.handicapIndex,
     greensInRegulation: snapshot.greensInRegulation,

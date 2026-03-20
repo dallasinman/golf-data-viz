@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { formatSG } from "@/lib/golf/format";
 import { getLessonReportByShareToken } from "@/lib/golf/round-queries";
-import { isPresentationTrustEnabled } from "@/lib/golf/presentation-trust";
 import { LessonReportView } from "@/app/(tools)/strokes-gained/lesson-prep/_components/lesson-report-view";
 
 interface SharedLessonReportPageProps {
@@ -18,8 +17,7 @@ export async function generateMetadata({
     return { title: "Lesson Prep Report Not Found" };
   }
 
-  const isCaveatedReport =
-    isPresentationTrustEnabled() && snapshot.reportData.trustMode === "caveated";
+  const isCaveatedReport = snapshot.reportData.trustMode === "caveated";
   const title = `${snapshot.reportData.summary.roundCount} rounds · ${formatSG(
     snapshot.reportData.summary.averageSgTotal
   )} Avg SG`;

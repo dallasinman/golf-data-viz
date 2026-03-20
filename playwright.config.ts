@@ -6,13 +6,6 @@ loadEnvConfig(process.cwd());
 const useProdServer = process.env.PLAYWRIGHT_USE_PROD_SERVER === "true";
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "true";
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
-const webServerEnv = {
-  ...process.env,
-  NEXT_PUBLIC_SG_PRESENTATION_TRUST:
-    process.env.NEXT_PUBLIC_SG_PRESENTATION_TRUST ?? "on",
-  NEXT_PUBLIC_ONE_PUTTS_ENABLED:
-    process.env.NEXT_PUBLIC_ONE_PUTTS_ENABLED ?? "on",
-};
 const vercelAutomationBypassSecret =
   process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 const extraHTTPHeaders = vercelAutomationBypassSecret
@@ -69,7 +62,6 @@ export default defineConfig({
         command: useProdServer
           ? "npm run start -- --hostname 127.0.0.1 --port 3000"
           : "npm run dev -- --hostname 127.0.0.1 --port 3000",
-        env: webServerEnv,
         url: "http://127.0.0.1:3000",
         reuseExistingServer: !useProdServer,
       },
