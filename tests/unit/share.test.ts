@@ -15,7 +15,7 @@ describe("shareImage", () => {
     vi.clearAllMocks();
   });
 
-  it("calls navigator.share with File when canShare returns true", async () => {
+  it("returns 'native' when navigator.share succeeds", async () => {
     const blob = new Blob(["fake-png"], { type: "image/png" });
     const mockShare = vi.fn().mockResolvedValue(undefined);
     const mockCanShare = vi.fn().mockReturnValue(true);
@@ -27,7 +27,7 @@ describe("shareImage", () => {
 
     const result = await shareImage(blob, "test.png", "Check this out");
 
-    expect(result).toBe(true);
+    expect(result).toBe("native");
     expect(mockCanShare).toHaveBeenCalledWith({
       files: [expect.any(File)],
     });
@@ -63,7 +63,38 @@ describe("shareImage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("falls back to downloadBlob when canShare returns false", async () => {
+  it("returns 'cancelled' when user dismisses share sheet (AbortError)", async () => {
+    const blob = new Blob(["fake-png"], { type: "image/png" });
+    const abortError = new DOMException("Share cancelled", "AbortError");
+
+    vi.stubGlobal("navigator", {
+      canShare: vi.fn().mockReturnValue(true),
+      share: vi.fn().mockRejectedValue(abortError),
+    });
+
+    const result = await shareImage(blob, "test.png");
+
+    expect(result).toBe("cancelled");
+    expect(mockDownloadBlob).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("re-throws non-AbortError from navigator.share", async () => {
+    const blob = new Blob(["fake-png"], { type: "image/png" });
+    const otherError = new Error("Some other failure");
+
+    vi.stubGlobal("navigator", {
+      canShare: vi.fn().mockReturnValue(true),
+      share: vi.fn().mockRejectedValue(otherError),
+    });
+
+    await expect(shareImage(blob, "test.png")).rejects.toThrow("Some other failure");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("returns 'download' when canShare returns false", async () => {
     const blob = new Blob(["fake-png"], { type: "image/png" });
 
     vi.stubGlobal("navigator", {
@@ -72,20 +103,20 @@ describe("shareImage", () => {
 
     const result = await shareImage(blob, "fallback.png");
 
-    expect(result).toBe(false);
+    expect(result).toBe("download");
     expect(mockDownloadBlob).toHaveBeenCalledWith(blob, "fallback.png");
 
     vi.unstubAllGlobals();
   });
 
-  it("falls back to downloadBlob when canShare is undefined (older browsers)", async () => {
+  it("returns 'download' when canShare is undefined (older browsers)", async () => {
     const blob = new Blob(["fake-png"], { type: "image/png" });
 
     vi.stubGlobal("navigator", {});
 
     const result = await shareImage(blob, "old-browser.png");
 
-    expect(result).toBe(false);
+    expect(result).toBe("download");
     expect(mockDownloadBlob).toHaveBeenCalledWith(blob, "old-browser.png");
 
     vi.unstubAllGlobals();

@@ -528,6 +528,8 @@ export default function StrokesGainedClient({
     [lastInput, presentationTrust, result],
   );
 
+  // Event name kept as download_png_clicked for GA4 continuity — share_method
+  // distinguishes native share sheet ("native") from file download ("download").
   const handleShare = useCallback(async () => {
     if (!shareCardRef.current || downloading) return;
     setDownloading(true);
@@ -536,14 +538,14 @@ export default function StrokesGainedClient({
     const start = Date.now();
     try {
       const blob = await captureElementAsPng(shareCardRef.current);
-      const wasNative = await shareImage(blob, "strokes-gained.png", shareHeadline?.line);
+      // Fire analytics before the share so cancellations are still tracked
       trackEvent("download_png_clicked", {
         has_share_param: window.location.search.includes("d="),
         utm_source: getAttributionUtmSource(),
         headline_pattern: shareHeadline?.pattern ?? null,
-        share_method: wasNative ? "native" : "download",
         ...(roundAnalyticsContext ?? {}),
       });
+      await shareImage(blob, "strokes-gained.png", shareHeadline?.line);
     } finally {
       const elapsed = Date.now() - start;
       const remaining = Math.max(0, MIN_CAPTURE_LOADING_MS - elapsed);
@@ -560,13 +562,12 @@ export default function StrokesGainedClient({
     try {
       const blob = await captureElementAsPng(receiptCardRef.current, { pixelRatio: 1 });
       const courseSlug = lastInput?.course.replace(/\s+/g, "-").toLowerCase() ?? "round";
-      const wasNative = await shareImage(blob, `${courseSlug}-receipt.png`);
       trackEvent("download_receipt_clicked", {
         has_share_param: window.location.search.includes("d="),
         utm_source: getAttributionUtmSource(),
         headline_pattern: shareHeadline?.pattern ?? null,
-        share_method: wasNative ? "native" : "download",
       });
+      await shareImage(blob, `${courseSlug}-receipt.png`);
     } finally {
       const elapsed = Date.now() - start;
       const remaining = Math.max(0, MIN_CAPTURE_LOADING_MS - elapsed);

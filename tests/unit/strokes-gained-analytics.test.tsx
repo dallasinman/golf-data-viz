@@ -333,7 +333,6 @@ describe("StrokesGainedClient analytics instrumentation", () => {
           has_share_param: true,
           utm_source: "reddit",
           headline_pattern: expect.any(String),
-          share_method: "download",
           ...expectedRoundAnalyticsContext,
         })
       );
