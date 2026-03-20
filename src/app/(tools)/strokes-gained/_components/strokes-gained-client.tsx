@@ -276,12 +276,21 @@ export default function StrokesGainedClient({
     }
   }, [initialComputedResult, initialInput]);
 
-  // Show recipient CTA for all shared links (avoids hydration mismatch via useEffect)
+  // Show recipient CTA for shared links, but NOT if the user is the round author.
+  // After submission the URL gets ?d=<encoded> via replaceState and the round is
+  // persisted in localStorage.  On reload the server populates initialInput, which
+  // makes isSharedLink true — but the localStorage round proves authorship.
   useEffect(() => {
-    if (isSharedLink) {
+    if (isSharedLink && initialInput) {
+      const stored = readStoredRound();
+      if (stored && roundInputsMatch(stored.input, initialInput)) {
+        // User is viewing their own round — suppress the "your friend" CTA
+        setIsSharedLink(false);
+        return;
+      }
       setShowEncodedRecipientCta(true);
     }
-  }, [isSharedLink]);
+  }, [isSharedLink, initialInput]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -333,6 +342,9 @@ export default function StrokesGainedClient({
     setSavedRoundId(storedClaim.roundId);
     setSavedClaimToken(storedClaim.claimToken);
     setSaveSuccess(true);
+    // User is the round author, not a recipient — suppress the "your friend" CTA
+    setIsSharedLink(false);
+    setShowEncodedRecipientCta(false);
   }, [initialInput]); // initialInput is server-derived and only changes when the shared URL payload changes
 
   // Read last round from localStorage on mount (no shared link, not from history)
@@ -1069,6 +1081,7 @@ export default function StrokesGainedClient({
                   setSavedRoundId(res.roundId);
                   setSavedRoundOwned(res.isOwned);
                   setSaveSuccess(true);
+                  setShowEncodedRecipientCta(false);
                   if (res.isOwned) {
                     clearStoredAnonClaim();
                     void createShareToken(res.roundId).then((tokenRes) => {
@@ -1208,8 +1221,8 @@ export default function StrokesGainedClient({
             />
           </div>
 
-          {/* Recipient CTA — shown for shared link recipients with UTM */}
-          {showEncodedRecipientCta && (
+          {/* Recipient CTA — shown for shared link recipients, never for round authors */}
+          {showEncodedRecipientCta && !saveSuccess && (
             <RecipientCta
               senderHandicap={lastInput.handicapIndex}
               senderResult={result}

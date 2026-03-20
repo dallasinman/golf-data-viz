@@ -747,6 +747,8 @@ test.describe("Strokes Gained Benchmarker", () => {
     const dParam = new URL(page.url()).searchParams.get("d");
     expect(dParam).toBeTruthy();
 
+    // Clear localStorage to simulate a genuine recipient (different user/device)
+    await page.evaluate(() => localStorage.clear());
     await page.goto(`/strokes-gained?d=${dParam}&utm_source=share&utm_medium=cta&utm_campaign=round_share`);
     await expect(
       page.getByText("Your Round Breakdown")
@@ -768,6 +770,8 @@ test.describe("Strokes Gained Benchmarker", () => {
     const dParam = new URL(page.url()).searchParams.get("d");
     expect(dParam).toBeTruthy();
 
+    // Clear localStorage to simulate a genuine recipient (different user/device)
+    await page.evaluate(() => localStorage.clear());
     await page.goto(`/strokes-gained?d=${dParam}`);
     await expect(
       page.getByText("Your Round Breakdown")
@@ -786,6 +790,55 @@ test.describe("Strokes Gained Benchmarker", () => {
     await page.goto("/strokes-gained");
     await submitFullRound(page);
     await expect(page.getByTestId("shared-link-header")).not.toBeVisible();
+  });
+
+  test("recipient CTA does NOT appear when author reloads own round", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+    const dParam = new URL(page.url()).searchParams.get("d");
+    expect(dParam).toBeTruthy();
+
+    // Reload the page — URL still has ?d= from replaceState
+    await page.reload();
+    await expect(page.getByText("Your Round Breakdown")).toBeVisible({ timeout: 10000 });
+
+    // Author's stored round matches — CTA should be suppressed
+    await expect(page.getByTestId("recipient-cta")).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test("recipient CTA does NOT appear when saved round author reloads", async ({
+    page,
+  }) => {
+    await page.goto("/strokes-gained");
+    await submitFullRound(page);
+    const dParam = new URL(page.url()).searchParams.get("d");
+    expect(dParam).toBeTruthy();
+
+    // Simulate a saved round by injecting a stored anon claim that matches the round
+    const storedRound = await page.evaluate(() =>
+      localStorage.getItem("gdv:last-round")
+    );
+    expect(storedRound).toBeTruthy();
+    const parsed = JSON.parse(storedRound!);
+    await page.evaluate((input) => {
+      localStorage.setItem("gdv:last-anon-claim", JSON.stringify({
+        roundId: "test-round-id",
+        claimToken: "test-claim-token",
+        input,
+        timestamp: new Date().toISOString(),
+      }));
+    }, parsed.input);
+
+    // Reload — both stored round AND stored claim match
+    await page.reload();
+    await expect(page.getByText("Your Round Breakdown")).toBeVisible({ timeout: 10000 });
+
+    // Save success banner should show (from stored anon claim match)
+    await expect(page.getByTestId("save-success")).toBeVisible({ timeout: 3000 });
+    // Recipient CTA must NOT show — user is the author
+    await expect(page.getByTestId("recipient-cta")).not.toBeVisible({ timeout: 3000 });
   });
 
   test("shared link header does NOT appear for from=history", async ({
@@ -833,6 +886,8 @@ test.describe("Strokes Gained Benchmarker", () => {
     await submitFullRound(page);
     const dParam = new URL(page.url()).searchParams.get("d");
 
+    // Clear localStorage to simulate a genuine recipient (different user/device)
+    await page.evaluate(() => localStorage.clear());
     await page.goto(`/strokes-gained?d=${dParam}&utm_source=share&utm_medium=cta&utm_campaign=round_share`);
     await expect(page.getByTestId("recipient-cta")).toBeVisible({ timeout: 5000 });
 
@@ -877,6 +932,8 @@ test.describe("Strokes Gained Benchmarker", () => {
     await submitFullRound(page);
     const dParam = new URL(page.url()).searchParams.get("d");
 
+    // Clear localStorage to simulate a genuine recipient (different user/device)
+    await page.evaluate(() => localStorage.clear());
     await page.goto(`/strokes-gained?d=${dParam}&utm_source=share&utm_medium=cta&utm_campaign=round_share`);
     await expect(page.getByTestId("recipient-cta")).toBeVisible({ timeout: 5000 });
 
