@@ -33,6 +33,7 @@ describe("roundInputSchema", () => {
   it("accepts valid round with all optional fields", () => {
     const result = roundInputSchema.safeParse({
       ...validInput(),
+      onePutts: 6,
       upAndDownAttempts: 8,
       upAndDownConverted: 4,
       sandSaveAttempts: 3,
@@ -211,6 +212,42 @@ describe("roundInputSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("rejects onePutts > totalPutts", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      onePutts: 34,
+      totalPutts: 33,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts onePutts <= totalPutts", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      onePutts: 6,
+      totalPutts: 33,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects onePutts + threePutts above 18", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      onePutts: 10,
+      threePutts: 9,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts onePutts + threePutts at 18", () => {
+    const result = roundInputSchema.safeParse({
+      ...validInput(),
+      onePutts: 10,
+      threePutts: 8,
+    });
+    expect(result.success).toBe(true);
+  });
+
   // === Invalid calendar dates ===
   // Use past-year dates so normalization produces past dates that would wrongly pass
   // the "not future" check if calendar validity isn't verified.
@@ -260,6 +297,7 @@ describe("roundInputSchema", () => {
   it("treats empty string optional fields as undefined, not 0", () => {
     const result = roundInputSchema.safeParse({
       ...validInput(),
+      onePutts: "",
       upAndDownAttempts: "",
       upAndDownConverted: "",
       sandSaveAttempts: "",
@@ -268,6 +306,7 @@ describe("roundInputSchema", () => {
     });
     expect(result.success).toBe(true);
     if (result.success) {
+      expect(result.data.onePutts).toBeUndefined();
       expect(result.data.upAndDownAttempts).toBeUndefined();
       expect(result.data.upAndDownConverted).toBeUndefined();
       expect(result.data.sandSaveAttempts).toBeUndefined();
@@ -282,6 +321,7 @@ describe("roundInputSchema", () => {
     const result = roundInputSchema.safeParse(input);
     expect(result.success).toBe(true);
     if (result.success) {
+      expect(result.data.onePutts).toBeUndefined();
       expect(result.data.upAndDownAttempts).toBeUndefined();
       expect(result.data.threePutts).toBeUndefined();
     }
@@ -290,12 +330,14 @@ describe("roundInputSchema", () => {
   it("accepts valid numeric values for optional fields", () => {
     const result = roundInputSchema.safeParse({
       ...validInput(),
+      onePutts: 6,
       upAndDownAttempts: 8,
       upAndDownConverted: 4,
       threePutts: 2,
     });
     expect(result.success).toBe(true);
     if (result.success) {
+      expect(result.data.onePutts).toBe(6);
       expect(result.data.upAndDownAttempts).toBe(8);
       expect(result.data.upAndDownConverted).toBe(4);
       expect(result.data.threePutts).toBe(2);
@@ -344,12 +386,14 @@ describe("roundInputSchema", () => {
   it("coerces string numbers for optional fields", () => {
     const result = roundInputSchema.safeParse({
       ...validInput(),
+      onePutts: "6",
       upAndDownAttempts: "8",
       upAndDownConverted: "4",
       threePutts: "2",
     });
     expect(result.success).toBe(true);
     if (result.success) {
+      expect(result.data.onePutts).toBe(6);
       expect(result.data.upAndDownAttempts).toBe(8);
       expect(result.data.threePutts).toBe(2);
     }

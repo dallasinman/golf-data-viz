@@ -5,16 +5,18 @@ import Link from "next/link";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import type {
   BenchmarkMeta,
+  PresentationTrust,
   StrokesGainedCategory,
   StrokesGainedResult,
 } from "@/lib/golf/types";
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER, SG_NEAR_ZERO_THRESHOLD } from "@/lib/golf/constants";
 import { getEmphasizedCategories } from "@/lib/golf/emphasis";
-import { calculatePercentiles } from "@/lib/golf/percentile";
+import { getPresentationPercentiles } from "@/lib/golf/percentile";
 import { generateTroubleNarrative, type RoundTroubleContext } from "@/lib/golf/trouble-context";
 import { formatSG, presentSG } from "@/lib/golf/format";
 import { trackEvent } from "@/lib/analytics/client";
 import { bracketToSlug } from "@/lib/seo/slugs";
+import { isAssertivePresentationTrust } from "@/lib/golf/presentation-trust";
 import { ConfidenceBadge } from "./confidence-badge";
 import { MethodologyTooltip } from "./methodology-tooltip";
 import { TroubleContextNarrative } from "./trouble-context-narrative";
@@ -39,17 +41,26 @@ const CATEGORY_DESCRIPTIONS: Record<StrokesGainedCategory, string> = {
 interface ResultsSummaryProps {
   result: StrokesGainedResult;
   benchmarkMeta: BenchmarkMeta;
+  presentationTrust?: PresentationTrust | null;
   troubleContext?: RoundTroubleContext | null;
   onRemoveTroubleContext?: () => void;
 }
 
-export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemoveTroubleContext }: ResultsSummaryProps) {
+export function ResultsSummary({
+  result,
+  benchmarkMeta,
+  presentationTrust,
+  troubleContext,
+  onRemoveTroubleContext,
+}: ResultsSummaryProps) {
   const [openPopover, setOpenPopover] = useState<{
     type: "confidence" | "methodology";
     category: StrokesGainedCategory;
   } | null>(null);
   const skippedSet = new Set(result.skippedCategories);
   const estimatedSet = new Set(result.estimatedCategories);
+  const isAssertive = isAssertivePresentationTrust(presentationTrust);
+  const promotableSet = new Set(presentationTrust?.promotableCategories ?? CATEGORY_ORDER);
 
   const troubleNarrative = troubleContext ? generateTroubleNarrative(troubleContext) : null;
 
@@ -63,13 +74,20 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
   }));
 
   // Only non-estimated, non-skipped categories participate in callouts
-  const calloutEntries = entries.filter((e) => !e.skipped && !e.estimated);
+  const calloutEntries = entries.filter(
+    (e) =>
+      !e.skipped &&
+      !e.estimated &&
+      (presentationTrust == null || promotableSet.has(e.key))
+  );
   const sorted = [...calloutEntries].sort((a, b) => b.value - a.value);
   const strength = sorted.find((e) => e.value > SG_NEAR_ZERO_THRESHOLD) ?? null;
   const weakness = sorted.findLast((e) => e.value < -SG_NEAR_ZERO_THRESHOLD) ?? null;
 
-  const emphasizedCategories = getEmphasizedCategories(result);
-  const percentiles = calculatePercentiles(result);
+  const emphasizedCategories = isAssertive
+    ? getEmphasizedCategories(result).filter((category) => promotableSet.has(category))
+    : [];
+  const percentiles = getPresentationPercentiles(result, presentationTrust);
 
   // Find highest percentile >= 75th with non-low confidence,
   // excluding the category already featured in the strength card
@@ -198,7 +216,31 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
       </p>
 
       {/* Emphasis block — most actionable scorecard-based insights */}
-      {emphasizedCategories.length > 0 && (
+      {!isAssertive && (
+        <div
+          data-testid="presentation-trust-card"
+          className={`animate-fade-up rounded-lg border px-5 py-4 ${
+            presentationTrust?.mode === "quarantined"
+              ? "border-amber-200 bg-amber-50 text-amber-950"
+              : "border-cream-200 bg-cream-50/50"
+          }`}
+          style={{ animationDelay: "200ms" }}
+        >
+          <p className="font-display text-sm font-semibold tracking-tight text-neutral-950">
+            Round Summary
+          </p>
+          <p className="mt-1 text-sm text-neutral-600">
+            Your total SG is course-adjusted. Individual category estimates are based on scorecard stats and may not reflect shot-by-shot performance.
+          </p>
+          <Link
+            href="/methodology"
+            className="mt-2 inline-block text-xs font-medium text-neutral-600 underline hover:text-neutral-800"
+          >
+            See methodology
+          </Link>
+        </div>
+      )}
+      {isAssertive && emphasizedCategories.length > 0 && (
         <div
           data-testid="emphasis-block"
           className="rounded-lg border border-brand-100 bg-brand-50/50 px-5 py-4"
@@ -405,7 +447,7 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
       </p>
 
       {/* Strength & Weakness callouts (need at least 2 non-estimated, non-skipped categories) */}
-      {strength && weakness && calloutEntries.length >= 2 && (
+      {isAssertive && strength && weakness && calloutEntries.length >= 2 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-brand-100 bg-brand-50 px-4 py-3">
             <div className="flex items-center gap-1.5">
@@ -446,7 +488,7 @@ export function ResultsSummary({ result, benchmarkMeta, troubleContext, onRemove
       )}
 
       {/* Standout percentile callout */}
-      {standoutPercentile && (
+      {isAssertive && standoutPercentile && (
         <div
           data-testid="percentile-standout"
           className="animate-fade-up relative overflow-hidden rounded-lg border border-brand-100 bg-gradient-to-br from-brand-50 to-cream-50"

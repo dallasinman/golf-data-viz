@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import type {
+  PresentationTrust,
   StrokesGainedResult,
   RadarChartDatum,
   RoundInput,
@@ -9,7 +10,7 @@ import type {
 import { BRACKET_LABELS, CATEGORY_LABELS, CATEGORY_ORDER } from "@/lib/golf/constants";
 import { formatHandicap, formatScoringBreakdown, buildFamiliarStats, presentSG } from "@/lib/golf/format";
 import { generateShareHeadline } from "@/lib/golf/share-headline";
-import { calculatePercentiles } from "@/lib/golf/percentile";
+import { getPresentationPercentiles } from "@/lib/golf/percentile";
 import { RadarChart } from "@/components/charts/radar-chart";
 import { ConfidenceBadge } from "./confidence-badge";
 
@@ -19,12 +20,24 @@ interface ShareCardProps {
   courseName: string;
   score: number;
   hasTroubleContext?: boolean;
+  presentationTrust?: PresentationTrust | null;
   /** Pass the round input to show scoring distribution and familiar stats. */
   roundInput?: RoundInput | null;
 }
 
 export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
-  function ShareCard({ result, chartData, courseName, score, hasTroubleContext, roundInput }, ref) {
+  function ShareCard(
+    {
+      result,
+      chartData,
+      courseName,
+      score,
+      hasTroubleContext,
+      presentationTrust,
+      roundInput,
+    },
+    ref
+  ) {
     const bracketLabel =
       BRACKET_LABELS[result.benchmarkBracket] ?? result.benchmarkBracket;
 
@@ -38,8 +51,12 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
       estimated: estimatedSet.has(key),
     }));
 
-    const headline = generateShareHeadline(result, { score, courseName });
-    const percentiles = calculatePercentiles(result);
+    const headline = generateShareHeadline(
+      result,
+      { score, courseName },
+      { presentationTrust }
+    );
+    const percentiles = getPresentationPercentiles(result, presentationTrust);
 
     const familiarStats = roundInput ? buildFamiliarStats(roundInput) : [];
     const scoringBreakdown = roundInput

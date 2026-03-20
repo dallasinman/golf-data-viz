@@ -1,6 +1,8 @@
 import type { RoundInput } from "./types";
 
-export type RoundTrustStatus = "trusted" | "quarantined";
+// `pending` is a storage/default state for rows that have not been trust-scored yet.
+// Read paths treat it as "not yet assessed", not as an editorial caveat or quarantine.
+export type RoundTrustStatus = "pending" | "trusted" | "quarantined";
 
 export interface RoundTrustAssessment {
   status: RoundTrustStatus;

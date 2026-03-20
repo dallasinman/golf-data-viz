@@ -10,8 +10,9 @@ import {
   buildCompactSGRow,
   truncateText,
 } from "@/lib/golf/og-card-data";
+import { derivePresentationTrust } from "@/lib/golf/presentation-trust";
 import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
-import { buildPercentileRow } from "@/lib/golf/percentile";
+import { buildPresentationPercentileRow } from "@/lib/golf/percentile";
 
 export const runtime = "edge";
 
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
                 fontWeight: 500,
               }}
             >
-              See where you gain and lose strokes vs your handicap peers
+              Estimate where you gain and lose strokes vs your handicap peers
             </div>
           </div>
           <div
@@ -113,13 +114,18 @@ export async function GET(request: NextRequest) {
   const result = phase2Mode === "full"
     ? calculateStrokesGainedV3(input, benchmark)
     : calculateStrokesGained(input, benchmark);
+  const presentationTrust = derivePresentationTrust({ input, result });
   const courseName = truncateText(input.course, 58);
   const compactSG = buildCompactSGRow(result);
-  const percentileRow = buildPercentileRow(result);
-  const headline = generateShareHeadline(result, {
-    score: input.score,
-    courseName: input.course,
-  });
+  const percentileRow = buildPresentationPercentileRow(result, presentationTrust);
+  const headline = generateShareHeadline(
+    result,
+    {
+      score: input.score,
+      courseName: input.course,
+    },
+    { presentationTrust }
+  );
 
   const headlineColor = SENTIMENT_COLORS[headline.sentiment];
 

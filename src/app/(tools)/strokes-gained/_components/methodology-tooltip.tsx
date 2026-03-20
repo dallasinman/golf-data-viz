@@ -30,9 +30,11 @@ const METHODOLOGY_CONTENT: Record<
     interpret: "Trust most with direct short-game data.",
   },
   putting: {
-    measures: "Total putts vs peer benchmarks.",
+    measures:
+      "Total putts vs peer benchmarks, with an optional bounded three-putt adjustment.",
     doesntCapture: "Putt starting distance (3 ft vs 30 ft).",
-    interpret: "Cleaner scorecard category, but outcome-based.",
+    interpret:
+      "Cleaner scorecard category, but still outcome-based and sensitive to GIR mix.",
   },
 };
 

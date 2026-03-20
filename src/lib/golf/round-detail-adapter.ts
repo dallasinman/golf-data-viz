@@ -64,6 +64,10 @@ export function deriveConfidence(
 export function toStrokesGainedResult(
   snapshot: RoundDetailSnapshot
 ): StrokesGainedResult {
+  const skippedCategories = snapshot.skippedCategories ?? [];
+  const estimatedCategories = snapshot.estimatedCategories ?? [];
+  const reconciliationFlags = snapshot.reconciliationFlags ?? [];
+
   // Resolve confidence: use stored values if available, else derive from raw inputs
   const hasStoredConfidence =
     snapshot.confidenceOffTheTee != null &&
@@ -96,8 +100,8 @@ export function toStrokesGainedResult(
       putting: snapshot.sgPutting,
     },
     benchmarkBracket: (snapshot.benchmarkBracket ?? "10-15") as HandicapBracket,
-    skippedCategories: snapshot.skippedCategories,
-    estimatedCategories: snapshot.estimatedCategories,
+    skippedCategories,
+    estimatedCategories,
     confidence,
     methodologyVersion: snapshot.methodologyVersion ?? "unknown",
     benchmarkVersion: snapshot.benchmarkVersion ?? "unknown",
@@ -110,6 +114,12 @@ export function toStrokesGainedResult(
     }),
     ...(snapshot.totalAnchorMode != null && {
       totalAnchorMode: snapshot.totalAnchorMode as StrokesGainedResult["totalAnchorMode"],
+    }),
+    ...(snapshot.reconciliationScaleFactor != null && {
+      reconciliationScaleFactor: snapshot.reconciliationScaleFactor,
+    }),
+    ...(reconciliationFlags.length > 0 && {
+      reconciliationFlags,
     }),
     diagnostics: { threePuttImpact: null },
   };
@@ -126,7 +136,7 @@ function clamp(value: number, min: number, max: number): number {
 export function toRadarChartDataFromSnapshot(
   snapshot: RoundDetailSnapshot
 ): RadarChartDatum[] {
-  const skippedSet = new Set(snapshot.skippedCategories);
+  const skippedSet = new Set(snapshot.skippedCategories ?? []);
   const sgValues: Record<StrokesGainedCategory, number> = {
     "off-the-tee": snapshot.sgOffTheTee,
     approach: snapshot.sgApproach,

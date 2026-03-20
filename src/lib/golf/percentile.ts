@@ -1,5 +1,10 @@
-import type { StrokesGainedCategory, StrokesGainedResult } from "./types";
+import type {
+  PresentationTrust,
+  StrokesGainedCategory,
+  StrokesGainedResult,
+} from "./types";
 import { BRACKET_LABELS, CATEGORY_ORDER } from "./constants";
+import { isAssertivePresentationTrust } from "./presentation-trust";
 
 // Within-bracket SG standard deviations (strokes/round)
 // Source: Lou Stagner / Shot Scope aggregate amateur data estimates
@@ -98,6 +103,32 @@ export function calculatePercentiles(
   return out;
 }
 
+export function getPresentationPercentiles(
+  result: StrokesGainedResult,
+  presentationTrust?: PresentationTrust | null
+): Record<StrokesGainedCategory, PercentileResult | null> {
+  const percentiles = calculatePercentiles(result);
+  if (!presentationTrust) {
+    return percentiles;
+  }
+
+  if (!isAssertivePresentationTrust(presentationTrust)) {
+    return {
+      "off-the-tee": null,
+      approach: null,
+      "around-the-green": null,
+      putting: null,
+    };
+  }
+
+  const promotable = new Set(presentationTrust.promotableCategories);
+  const gated = {} as Record<StrokesGainedCategory, PercentileResult | null>;
+  for (const category of CATEGORY_ORDER) {
+    gated[category] = promotable.has(category) ? percentiles[category] : null;
+  }
+  return gated;
+}
+
 /**
  * Build a compact percentile summary string for OG images / share cards.
  * e.g. "84th %ile  52nd %ile  91st %ile  67th %ile"
@@ -107,6 +138,17 @@ export function buildPercentileRow(result: StrokesGainedResult): string {
   const skippedSet = new Set(result.skippedCategories);
   return CATEGORY_ORDER
     .filter((key) => !skippedSet.has(key) && percentiles[key])
+    .map((key) => percentiles[key]!.shortLabel)
+    .join("  ");
+}
+
+export function buildPresentationPercentileRow(
+  result: StrokesGainedResult,
+  presentationTrust?: PresentationTrust | null
+): string {
+  const percentiles = getPresentationPercentiles(result, presentationTrust);
+  return CATEGORY_ORDER
+    .filter((key) => percentiles[key])
     .map((key) => percentiles[key]!.shortLabel)
     .join("  ");
 }

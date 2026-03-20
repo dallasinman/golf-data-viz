@@ -113,6 +113,8 @@ describe("getLessonReportByShareToken", () => {
         regenerated_at: null,
         report_data: {
           reportVersion: "1.0.0",
+          trustMode: "assertive",
+          assertiveRoundCount: 3,
           summary: { roundCount: 3 },
           caveats: [],
         },

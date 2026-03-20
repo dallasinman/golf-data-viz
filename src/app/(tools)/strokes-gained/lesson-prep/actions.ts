@@ -40,7 +40,7 @@ type ActionFailure = {
 type ActionSuccess<T> = { success: true } & T;
 
 export type GenerateLessonReportResult =
-  | ActionSuccess<{ reportId: string; regenerated: boolean }>
+  | ActionSuccess<{ reportId: string; regenerated: boolean; trustedRoundCount: number }>
   | ActionFailure;
 
 export type CreateLessonReportShareTokenResult =
@@ -120,7 +120,12 @@ export async function generateLessonReport(
       }
 
       revalidatePath(`/strokes-gained/lesson-prep/${existing.id}`);
-      return { success: true, reportId: existing.id, regenerated: true };
+      return {
+        success: true,
+        reportId: existing.id,
+        regenerated: true,
+        trustedRoundCount: reportData.assertiveRoundCount,
+      };
     }
 
     const { data, error } = await supabase
@@ -143,7 +148,12 @@ export async function generateLessonReport(
 
     revalidatePath("/strokes-gained/lesson-prep");
     revalidatePath(`/strokes-gained/lesson-prep/${data.id}`);
-    return { success: true, reportId: data.id, regenerated: false };
+    return {
+      success: true,
+      reportId: data.id,
+      regenerated: false,
+      trustedRoundCount: reportData.assertiveRoundCount,
+    };
   } catch (error) {
     if (error instanceof PremiumRequiredError) {
       return fail("PREMIUM_REQUIRED", "Upgrade to generate lesson prep reports.");

@@ -148,6 +148,7 @@ describe("Schema constraints (local Supabase)", () => {
             up_and_down_converted: null,
             sand_saves: null,
             sand_save_attempts: null,
+            one_putts: null,
             three_putts: null,
           })
         )
@@ -167,6 +168,7 @@ describe("Schema constraints (local Supabase)", () => {
             up_and_down_converted: 3,
             sand_saves: 1,
             sand_save_attempts: 2,
+            one_putts: 6,
             three_putts: 2,
           })
         )
@@ -210,7 +212,7 @@ describe("Schema constraints (local Supabase)", () => {
     it("rejects three_putts exceeding total_putts", async () => {
       const { error } = await admin
         .from("rounds")
-        .insert(validRound({ three_putts: 50, total_putts: 30 }));
+        .insert(validRound({ three_putts: 3, total_putts: 2 }));
 
       expect(error).not.toBeNull();
       expect(error!.message).toContain("chk_three_putts");
@@ -219,7 +221,38 @@ describe("Schema constraints (local Supabase)", () => {
     it("accepts three_putts equal to total_putts", async () => {
       const { data, error } = await admin
         .from("rounds")
-        .insert(validRound({ three_putts: 32, total_putts: 32 }))
+        .insert(validRound({ three_putts: 3, total_putts: 3 }))
+        .select("id")
+        .single();
+
+      expect(error).toBeNull();
+      if (data?.id) insertedIds.push(data.id);
+    });
+  });
+
+  describe("one_putts constraints", () => {
+    it("rejects one_putts exceeding total_putts", async () => {
+      const { error } = await admin
+        .from("rounds")
+        .insert(validRound({ one_putts: 40, total_putts: 30 }));
+
+      expect(error).not.toBeNull();
+      expect(error!.message).toContain("chk_one_putts");
+    });
+
+    it("rejects one_putts + three_putts above 18", async () => {
+      const { error } = await admin
+        .from("rounds")
+        .insert(validRound({ one_putts: 10, three_putts: 9 }));
+
+      expect(error).not.toBeNull();
+      expect(error!.message).toContain("chk_short_game_putt_sum");
+    });
+
+    it("accepts one_putts + three_putts at 18", async () => {
+      const { data, error } = await admin
+        .from("rounds")
+        .insert(validRound({ one_putts: 10, three_putts: 8 }))
         .select("id")
         .single();
 

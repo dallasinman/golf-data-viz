@@ -3,7 +3,6 @@
 import { forwardRef } from "react";
 import type { LessonReportSnapshot } from "@/lib/golf/round-queries";
 import { formatDate, formatSG, presentSG } from "@/lib/golf/format";
-
 function confidenceTone(level: string): string {
   switch (level) {
     case "high":
@@ -20,6 +19,8 @@ export const LessonReportShareCard = forwardRef<
   { snapshot: LessonReportSnapshot }
 >(function LessonReportShareCard({ snapshot }, ref) {
   const report = snapshot.reportData;
+  const trustMode = report.trustMode;
+  const isCaveatedReport = trustMode === "caveated";
 
   return (
     <div
@@ -38,8 +39,9 @@ export const LessonReportShareCard = forwardRef<
               {formatDate(report.summary.endDate)}
             </h2>
             <p className="mt-2 text-base text-brand-100/80">
-              Snapshot-generated for coaching conversations. SG analysis, confidence,
-              and methodology caveats included.
+              {isCaveatedReport
+                ? "Snapshot-generated for coaching conversations. Reliable round patterns, confidence, and methodology caveats included."
+                : "Snapshot-generated for coaching conversations. SG analysis, confidence, and methodology caveats included."}
             </p>
           </div>
           <div className="rounded-3xl border border-white/20 bg-white/10 px-6 py-5 text-center">
@@ -56,7 +58,7 @@ export const LessonReportShareCard = forwardRef<
       <div className="mt-6 grid grid-cols-3 gap-4">
         <div className="rounded-2xl border border-card-border bg-white px-5 py-5">
           <p className="text-xs uppercase tracking-[0.18em] text-neutral-400">
-            Primary Focus Area
+            {isCaveatedReport ? "Round Pattern" : "Primary Focus Area"}
           </p>
           <p className="mt-2 font-display text-2xl tracking-tight text-neutral-950">
             {report.focusArea.label}
@@ -71,7 +73,7 @@ export const LessonReportShareCard = forwardRef<
 
         <div className="rounded-2xl border border-card-border bg-white px-5 py-5">
           <p className="text-xs uppercase tracking-[0.18em] text-neutral-400">
-            Strongest Area
+            {isCaveatedReport ? "Reliable Signal" : "Strongest Area"}
           </p>
           <p className="mt-2 font-display text-2xl tracking-tight text-neutral-950">
             {report.strongestArea.label}

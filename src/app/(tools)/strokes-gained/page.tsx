@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { decodeRound } from "@/lib/golf/share-codec";
 import { getInterpolatedBenchmark } from "@/lib/golf/benchmarks";
 import { calculateStrokesGained } from "@/lib/golf/strokes-gained";
-import { formatHandicap, findWeakestCategory } from "@/lib/golf/format";
+import { findWeakestCategory } from "@/lib/golf/format";
+import { derivePresentationTrust } from "@/lib/golf/presentation-trust";
+import { buildRoundMetadataDescription } from "@/lib/golf/round-metadata";
 import { getRoundSaveAvailability } from "@/lib/round-save";
 import { getSampleResult } from "@/lib/golf/sample-round";
 import StrokesGainedClient from "./_components/strokes-gained-client";
@@ -43,17 +45,20 @@ export async function generateMetadata({
   const result = calculateStrokesGained(input, benchmark);
 
   const title = `Shot ${input.score} at ${input.course}`;
-  const descParts: string[] = [`${formatHandicap(input.handicapIndex)} index`];
-  if (input.greensInRegulation != null) descParts.push(`${input.greensInRegulation} GIR`);
-  if (input.totalPutts != null) descParts.push(`${input.totalPutts} putts`);
   const weakest = findWeakestCategory({
     sgOffTheTee: result.categories["off-the-tee"],
     sgApproach: result.categories["approach"],
     sgAroundTheGreen: result.categories["around-the-green"],
     sgPutting: result.categories["putting"],
   });
-  if (weakest) descParts.push(`Lost most strokes on ${weakest}`);
-  const description = descParts.join(" · ");
+  const presentationTrust = derivePresentationTrust({ input, result });
+  const description = buildRoundMetadataDescription({
+    handicapIndex: input.handicapIndex,
+    greensInRegulation: input.greensInRegulation,
+    totalPutts: input.totalPutts,
+    weakestCategory: weakest,
+    presentationTrustMode: presentationTrust?.mode,
+  });
 
   return {
     title,

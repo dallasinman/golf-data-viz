@@ -108,7 +108,7 @@ describe("calculateStrokesGainedV3", () => {
     it("populates Phase 2 metadata fields", () => {
       const benchmark = getInterpolatedBenchmark(14.3);
       const result = calculateStrokesGainedV3(makeRound(), benchmark);
-      expect(result.calibrationVersion).toBe("seed-1.0.0");
+      expect(result.calibrationVersion).toBe("seed-1.1.0");
       expect(result.totalAnchorMode).toBeDefined();
       expect(typeof result.totalAnchorValue).toBe("number");
       expect(result.inputPath).toBeDefined();
@@ -529,6 +529,30 @@ describe("calculateStrokesGainedV3", () => {
       // With 3 GIR at 15 HCP benchmark (puttsPerGIR=2.06, puttsPerNonGIR=1.78):
       // expected = 3×2.06 + 15×1.78 = 32.88 → (32.88-31)/18 ≈ 0.104
       expect(rawPutting).toBeGreaterThan(0);
+    });
+
+    it("adds three-putt impact into live putting SG when hardening mode is full", () => {
+      const round = makeRound({
+        handicapIndex: 15.0,
+        greensInRegulation: 3,
+        totalPutts: 31,
+        threePutts: 2,
+        courseRating: 72.0,
+        slopeRating: 130,
+      });
+      const benchmark = getInterpolatedBenchmark(round.handicapIndex);
+      const baseline = calculateStrokesGainedV3(round, benchmark, {
+        puttingHardeningMode: "off",
+      });
+      const hardened = calculateStrokesGainedV3(round, benchmark, {
+        puttingHardeningMode: "full",
+      });
+
+      expect(hardened.diagnostics.threePuttImpact).not.toBeNull();
+      expect(hardened.categories.putting).toBeGreaterThan(
+        baseline.categories.putting
+      );
+      expect(hardened.total).toBeCloseTo(baseline.total, 10);
     });
   });
 

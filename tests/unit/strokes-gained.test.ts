@@ -680,7 +680,7 @@ describe("GIR estimation", () => {
 });
 
 describe("three-putt removal", () => {
-  it("total SG is the same regardless of threePutts input", () => {
+  it("threePutts input affects total SG via threePuttImpact", () => {
     const benchmark = getInterpolatedBenchmark(14.3);
     const roundWithout = makeRound({ totalPutts: 33 });
     delete roundWithout.threePutts;
@@ -689,9 +689,9 @@ describe("three-putt removal", () => {
     const resultWithout = calculateStrokesGained(roundWithout, benchmark);
     const resultWith = calculateStrokesGained(roundWith, benchmark);
 
-    // Total should be identical — three-putt bonus excluded from total
-    expect(resultWith.total).toBeCloseTo(resultWithout.total, 10);
-    expect(resultWith.categories["putting"]).toBeCloseTo(
+    // With putting hardening always "full", threePutts affects total via threePuttImpact
+    expect(resultWith.total).not.toBeCloseTo(resultWithout.total, 10);
+    expect(resultWith.categories["putting"]).not.toBeCloseTo(
       resultWithout.categories["putting"],
       10
     );
@@ -711,6 +711,28 @@ describe("three-putt removal", () => {
     delete round.threePutts;
     const result = calculateStrokesGained(round, benchmark);
     expect(result.diagnostics.threePuttImpact).toBeNull();
+  });
+
+  it("adds three-putt impact into putting SG when hardening mode is full", () => {
+    const benchmark = getInterpolatedBenchmark(14.3);
+    const round = makeRound({ totalPutts: 33, threePutts: 4 });
+
+    const baseline = calculateStrokesGained(round, benchmark, {
+      puttingHardeningMode: "off",
+    });
+    const hardened = calculateStrokesGained(round, benchmark, {
+      puttingHardeningMode: "full",
+    });
+
+    expect(hardened.diagnostics.threePuttImpact).not.toBeNull();
+    expect(hardened.categories.putting).toBeCloseTo(
+      baseline.categories.putting + hardened.diagnostics.threePuttImpact!,
+      10
+    );
+    expect(hardened.total).toBeCloseTo(
+      baseline.total + hardened.diagnostics.threePuttImpact!,
+      10
+    );
   });
 });
 

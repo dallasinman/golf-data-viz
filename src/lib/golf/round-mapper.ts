@@ -34,6 +34,7 @@ export function toRoundInsert(
     up_and_down_converted: input.upAndDownConverted ?? null,
     sand_save_attempts: input.sandSaveAttempts ?? null,
     sand_saves: input.sandSaves ?? null,
+    one_putts: input.onePutts ?? null,
     three_putts: input.threePutts ?? null,
 
     // Calculated SG values

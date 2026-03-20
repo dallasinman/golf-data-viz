@@ -185,12 +185,13 @@ const FORMULA_CARDS = [
     category: "Around the Green",
     formula: "(scrambleRate \u2212 peerScramble%) \u00D7 5.0",
     weights: "5.0",
+    note: "ATG-fallback uses a reduced calibration weight from the table below so missing short-game inputs do not over-attribute misses to chipping.",
   },
   {
     category: "Putting",
     formula: "(expectedPutts \u2212 actualPutts) / 18 \u00D7 4.0",
     weights: "4.0",
-    note: "expectedPutts = GIR \u00D7 puttsPerGIR + (18 \u2212 GIR) \u00D7 puttsPerNonGIR. Falls back to (peerPutts/18 \u2212 playerPutts/18) when GIR is unavailable.",
+    note: "expectedPutts = GIR \u00D7 puttsPerGIR + (18 \u2212 GIR) \u00D7 puttsPerNonGIR. Falls back to (peerPutts/18 \u2212 playerPutts/18) when GIR is unavailable. Optional three-putt input adds a bounded adjustment of up to \u00B10.50 strokes.",
   },
 ];
 

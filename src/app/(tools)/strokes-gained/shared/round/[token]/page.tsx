@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getRoundByShareToken } from "@/lib/golf/round-queries";
-import { formatHandicap, findWeakestCategory } from "@/lib/golf/format";
+import { findWeakestCategory } from "@/lib/golf/format";
+import { derivePresentationTrustFromSnapshot } from "@/lib/golf/presentation-trust";
+import { buildRoundMetadataDescription } from "@/lib/golf/round-metadata";
 import { SharedRoundClient } from "./_components/shared-round-client";
 
 interface PageProps {
@@ -17,12 +19,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const title = `Shot ${snapshot.score} at ${snapshot.courseName}`;
-  const descParts: string[] = [`${formatHandicap(snapshot.handicapIndex)} index`];
-  if (snapshot.greensInRegulation != null) descParts.push(`${snapshot.greensInRegulation} GIR`);
-  if (snapshot.totalPutts != null) descParts.push(`${snapshot.totalPutts} putts`);
   const weakest = findWeakestCategory(snapshot);
-  if (weakest) descParts.push(`Lost most strokes on ${weakest}`);
-  const description = descParts.join(" · ");
+  const presentationTrust = derivePresentationTrustFromSnapshot(snapshot);
+  const description = buildRoundMetadataDescription({
+    handicapIndex: snapshot.handicapIndex,
+    greensInRegulation: snapshot.greensInRegulation,
+    totalPutts: snapshot.totalPutts,
+    weakestCategory: weakest,
+    presentationTrustMode: presentationTrust?.mode,
+  });
 
   return {
     title,

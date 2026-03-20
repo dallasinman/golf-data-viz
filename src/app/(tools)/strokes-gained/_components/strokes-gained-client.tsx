@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { CircleCheck, Smartphone } from "lucide-react";
 import { trackEvent } from "@/lib/analytics/client";
+import { buildRoundAnalyticsContext } from "@/lib/golf/analytics";
 import type {
   RoundInput,
   StrokesGainedResult,
@@ -28,6 +29,10 @@ import {
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
 import type { SgPhase2Mode } from "@/lib/golf/phase2-mode";
 import { encodeRound } from "@/lib/golf/share-codec";
+import {
+  derivePresentationTrust,
+  isAssertivePresentationTrust,
+} from "@/lib/golf/presentation-trust";
 import { buildShareUrl } from "@/lib/golf/share-url";
 import { generateShareHeadline } from "@/lib/golf/share-headline";
 import { captureElementAsPng, downloadBlob } from "@/lib/capture";
@@ -112,6 +117,19 @@ async function waitForUiPaint(): Promise<void> {
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 }
 
+function getPresentationEmphasisCategories(
+  result: StrokesGainedResult,
+  input: RoundInput
+) {
+  const presentationTrust = derivePresentationTrust({ input, result });
+  if (!isAssertivePresentationTrust(presentationTrust)) {
+    return [];
+  }
+
+  const promotable = new Set(presentationTrust.promotableCategories);
+  return getEmphasizedCategories(result).filter((category) => promotable.has(category));
+}
+
 const CAPTURE_PREP_DELAY_MS = 150;
 const MIN_CAPTURE_LOADING_MS = 1200;
 
@@ -143,6 +161,7 @@ export default function StrokesGainedClient({
         return { result: sgResult, chartData: toRadarChartData(sgResult) };
       })()
     : null;
+  const initialComputedResult = initialComputed?.result ?? null;
 
   const [result, setResult] = useState<StrokesGainedResult | null>(
     initialComputed?.result ?? null
@@ -222,14 +241,21 @@ export default function StrokesGainedClient({
             })()
           : "";
       const utmSource = attributionUtmSourceRef.current ?? "";
-      trackEvent("shared_round_viewed", { referrer, utm_source: utmSource });
+      trackEvent("shared_round_viewed", {
+        referrer,
+        utm_source: utmSource,
+        ...(initialComputedResult
+          ? buildRoundAnalyticsContext(initialInput, initialComputedResult)
+          : {}),
+      });
 
       // Plus handicap results viewed on share-URL open
-      if (initialInput.handicapIndex < 0 && initialComputed?.result) {
+      if (initialInput.handicapIndex < 0 && initialComputedResult) {
         trackEvent("plus_handicap_results_viewed", {
           normalized_value: initialInput.handicapIndex,
           is_plus_handicap: true,
-          benchmark_interpolation_mode: initialComputed.result.benchmarkInterpolationMode ?? "scratch_clamped",
+          benchmark_interpolation_mode:
+            initialComputedResult.benchmarkInterpolationMode ?? "scratch_clamped",
         });
       }
 
@@ -237,8 +263,11 @@ export default function StrokesGainedClient({
       // This is the only path for shared links — handleFormSubmit only fires
       // on user-initiated recalculations, and this useEffect is ref-guarded
       // (sharedRoundViewedRef) so it fires exactly once.
-      if (initialComputed?.result) {
-        const emphasizedCats = getEmphasizedCategories(initialComputed.result);
+      if (initialComputedResult) {
+        const emphasizedCats = getPresentationEmphasisCategories(
+          initialComputedResult,
+          initialInput
+        );
         if (emphasizedCats.length > 0) {
           trackEvent("results_emphasis_impression", {
             emphasized_categories: emphasizedCats.join(","),
@@ -247,7 +276,7 @@ export default function StrokesGainedClient({
         }
       }
     }
-  }, [initialInput]);
+  }, [initialComputedResult, initialInput]);
 
   // Show recipient CTA for all shared links (avoids hydration mismatch via useEffect)
   useEffect(() => {
@@ -357,6 +386,7 @@ export default function StrokesGainedClient({
     const benchmark = getInterpolatedBenchmark(input.handicapIndex);
     const sgResult = calculate(input, benchmark);
     const radar = toRadarChartData(sgResult);
+    const analyticsContext = buildRoundAnalyticsContext(input, sgResult);
 
     setResult(sgResult);
     setChartData(radar);
@@ -381,6 +411,7 @@ export default function StrokesGainedClient({
       has_course_rating: input.courseRating > 0,
       total_sg: sgResult.total,
       methodology_version: sgResult.methodologyVersion,
+      ...analyticsContext,
     });
     if (sgResult.estimatedCategories.length > 0) {
       trackEvent("gir_estimated");
@@ -414,12 +445,13 @@ export default function StrokesGainedClient({
       has_course_rating: input.courseRating > 0,
       has_slope_rating: input.slopeRating >= 55 && input.slopeRating <= 155,
       surface: "results_page",
+      ...analyticsContext,
     });
 
     // Emphasis impression — fire once per result change, tied to user action.
     // Comma-joined because GA4 doesn't support array values; query with CONTAINS
     // if filtering by individual category.
-    const emphasizedCats = getEmphasizedCategories(sgResult);
+    const emphasizedCats = getPresentationEmphasisCategories(sgResult, input);
     if (emphasizedCats.length > 0) {
       trackEvent("results_emphasis_impression", {
         emphasized_categories: emphasizedCats.join(","),
@@ -467,16 +499,35 @@ export default function StrokesGainedClient({
     }, 100);
   }
 
+  const presentationTrust = useMemo(() => {
+    if (!result || !lastInput) {
+      return undefined;
+    }
+
+    return derivePresentationTrust({ input: lastInput, result });
+  }, [lastInput, result]);
+
   // Memoize headline so both share handlers use the same computation
   const shareHeadline = useMemo(
     () =>
       result && lastInput
-        ? generateShareHeadline(result, {
-            score: lastInput.score,
-            courseName: lastInput.course,
-          })
+        ? generateShareHeadline(
+            result,
+            {
+              score: lastInput.score,
+              courseName: lastInput.course,
+            },
+            { presentationTrust }
+          )
         : null,
-    [result, lastInput],
+    [presentationTrust, result, lastInput],
+  );
+  const roundAnalyticsContext = useMemo(
+    () =>
+      result && lastInput
+        ? buildRoundAnalyticsContext(lastInput, result, presentationTrust)
+        : null,
+    [lastInput, presentationTrust, result],
   );
 
   const handleDownloadPng = useCallback(async () => {
@@ -490,6 +541,7 @@ export default function StrokesGainedClient({
         has_share_param: window.location.search.includes("d="),
         utm_source: getAttributionUtmSource(),
         headline_pattern: shareHeadline?.pattern ?? null,
+        ...(roundAnalyticsContext ?? {}),
       });
       const blob = await captureElementAsPng(shareCardRef.current);
       downloadBlob(blob, "strokes-gained.png");
@@ -499,7 +551,7 @@ export default function StrokesGainedClient({
       const remaining = Math.max(0, MIN_CAPTURE_LOADING_MS - elapsed);
       setTimeout(() => setDownloading(false), remaining);
     }
-  }, [downloading, shareHeadline]);
+  }, [downloading, roundAnalyticsContext, shareHeadline]);
 
   const handleDownloadReceipt = useCallback(async () => {
     if (!receiptCardRef.current || downloadingReceipt) return;
@@ -561,6 +613,7 @@ export default function StrokesGainedClient({
       surface: "results_page",
       utm_source: getAttributionUtmSource(),
       headline_pattern: shareHeadline?.pattern ?? null,
+      ...(roundAnalyticsContext ?? {}),
     });
 
     if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
@@ -592,7 +645,7 @@ export default function StrokesGainedClient({
         document.body.removeChild(textarea);
       }
     }
-  }, [shareToken, shareHeadline, lastInput]);
+  }, [roundAnalyticsContext, shareToken, shareHeadline, lastInput]);
 
   // Claim a saved round — used both by auth modal callback and auto-claim effect
   const attemptClaim = useCallback(async () => {
@@ -874,6 +927,7 @@ export default function StrokesGainedClient({
               <ResultsSummary
                 result={result}
                 benchmarkMeta={benchmarkMeta}
+                presentationTrust={presentationTrust}
                 troubleContext={troubleContext}
                 onRemoveTroubleContext={() => {
                   setTroubleContext(null);
@@ -941,6 +995,7 @@ export default function StrokesGainedClient({
               <NarrativeBlock
                 input={lastInput}
                 troubleContext={troubleContext}
+                presentationTrust={presentationTrust}
                 isSharedLink={false}
               />
             </div>
@@ -1174,6 +1229,7 @@ export default function StrokesGainedClient({
               chartData={chartData}
               courseName={lastInput.course}
               score={lastInput.score}
+              presentationTrust={presentationTrust}
               hasTroubleContext={troubleContext !== null}
               roundInput={lastInput}
             />

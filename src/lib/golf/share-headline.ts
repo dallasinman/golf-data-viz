@@ -3,11 +3,16 @@
  * Pure function — deterministic, no async, no Node APIs.
  */
 
-import type { StrokesGainedResult, StrokesGainedCategory } from "./types";
+import type {
+  PresentationTrust,
+  StrokesGainedResult,
+  StrokesGainedCategory,
+} from "./types";
 import { CATEGORY_LABELS, CATEGORY_ORDER, BRACKET_LABELS } from "./constants";
 import { truncateText } from "./og-card-data";
 import { calculatePercentile } from "./percentile";
 import { presentSG } from "./format";
+import { isAssertivePresentationTrust } from "./presentation-trust";
 
 export type HeadlinePattern =
   | "skull"
@@ -58,12 +63,21 @@ function fmtSigned(value: number): string {
 export function generateShareHeadline(
   result: StrokesGainedResult,
   meta: { score: number; courseName: string },
+  options: { presentationTrust?: PresentationTrust | null } = {}
 ): ShareHeadline {
   const skippedSet = new Set(result.skippedCategories);
+  const presentationTrust = options.presentationTrust;
+  const isAssertive = isAssertivePresentationTrust(presentationTrust);
+  const promotable = presentationTrust
+    ? new Set(presentationTrust.promotableCategories)
+    : null;
 
   // Only high/medium confidence, non-skipped categories participate
   const active = CATEGORY_ORDER.filter(
-    (key) => !skippedSet.has(key) && result.confidence[key] !== "low",
+    (key) =>
+      !skippedSet.has(key) &&
+      result.confidence[key] !== "low" &&
+      (promotable === null || promotable.has(key)),
   );
 
   // Deterministic variant: 0 or 1 — same data = same headline
@@ -77,6 +91,42 @@ export function generateShareHeadline(
       clipboardPrefix: line,
       pattern: "score-only",
       sentiment: "neutral",
+    };
+  }
+
+  if (!isAssertive) {
+    if (Math.abs(result.total) >= 1.5) {
+      const bracket = BRACKET_LABELS[result.benchmarkBracket];
+      const abs = fmtAbs(result.total);
+      const pos = result.total > 0;
+      const line = pos
+        ? v === 0
+          ? `Beat my ${bracket} peers by ${abs} strokes`
+          : `${abs} strokes better than my ${bracket} peers`
+        : v === 0
+          ? `Gave back ${abs} strokes to my ${bracket} peers`
+          : `${abs} strokes behind my ${bracket} peers`;
+      return {
+        line,
+        clipboardPrefix: `${line} ${pos ? "\u{1F3C6}" : "\u{1F480}"}`,
+        pattern: "verdict",
+        sentiment: pos ? "positive" : "negative",
+      };
+    }
+
+    const pos = result.total > 0;
+    const line = pos
+      ? v === 0
+        ? "Solid across the board"
+        : "Solid all around"
+      : v === 0
+        ? "Dead average across the board"
+        : "Right at peer average";
+    return {
+      line,
+      clipboardPrefix: `${line} ${pos ? "\u{1F44C}" : "\u{1F937}"}`,
+      pattern: "shrug",
+      sentiment: pos ? "positive" : "neutral",
     };
   }
 

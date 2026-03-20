@@ -195,6 +195,7 @@ export type Database = {
           has_trouble_context: boolean
           id: string
           methodology_version: string | null
+          one_putts: number | null
           pars: number
           penalty_strokes: number
           played_at: string
@@ -256,6 +257,7 @@ export type Database = {
           has_trouble_context?: boolean
           id?: string
           methodology_version?: string | null
+          one_putts?: number | null
           pars: number
           penalty_strokes: number
           played_at: string
@@ -317,6 +319,7 @@ export type Database = {
           has_trouble_context?: boolean
           id?: string
           methodology_version?: string | null
+          one_putts?: number | null
           pars?: number
           penalty_strokes?: number
           played_at?: string
@@ -600,4 +603,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

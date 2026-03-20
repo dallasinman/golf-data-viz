@@ -39,6 +39,7 @@ export async function GET(
   }
 
   const report = snapshot.reportData;
+  const isCaveatedReport = report.trustMode === "caveated";
 
   return new ImageResponse(
     (
@@ -70,7 +71,9 @@ export async function GET(
             {`${report.summary.roundCount} rounds · ${formatSG(report.summary.averageSgTotal)} Avg SG`}
           </div>
           <div style={{ marginTop: 10, fontSize: 24, color: "#cfe8d8" }}>
-            {`${report.summary.startDate} to ${report.summary.endDate}`}
+            {isCaveatedReport
+              ? `${report.summary.startDate} to ${report.summary.endDate} · reliable round patterns`
+              : `${report.summary.startDate} to ${report.summary.endDate}`}
           </div>
         </div>
 
@@ -87,7 +90,7 @@ export async function GET(
             }}
           >
             <div style={{ fontSize: 14, letterSpacing: "0.18em", textTransform: "uppercase", color: "#a8a29e" }}>
-              Primary Focus Area
+              {isCaveatedReport ? "Round Pattern" : "Primary Focus Area"}
             </div>
             <div style={{ marginTop: 12, fontSize: 34, fontWeight: 700 }}>
               {report.focusArea.label}
@@ -109,7 +112,7 @@ export async function GET(
             }}
           >
             <div style={{ fontSize: 14, letterSpacing: "0.18em", textTransform: "uppercase", color: "#a8a29e" }}>
-              Strongest Area
+              {isCaveatedReport ? "Reliable Signal" : "Strongest Area"}
             </div>
             <div style={{ marginTop: 12, fontSize: 34, fontWeight: 700 }}>
               {report.strongestArea.label}

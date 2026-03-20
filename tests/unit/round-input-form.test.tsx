@@ -5,7 +5,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RoundInputForm } from "@/app/(tools)/strokes-gained/_components/round-input-form";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+});
 
 describe("RoundInputForm plus handicap toggle", () => {
   const onSubmit = vi.fn();
@@ -78,4 +81,22 @@ describe("RoundInputForm save checkbox removed", () => {
       screen.queryByLabelText("Save this round to track over time")
     ).toBeNull();
   });
+});
+
+describe("RoundInputForm one-putts field flag", () => {
+  const onSubmit = vi.fn();
+
+  it("shows One-putts under More Stats when enabled", async () => {
+    vi.stubEnv("NEXT_PUBLIC_ONE_PUTTS_ENABLED", "on");
+    const user = userEvent.setup();
+
+    render(<RoundInputForm onSubmit={onSubmit} />);
+    await user.click(screen.getByRole("button", { name: /show more stats/i }));
+
+    expect(screen.getByRole("spinbutton", { name: /one-putts/i })).toBeVisible();
+    expect(
+      screen.getByText("Optional. Helps build a more complete picture of your short game.")
+    ).toBeVisible();
+  });
+
 });

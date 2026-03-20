@@ -213,6 +213,14 @@ const mockInput = {
   triplePlus: 1,
 };
 
+const expectedRoundAnalyticsContext = {
+  presentation_variant: "caveated",
+  putting_hardening_version: "full",
+  has_three_putt_input: false,
+  has_one_putt_input: false,
+  promotable_category_count: 2,
+};
+
 // Stub localStorage — jsdom's built-in localStorage is incomplete in this env
 const fileStorage: Record<string, string> = {};
 const localStorageStub = {
@@ -319,11 +327,15 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     await userEvent.click(screen.getByTestId("download-png"));
 
     await waitFor(() => {
-      expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked", {
-        has_share_param: true,
-        utm_source: "reddit",
-        headline_pattern: expect.any(String),
-      });
+      expect(mockTrackEvent).toHaveBeenCalledWith(
+        "download_png_clicked",
+        expect.objectContaining({
+          has_share_param: true,
+          utm_source: "reddit",
+          headline_pattern: expect.any(String),
+          ...expectedRoundAnalyticsContext,
+        })
+      );
     });
   });
 
@@ -332,13 +344,17 @@ describe("StrokesGainedClient analytics instrumentation", () => {
 
     await userEvent.click(screen.getByTestId("mock-submit"));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith("calculation_completed", {
-      utm_source: "reddit",
-      handicap_bracket: "10-15",
-      has_course_rating: true,
-      total_sg: -1.5,
-      methodology_version: "3.0.0",
-    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "calculation_completed",
+      expect.objectContaining({
+        utm_source: "reddit",
+        handicap_bracket: "10-15",
+        has_course_rating: true,
+        total_sg: -1.5,
+        methodology_version: "3.0.0",
+        ...expectedRoundAnalyticsContext,
+      })
+    );
   });
 
   it("fires gir_estimated when estimatedCategories is non-empty", async () => {
@@ -388,12 +404,16 @@ describe("StrokesGainedClient analytics instrumentation", () => {
 
     await userEvent.click(screen.getByTestId("copy-link"));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith("copy_link_clicked", {
-      share_type: "encoded",
-      surface: "results_page",
-      utm_source: "reddit",
-      headline_pattern: expect.any(String),
-    });
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "copy_link_clicked",
+      expect.objectContaining({
+        share_type: "encoded",
+        surface: "results_page",
+        utm_source: "reddit",
+        headline_pattern: expect.any(String),
+        ...expectedRoundAnalyticsContext,
+      })
+    );
   });
 
   it("preserves utm attribution for share events after submit rewrites the URL", async () => {
@@ -411,18 +431,26 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     await userEvent.click(screen.getByTestId("copy-link"));
     await userEvent.click(screen.getByTestId("download-png"));
 
-    expect(mockTrackEvent).toHaveBeenCalledWith("copy_link_clicked", {
-      share_type: "encoded",
-      surface: "results_page",
-      utm_source: "reddit",
-      headline_pattern: expect.any(String),
-    });
-    await waitFor(() => {
-      expect(mockTrackEvent).toHaveBeenCalledWith("download_png_clicked", {
-        has_share_param: true,
+    expect(mockTrackEvent).toHaveBeenCalledWith(
+      "copy_link_clicked",
+      expect.objectContaining({
+        share_type: "encoded",
+        surface: "results_page",
         utm_source: "reddit",
         headline_pattern: expect.any(String),
-      });
+        ...expectedRoundAnalyticsContext,
+      })
+    );
+    await waitFor(() => {
+      expect(mockTrackEvent).toHaveBeenCalledWith(
+        "download_png_clicked",
+        expect.objectContaining({
+          has_share_param: true,
+          utm_source: "reddit",
+          headline_pattern: expect.any(String),
+          ...expectedRoundAnalyticsContext,
+        })
+      );
     });
   });
 });

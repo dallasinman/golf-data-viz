@@ -64,6 +64,7 @@ describe("toRoundInsert", () => {
 
   it("maps undefined optional fields to null", () => {
     const round = makeRound();
+    delete round.onePutts;
     delete round.upAndDownAttempts;
     delete round.upAndDownConverted;
     delete round.sandSaves;
@@ -74,6 +75,7 @@ describe("toRoundInsert", () => {
     expect(row.up_and_down_converted).toBeNull();
     expect(row.sand_saves).toBeNull();
     expect(row.sand_save_attempts).toBeNull();
+    expect(row.one_putts).toBeNull();
     expect(row.three_putts).toBeNull();
   });
 
@@ -88,6 +90,7 @@ describe("toRoundInsert", () => {
 
   it("maps present optional fields to their values", () => {
     const round = makeRound({
+      onePutts: 6,
       upAndDownAttempts: 8,
       upAndDownConverted: 4,
       sandSaveAttempts: 3,
@@ -99,6 +102,7 @@ describe("toRoundInsert", () => {
     expect(row.up_and_down_converted).toBe(4);
     expect(row.sand_save_attempts).toBe(3);
     expect(row.sand_saves).toBe(1);
+    expect(row.one_putts).toBe(6);
     expect(row.three_putts).toBe(2);
   });
 

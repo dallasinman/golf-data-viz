@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { ImageResponse } from "next/og";
 import { type NextRequest } from "next/server";
 import { getRoundByShareToken } from "@/lib/golf/round-queries";
@@ -7,35 +9,38 @@ import {
   buildCompactSGRow,
   truncateText,
 } from "@/lib/golf/og-card-data";
+import { derivePresentationTrustFromSnapshot } from "@/lib/golf/presentation-trust";
 import { generateShareHeadline, SENTIMENT_COLORS } from "@/lib/golf/share-headline";
-import { buildPercentileRow } from "@/lib/golf/percentile";
+import { buildPresentationPercentileRow } from "@/lib/golf/percentile";
 
 // Node runtime needed for admin client (service role key)
 export const runtime = "nodejs";
 
 const SIZE = { width: 1200, height: 630 };
 
-function loadFont(relativePath: string): Promise<ArrayBuffer> {
-  return fetch(new URL(relativePath, import.meta.url))
-    .then((res) => res.arrayBuffer())
-    .catch((err) => {
-      console.warn(`[shared-og] Font load failed: ${relativePath}`, err);
-      return new ArrayBuffer(0);
-    });
+const FONT_DIR = join(process.cwd(), "src/assets/fonts");
+
+function loadFontSync(filename: string): ArrayBuffer {
+  try {
+    const buf = readFileSync(join(FONT_DIR, filename));
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  } catch {
+    return new ArrayBuffer(0);
+  }
 }
 
-const fontData = Promise.all([
-  loadFont("../../../../../../../assets/fonts/DMSerifDisplay-Regular.ttf"),
-  loadFont("../../../../../../../assets/fonts/DMSans-Medium.ttf"),
-  loadFont("../../../../../../../assets/fonts/DMSans-SemiBold.ttf"),
-]);
+const fontData = [
+  loadFontSync("DMSerifDisplay-Regular.ttf"),
+  loadFontSync("DMSans-Medium.ttf"),
+  loadFontSync("DMSans-SemiBold.ttf"),
+];
 
 interface RouteParams {
   params: Promise<{ token: string }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const [dmSerifRegular, dmSansMedium, dmSansSemiBold] = await fontData;
+  const [dmSerifRegular, dmSansMedium, dmSansSemiBold] = fontData;
 
   const fontDefs: { name: string; data: ArrayBuffer; weight: 400 | 500 | 600; style: "normal" }[] = [
     { name: "DM Serif Display", data: dmSerifRegular, weight: 400, style: "normal" },
@@ -77,13 +82,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   const result = toStrokesGainedResult(snapshot);
+  const presentationTrust = derivePresentationTrustFromSnapshot(snapshot);
   const courseName = truncateText(snapshot.courseName, 58);
   const compactSG = buildCompactSGRow(result);
-  const percentileRow = buildPercentileRow(result);
-  const headline = generateShareHeadline(result, {
-    score: snapshot.score,
-    courseName: snapshot.courseName,
-  });
+  const percentileRow = buildPresentationPercentileRow(result, presentationTrust);
+  const headline = generateShareHeadline(
+    result,
+    {
+      score: snapshot.score,
+      courseName: snapshot.courseName,
+    },
+    { presentationTrust }
+  );
 
   const headlineColor = SENTIMENT_COLORS[headline.sentiment];
 

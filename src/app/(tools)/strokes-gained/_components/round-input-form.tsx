@@ -480,19 +480,34 @@ export function RoundInputForm({
                 />
               </FormField>
             </div>
-            <FormField
-              label="Three-Putts"
-              hint="Holes where you took 3 or more putts"
-              error={errors.threePutts?.message}
-            >
-              <input
-                type="number"
-                inputMode="numeric"
-                onWheel={handleWheel}
-                className={inputClass}
-                {...register("threePutts")}
-              />
-            </FormField>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField
+                label="One-putts"
+                hint="Optional. Helps build a more complete picture of your short game."
+                error={errors.onePutts?.message}
+              >
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  onWheel={handleWheel}
+                  className={inputClass}
+                  {...register("onePutts")}
+                />
+              </FormField>
+              <FormField
+                label="Three-Putts"
+                hint="Holes where you took 3 or more putts"
+                error={errors.threePutts?.message}
+              >
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  onWheel={handleWheel}
+                  className={inputClass}
+                  {...register("threePutts")}
+                />
+              </FormField>
+            </div>
           </div>
         )}
       </div>

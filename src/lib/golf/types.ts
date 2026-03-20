@@ -23,6 +23,8 @@ export type StrokesGainedCategory =
   | "around-the-green"
   | "putting";
 
+export type PresentationTrustMode = "assertive" | "caveated" | "quarantined";
+
 /** Confidence level for a strokes gained category */
 export type ConfidenceLevel = "high" | "medium" | "low";
 
@@ -80,7 +82,15 @@ export interface RoundInput {
   upAndDownConverted?: number;
   sandSaves?: number;
   sandSaveAttempts?: number;
+  onePutts?: number;
   threePutts?: number;
+}
+
+export interface PresentationTrust {
+  mode: PresentationTrustMode;
+  promotableCategories: StrokesGainedCategory[];
+  roundReasons: string[];
+  categoryReasons: Record<StrokesGainedCategory, string[]>;
 }
 
 /** Calculated strokes gained breakdown */
@@ -296,9 +306,15 @@ export interface RoundDetailSnapshot {
   triplePlus: number | null;
   /** Familiar stats for box score display */
   totalPutts: number | null;
+  onePutts: number | null;
+  threePutts: number | null;
   penaltyStrokes: number | null;
   courseRating: number | null;
   slopeRating: number | null;
+  trustStatus: string | null;
+  trustReasons: string[];
+  reconciliationScaleFactor: number | null;
+  reconciliationFlags: string[];
 }
 
 /** Chart-ready data shape for Nivo radar chart */

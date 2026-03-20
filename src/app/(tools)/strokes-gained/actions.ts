@@ -216,7 +216,6 @@ export async function saveRound(
     const validatedInput = parsed.data as RoundInput;
     const benchmark = getInterpolatedBenchmark(validatedInput.handicapIndex);
     const phase2Mode = getSgPhase2Mode();
-
     const sgV1 = calculateStrokesGained(validatedInput, benchmark);
     const sg = phase2Mode === "full"
       ? calculateStrokesGainedV3(validatedInput, benchmark)

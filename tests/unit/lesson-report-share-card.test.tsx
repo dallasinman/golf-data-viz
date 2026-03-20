@@ -16,6 +16,8 @@ function makeSnapshot(
   const reportData: LessonReportData = {
     reportVersion: "1",
     generatedAt: "2026-03-19T00:00:00Z",
+    trustMode: "assertive",
+    assertiveRoundCount: 3,
     summary: {
       roundCount: 3,
       averageScore: 86,

@@ -21,6 +21,7 @@ describe("URL rehydration via decodeRound", () => {
 
   it("preserves all optional fields when present", () => {
     const input = makeRound({
+      onePutts: 6,
       upAndDownAttempts: 8,
       upAndDownConverted: 4,
       sandSaveAttempts: 3,
@@ -31,6 +32,7 @@ describe("URL rehydration via decodeRound", () => {
     const decoded = decodeRound(encoded);
 
     expect(decoded).toEqual(input);
+    expect(decoded!.onePutts).toBe(6);
     expect(decoded!.upAndDownAttempts).toBe(8);
     expect(decoded!.sandSaves).toBe(1);
     expect(decoded!.threePutts).toBe(2);
@@ -38,6 +40,7 @@ describe("URL rehydration via decodeRound", () => {
 
   it("preserves round when optional fields are absent", () => {
     const input = makeRound();
+    delete (input as Partial<RoundInput>).onePutts;
     delete (input as Partial<RoundInput>).upAndDownAttempts;
     delete (input as Partial<RoundInput>).upAndDownConverted;
     delete (input as Partial<RoundInput>).sandSaves;
@@ -50,6 +53,7 @@ describe("URL rehydration via decodeRound", () => {
     expect(decoded).not.toBeNull();
     expect(decoded!.course).toBe(input.course);
     expect(decoded!.score).toBe(input.score);
+    expect(decoded!.onePutts).toBeUndefined();
   });
 
   it("returns null for empty string", () => {

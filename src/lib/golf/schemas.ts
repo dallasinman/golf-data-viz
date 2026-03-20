@@ -103,6 +103,7 @@ export const roundInputSchema = z
     upAndDownConverted: optionalInt(18),
     sandSaveAttempts: optionalInt(18),
     sandSaves: optionalInt(18),
+    onePutts: optionalInt(18),
     threePutts: optionalInt(18),
   })
   .refine(
@@ -149,10 +150,25 @@ export const roundInputSchema = z
   )
   .refine(
     (data) =>
+      data.onePutts == null || data.onePutts <= data.totalPutts,
+    {
+      message: "One-putts can't exceed total putts",
+      path: ["onePutts"],
+    }
+  )
+  .refine(
+    (data) =>
       data.threePutts == null || data.threePutts <= data.totalPutts,
     {
       message: "Three-putts can't exceed total putts",
       path: ["threePutts"],
+    }
+  )
+  .refine(
+    (data) => (data.onePutts ?? 0) + (data.threePutts ?? 0) <= 18,
+    {
+      message: "One-putts and three-putts can't exceed 18 holes",
+      path: ["onePutts"],
     }
   );
 

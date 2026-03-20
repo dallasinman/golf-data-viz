@@ -17,11 +17,13 @@ export async function generateMetadata({
     return { title: "Lesson Prep Report Not Found" };
   }
 
+  const isCaveatedReport = snapshot.reportData.trustMode === "caveated";
   const title = `${snapshot.reportData.summary.roundCount} rounds · ${formatSG(
     snapshot.reportData.summary.averageSgTotal
   )} Avg SG`;
-  const description =
-    "Read-only lesson prep report with focus area, trend signal, confidence, and methodology caveats.";
+  const description = isCaveatedReport
+    ? "Read-only lesson prep report with reliable round patterns, confidence, and methodology caveats."
+    : "Read-only lesson prep report with focus area, trend signal, confidence, and methodology caveats.";
 
   return {
     title,

@@ -2,7 +2,12 @@
 
 import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
-import type { RoundDetailSnapshot, StrokesGainedResult, RadarChartDatum } from "@/lib/golf/types";
+import type {
+  PresentationTrust,
+  RoundDetailSnapshot,
+  StrokesGainedResult,
+  RadarChartDatum,
+} from "@/lib/golf/types";
 import {
   toStrokesGainedResult,
   toRadarChartDataFromSnapshot,
@@ -10,6 +15,7 @@ import {
 import { getBenchmarkMeta } from "@/lib/golf/benchmarks";
 import { BRACKET_LABELS } from "@/lib/golf/constants";
 import { formatHandicap, formatDate, formatScoringBreakdown, buildFamiliarStats, presentSG } from "@/lib/golf/format";
+import { derivePresentationTrustFromSnapshot } from "@/lib/golf/presentation-trust";
 import { RadarChart } from "@/components/charts/radar-chart";
 import { ResultsSummary } from "./results-summary";
 import { ShareCard } from "./share-card";
@@ -19,6 +25,7 @@ export interface RoundLayoutDerived {
   chartData: RadarChartDatum[];
   benchmarkMeta: ReturnType<typeof getBenchmarkMeta>;
   bracketLabel: string;
+  presentationTrust?: PresentationTrust;
 }
 
 export function deriveRoundData(snapshot: RoundDetailSnapshot): RoundLayoutDerived {
@@ -27,7 +34,8 @@ export function deriveRoundData(snapshot: RoundDetailSnapshot): RoundLayoutDeriv
   const benchmarkMeta = getBenchmarkMeta();
   const bracketLabel =
     BRACKET_LABELS[sgResult.benchmarkBracket] ?? sgResult.benchmarkBracket;
-  return { sgResult, chartData, benchmarkMeta, bracketLabel };
+  const presentationTrust = derivePresentationTrustFromSnapshot(snapshot);
+  return { sgResult, chartData, benchmarkMeta, bracketLabel, presentationTrust };
 }
 
 interface RoundLayoutProps {
@@ -53,7 +61,7 @@ export function RoundLayout({
   methodologyLink = false,
   baseDelay = 0,
 }: RoundLayoutProps) {
-  const { sgResult, chartData, benchmarkMeta, bracketLabel } = derived;
+  const { sgResult, chartData, benchmarkMeta, bracketLabel, presentationTrust } = derived;
   const d = (step: number) => ({ animationDelay: `${baseDelay + step * 50}ms` });
 
   return (
@@ -172,7 +180,11 @@ export function RoundLayout({
 
       {/* Results summary */}
       <div className="mt-10 animate-fade-up" style={d(4)}>
-        <ResultsSummary result={sgResult} benchmarkMeta={benchmarkMeta} />
+        <ResultsSummary
+          result={sgResult}
+          benchmarkMeta={benchmarkMeta}
+          presentationTrust={presentationTrust}
+        />
       </div>
 
       {/* Gold section separator */}
@@ -218,6 +230,7 @@ export function RoundLayout({
           chartData={chartData}
           courseName={snapshot.courseName}
           score={snapshot.score}
+          presentationTrust={presentationTrust}
           roundInput={
             snapshot.eagles != null
               ? {
@@ -231,6 +244,7 @@ export function RoundLayout({
                   fairwayAttempts: snapshot.fairwayAttempts ?? 14,
                   greensInRegulation: snapshot.greensInRegulation ?? undefined,
                   totalPutts: snapshot.totalPutts ?? 36,
+                  onePutts: snapshot.onePutts ?? undefined,
                   penaltyStrokes: snapshot.penaltyStrokes ?? 0,
                   eagles: snapshot.eagles ?? 0,
                   birdies: snapshot.birdies ?? 0,
@@ -238,6 +252,7 @@ export function RoundLayout({
                   bogeys: snapshot.bogeys ?? 0,
                   doubleBogeys: snapshot.doubleBogeys ?? 0,
                   triplePlus: snapshot.triplePlus ?? 0,
+                  threePutts: snapshot.threePutts ?? undefined,
                 }
               : null
           }
