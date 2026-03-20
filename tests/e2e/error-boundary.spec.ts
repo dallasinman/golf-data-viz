@@ -2,8 +2,11 @@ import { expect, test } from "@playwright/test";
 
 test("error boundary renders and logs to console on route error", async ({
   page,
-}) => {
-  const useProdServer = process.env.PLAYWRIGHT_USE_PROD_SERVER === "true";
+}, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL ?? "http://127.0.0.1:3000";
+  const isRemote = !baseURL.includes("localhost") && !baseURL.includes("127.0.0.1");
+  const useProdServer =
+    process.env.PLAYWRIGHT_USE_PROD_SERVER === "true" || isRemote;
   const errors: string[] = [];
   page.on("console", (msg) => {
     if (msg.type() === "error") {
