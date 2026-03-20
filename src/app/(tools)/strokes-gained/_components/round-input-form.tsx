@@ -58,7 +58,7 @@ const handleWheel: React.WheelEventHandler<HTMLInputElement> = (e) => {
 };
 
 function isOnePuttsEnabled(): boolean {
-  return process.env["NEXT_PUBLIC_ONE_PUTTS_ENABLED"] === "on";
+  return process.env.NEXT_PUBLIC_ONE_PUTTS_ENABLED === "on";
 }
 
 export function RoundInputForm({

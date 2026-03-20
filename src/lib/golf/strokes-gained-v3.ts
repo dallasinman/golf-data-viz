@@ -144,6 +144,10 @@ export function calculateStrokesGainedV3(
     );
   }
 
+  // Three-putt impact is applied BEFORE reconciliation so that the
+  // reconciler can re-scale all categories (including adjusted putting)
+  // to honor the total anchor constraint. Applying after would violate
+  // the anchor.
   if (puttingHardeningMode === "full" && threePuttImpact != null) {
     correctedCategoryValues = {
       ...correctedCategoryValues,

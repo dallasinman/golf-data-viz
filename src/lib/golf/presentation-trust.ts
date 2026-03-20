@@ -82,6 +82,8 @@ export function buildRoundInputFromSnapshot(
     date: snapshot.playedAt,
     score: snapshot.score,
     handicapIndex: snapshot.handicapIndex,
+    // USGA-standard neutral values (par 72, slope 113). These fields are
+    // required by RoundInput but not consumed in presentation-trust derivation.
     courseRating: snapshot.courseRating ?? 72,
     slopeRating: snapshot.slopeRating ?? 113,
     fairwaysHit: snapshot.fairwaysHit ?? undefined,

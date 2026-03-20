@@ -16,6 +16,7 @@ import {
   LESSON_REPORT_VERSION,
   type LessonReportData,
 } from "./lesson-report";
+import { MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS } from "./constants";
 import type { ConfidenceLevel, RoundDetailSnapshot, StrokesGainedCategory } from "./types";
 import { deriveConfidence } from "./round-detail-adapter";
 
@@ -208,7 +209,7 @@ async function rebuildLessonReportSnapshot(
     .in("id", snapshot.selectedRoundIds)
     .order("played_at", { ascending: true });
 
-  if (error || !data || data.length < 3) {
+  if (error || !data || data.length < MIN_ROUNDS_FOR_MULTI_ROUND_INSIGHTS) {
     return snapshot;
   }
 
@@ -227,6 +228,8 @@ async function rebuildLessonReportSnapshot(
 
   if (options.persist) {
     const serializedReportData = rebuiltSnapshot.reportData as unknown as Json;
+    // Fire-and-forget: persistence is best-effort. The rebuilt snapshot is
+    // returned to the caller regardless. Failures are logged for observability.
     void (async () => {
       try {
         const { error } = await options.supabase

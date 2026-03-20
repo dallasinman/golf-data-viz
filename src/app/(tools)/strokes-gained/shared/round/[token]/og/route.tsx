@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { ImageResponse } from "next/og";
 import { type NextRequest } from "next/server";
 import { getRoundByShareToken } from "@/lib/golf/round-queries";
@@ -19,27 +21,29 @@ export const runtime = "nodejs";
 
 const SIZE = { width: 1200, height: 630 };
 
-function loadFont(relativePath: string): Promise<ArrayBuffer> {
-  return fetch(new URL(relativePath, import.meta.url))
-    .then((res) => res.arrayBuffer())
-    .catch((err) => {
-      console.warn(`[shared-og] Font load failed: ${relativePath}`, err);
-      return new ArrayBuffer(0);
-    });
+const FONT_DIR = join(process.cwd(), "src/assets/fonts");
+
+function loadFontSync(filename: string): ArrayBuffer {
+  try {
+    const buf = readFileSync(join(FONT_DIR, filename));
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  } catch {
+    return new ArrayBuffer(0);
+  }
 }
 
-const fontData = Promise.all([
-  loadFont("../../../../../../../assets/fonts/DMSerifDisplay-Regular.ttf"),
-  loadFont("../../../../../../../assets/fonts/DMSans-Medium.ttf"),
-  loadFont("../../../../../../../assets/fonts/DMSans-SemiBold.ttf"),
-]);
+const fontData = [
+  loadFontSync("DMSerifDisplay-Regular.ttf"),
+  loadFontSync("DMSans-Medium.ttf"),
+  loadFontSync("DMSans-SemiBold.ttf"),
+];
 
 interface RouteParams {
   params: Promise<{ token: string }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const [dmSerifRegular, dmSansMedium, dmSansSemiBold] = await fontData;
+  const [dmSerifRegular, dmSansMedium, dmSansSemiBold] = fontData;
 
   const fontDefs: { name: string; data: ArrayBuffer; weight: 400 | 500 | 600; style: "normal" }[] = [
     { name: "DM Serif Display", data: dmSerifRegular, weight: 400, style: "normal" },
