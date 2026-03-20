@@ -321,7 +321,7 @@ describe("StrokesGainedClient analytics instrumentation", () => {
     expect(mockTrackEvent).not.toHaveBeenCalledWith("form_started");
   });
 
-  it("fires download_png_clicked when share button is clicked", async () => {
+  it("fires download_png_clicked with share_method when share button is clicked", async () => {
     renderClient({ initialInput: mockInput });
 
     await userEvent.click(screen.getByTestId("share-image"));
@@ -333,6 +333,7 @@ describe("StrokesGainedClient analytics instrumentation", () => {
           has_share_param: true,
           utm_source: "reddit",
           headline_pattern: expect.any(String),
+          share_method: "download",
           ...expectedRoundAnalyticsContext,
         })
       );

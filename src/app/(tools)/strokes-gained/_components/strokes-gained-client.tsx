@@ -528,8 +528,9 @@ export default function StrokesGainedClient({
     [lastInput, presentationTrust, result],
   );
 
-  // Event name kept as download_png_clicked for GA4 continuity — share_method
-  // distinguishes native share sheet ("native") from file download ("download").
+  // Event name kept as download_png_clicked for GA4 continuity.
+  // share_method dimension: "native" (iOS share sheet), "download" (desktop
+  // file save), or "cancelled" (user dismissed the share sheet).
   const handleShare = useCallback(async () => {
     if (!shareCardRef.current || downloading) return;
     setDownloading(true);
@@ -538,14 +539,14 @@ export default function StrokesGainedClient({
     const start = Date.now();
     try {
       const blob = await captureElementAsPng(shareCardRef.current);
-      // Fire analytics before the share so cancellations are still tracked
+      const outcome = await shareImage(blob, "strokes-gained.png", shareHeadline?.line);
       trackEvent("download_png_clicked", {
         has_share_param: window.location.search.includes("d="),
         utm_source: getAttributionUtmSource(),
         headline_pattern: shareHeadline?.pattern ?? null,
+        share_method: outcome,
         ...(roundAnalyticsContext ?? {}),
       });
-      await shareImage(blob, "strokes-gained.png", shareHeadline?.line);
     } finally {
       const elapsed = Date.now() - start;
       const remaining = Math.max(0, MIN_CAPTURE_LOADING_MS - elapsed);
@@ -562,12 +563,13 @@ export default function StrokesGainedClient({
     try {
       const blob = await captureElementAsPng(receiptCardRef.current, { pixelRatio: 1 });
       const courseSlug = lastInput?.course.replace(/\s+/g, "-").toLowerCase() ?? "round";
+      const outcome = await shareImage(blob, `${courseSlug}-receipt.png`);
       trackEvent("download_receipt_clicked", {
         has_share_param: window.location.search.includes("d="),
         utm_source: getAttributionUtmSource(),
         headline_pattern: shareHeadline?.pattern ?? null,
+        share_method: outcome,
       });
-      await shareImage(blob, `${courseSlug}-receipt.png`);
     } finally {
       const elapsed = Date.now() - start;
       const remaining = Math.max(0, MIN_CAPTURE_LOADING_MS - elapsed);
