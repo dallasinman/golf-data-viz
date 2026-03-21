@@ -53,6 +53,7 @@ export function NarrativeBlock({
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const retryCountRef = useRef(0);
   // Stabilize object deps to avoid re-fetching on identical-value re-renders
   const inputKey = useMemo(() => JSON.stringify(input), [input]);
   const troubleKey = useMemo(() => JSON.stringify(troubleContext ?? null), [troubleContext]);
@@ -87,7 +88,13 @@ export function NarrativeBlock({
           code?: string;
         };
         const errorType = mapErrorCode(res.status, data.code);
-        trackEvent("narrative_failed", { error_type: errorType });
+        trackEvent("narrative_failed", {
+          error_type: errorType,
+          http_status: res.status,
+          error_code: data.code,
+          latency_ms: Date.now() - startTime,
+          retry_count: retryCountRef.current,
+        });
         const retryable = errorType === "timeout" || errorType === "network" || errorType === "generation";
         setState({ status: "error", retryable });
         return;
@@ -113,7 +120,11 @@ export function NarrativeBlock({
       });
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
-      trackEvent("narrative_failed", { error_type: "network" });
+      trackEvent("narrative_failed", {
+        error_type: "network",
+        latency_ms: Date.now() - startTime,
+        retry_count: retryCountRef.current,
+      });
       setState({ status: "error", retryable: true });
     }
   }, [inputKey, troubleKey, cacheKey]);
@@ -218,7 +229,7 @@ export function NarrativeBlock({
         </p>
         <button
           type="button"
-          onClick={fetchNarrative}
+          onClick={() => { retryCountRef.current++; fetchNarrative(); }}
           data-testid="narrative-retry"
           className="mt-3 rounded-lg border-2 border-cream-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-all duration-200 hover:border-brand-800/30 hover:bg-cream-50"
         >

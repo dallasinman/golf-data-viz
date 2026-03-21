@@ -75,6 +75,15 @@ export function decodeRound(payload: string): RoundInput | null {
     const bytes = base64urlToBytes(payload);
     const json = new TextDecoder().decode(bytes);
     const parsed = JSON.parse(json);
+
+    // Clamp out-of-range handicaps so shared links produce results instead of null
+    if (typeof parsed === "object" && parsed !== null && "handicapIndex" in parsed) {
+      const hcp = Number(parsed.handicapIndex);
+      if (Number.isFinite(hcp)) {
+        parsed.handicapIndex = Math.max(-9.9, Math.min(54, hcp));
+      }
+    }
+
     const result = roundInputSchema.safeParse(parsed);
 
     if (!result.success) return null;

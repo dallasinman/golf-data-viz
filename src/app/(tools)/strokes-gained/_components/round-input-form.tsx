@@ -10,10 +10,37 @@ import { getBracketForHandicap } from "@/lib/golf/benchmarks";
 import { BRACKET_LABELS } from "@/lib/golf/constants";
 import type { RoundInput } from "@/lib/golf/types";
 
+export const FIELD_META: Record<string, { group: "course_info" | "scoring_breakdown" | "optional_stats"; index: number }> = {
+  course: { group: "course_info", index: 1 },
+  date: { group: "course_info", index: 2 },
+  score: { group: "course_info", index: 3 },
+  handicapIndex: { group: "course_info", index: 4 },
+  courseRating: { group: "course_info", index: 5 },
+  slopeRating: { group: "course_info", index: 6 },
+  fairwayAttempts: { group: "course_info", index: 7 },
+  fairwaysHit: { group: "course_info", index: 8 },
+  greensInRegulation: { group: "course_info", index: 9 },
+  totalPutts: { group: "course_info", index: 10 },
+  penaltyStrokes: { group: "course_info", index: 11 },
+  eagles: { group: "scoring_breakdown", index: 12 },
+  birdies: { group: "scoring_breakdown", index: 13 },
+  pars: { group: "scoring_breakdown", index: 14 },
+  bogeys: { group: "scoring_breakdown", index: 15 },
+  doubleBogeys: { group: "scoring_breakdown", index: 16 },
+  triplePlus: { group: "scoring_breakdown", index: 17 },
+  upAndDownAttempts: { group: "optional_stats", index: 18 },
+  upAndDownConverted: { group: "optional_stats", index: 19 },
+  sandSaveAttempts: { group: "optional_stats", index: 20 },
+  sandSaves: { group: "optional_stats", index: 21 },
+  onePutts: { group: "optional_stats", index: 22 },
+  threePutts: { group: "optional_stats", index: 23 },
+};
+
 interface RoundInputFormProps {
   onSubmit: (data: RoundInput) => void;
   initialValues?: Partial<RoundInput> | null;
   isCalculating?: boolean;
+  onFieldCompleted?: (fieldName: string) => void;
 }
 
 function FormField({
@@ -61,6 +88,7 @@ export function RoundInputForm({
   onSubmit,
   initialValues,
   isCalculating,
+  onFieldCompleted,
 }: RoundInputFormProps) {
   const [showOptional, setShowOptional] = useState(false);
   const [isPlusHandicap, setIsPlusHandicap] = useState(
@@ -88,6 +116,21 @@ export function RoundInputForm({
     },
     mode: "onBlur",
   });
+
+  function trackedRegister(name: keyof RoundInputFormData) {
+    const registration = register(name);
+    if (!onFieldCompleted) return registration;
+    return {
+      ...registration,
+      onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+        registration.onBlur(e);
+        const value = e.target.value;
+        if (value !== "" && value !== undefined) {
+          onFieldCompleted(name);
+        }
+      },
+    };
+  }
 
   const handicapValue = watch("handicapIndex");
   const bracketLabel = (() => {
@@ -164,7 +207,7 @@ export function RoundInputForm({
                   min="0"
                   onWheel={handleWheel}
                   className={`${inputClass} rounded-l-none`}
-                  {...register("handicapIndex")}
+                  {...trackedRegister("handicapIndex")}
                 />
               </div>
             </FormField>
@@ -192,11 +235,11 @@ export function RoundInputForm({
               placeholder="e.g., Pebble Beach"
               autoComplete="off"
               autoCapitalize="words"
-              {...register("course")}
+              {...trackedRegister("course")}
             />
           </FormField>
           <FormField label="Date" error={errors.date?.message}>
-            <input type="date" className={inputClass} {...register("date")} />
+            <input type="date" className={inputClass} {...trackedRegister("date")} />
           </FormField>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" data-testid="course-info-row">
@@ -212,7 +255,7 @@ export function RoundInputForm({
               onWheel={handleWheel}
               className={inputClass}
               placeholder="e.g. 72.0"
-              {...register("courseRating")}
+              {...trackedRegister("courseRating")}
             />
           </FormField>
           <FormField
@@ -226,7 +269,7 @@ export function RoundInputForm({
               onWheel={handleWheel}
               className={inputClass}
               placeholder="e.g. 130"
-              {...register("slopeRating")}
+              {...trackedRegister("slopeRating")}
             />
           </FormField>
         </div>
@@ -244,7 +287,7 @@ export function RoundInputForm({
             onWheel={handleWheel}
             className={inputClass}
             placeholder="e.g. 87"
-            {...register("score")}
+            {...trackedRegister("score")}
           />
         </FormField>
         <div className="grid grid-cols-2 gap-4">
@@ -258,7 +301,7 @@ export function RoundInputForm({
               inputMode="numeric"
               onWheel={handleWheel}
               className={inputClass}
-              {...register("fairwaysHit")}
+              {...trackedRegister("fairwaysHit")}
             />
           </FormField>
           <FormField
@@ -271,7 +314,7 @@ export function RoundInputForm({
               inputMode="numeric"
               onWheel={handleWheel}
               className={inputClass}
-              {...register("fairwayAttempts")}
+              {...trackedRegister("fairwayAttempts")}
             />
           </FormField>
         </div>
@@ -286,7 +329,7 @@ export function RoundInputForm({
               inputMode="numeric"
               onWheel={handleWheel}
               className={inputClass}
-              {...register("greensInRegulation")}
+              {...trackedRegister("greensInRegulation")}
             />
           </FormField>
           <FormField
@@ -299,7 +342,7 @@ export function RoundInputForm({
               inputMode="numeric"
               onWheel={handleWheel}
               className={inputClass}
-              {...register("totalPutts")}
+              {...trackedRegister("totalPutts")}
             />
           </FormField>
         </div>
@@ -314,7 +357,7 @@ export function RoundInputForm({
             onWheel={handleWheel}
             className={inputClass}
             placeholder="0"
-            {...register("penaltyStrokes")}
+            {...trackedRegister("penaltyStrokes")}
           />
         </FormField>
       </div>
@@ -346,7 +389,7 @@ export function RoundInputForm({
               onWheel={handleWheel}
               className={inputClass}
               placeholder="0"
-              {...register("eagles")}
+              {...trackedRegister("eagles")}
             />
           </FormField>
           <FormField label="Birdies" error={errors.birdies?.message}>
@@ -355,7 +398,7 @@ export function RoundInputForm({
               inputMode="numeric"
               onWheel={handleWheel}
               className={inputClass}
-              {...register("birdies")}
+              {...trackedRegister("birdies")}
             />
           </FormField>
           <FormField label="Pars" error={errors.pars?.message}>
@@ -364,7 +407,7 @@ export function RoundInputForm({
               inputMode="numeric"
               onWheel={handleWheel}
               className={inputClass}
-              {...register("pars")}
+              {...trackedRegister("pars")}
             />
           </FormField>
           <FormField label="Bogeys" error={errors.bogeys?.message}>
@@ -373,7 +416,7 @@ export function RoundInputForm({
               inputMode="numeric"
               onWheel={handleWheel}
               className={inputClass}
-              {...register("bogeys")}
+              {...trackedRegister("bogeys")}
             />
           </FormField>
           <FormField label="Doubles" error={errors.doubleBogeys?.message}>
@@ -383,7 +426,7 @@ export function RoundInputForm({
               onWheel={handleWheel}
               className={inputClass}
               placeholder="0"
-              {...register("doubleBogeys")}
+              {...trackedRegister("doubleBogeys")}
             />
           </FormField>
           <FormField label="Triple+" error={errors.triplePlus?.message}>
@@ -393,7 +436,7 @@ export function RoundInputForm({
               onWheel={handleWheel}
               className={inputClass}
               placeholder="0"
-              {...register("triplePlus")}
+              {...trackedRegister("triplePlus")}
             />
           </FormField>
         </div>
@@ -437,7 +480,7 @@ export function RoundInputForm({
                   inputMode="numeric"
                   onWheel={handleWheel}
                   className={inputClass}
-                  {...register("upAndDownAttempts")}
+                  {...trackedRegister("upAndDownAttempts")}
                 />
               </FormField>
               <FormField
@@ -450,7 +493,7 @@ export function RoundInputForm({
                   inputMode="numeric"
                   onWheel={handleWheel}
                   className={inputClass}
-                  {...register("upAndDownConverted")}
+                  {...trackedRegister("upAndDownConverted")}
                 />
               </FormField>
             </div>
@@ -464,7 +507,7 @@ export function RoundInputForm({
                   inputMode="numeric"
                   onWheel={handleWheel}
                   className={inputClass}
-                  {...register("sandSaveAttempts")}
+                  {...trackedRegister("sandSaveAttempts")}
                 />
               </FormField>
               <FormField
@@ -476,7 +519,7 @@ export function RoundInputForm({
                   inputMode="numeric"
                   onWheel={handleWheel}
                   className={inputClass}
-                  {...register("sandSaves")}
+                  {...trackedRegister("sandSaves")}
                 />
               </FormField>
             </div>
@@ -491,7 +534,7 @@ export function RoundInputForm({
                   inputMode="numeric"
                   onWheel={handleWheel}
                   className={inputClass}
-                  {...register("onePutts")}
+                  {...trackedRegister("onePutts")}
                 />
               </FormField>
               <FormField
@@ -504,7 +547,7 @@ export function RoundInputForm({
                   inputMode="numeric"
                   onWheel={handleWheel}
                   className={inputClass}
-                  {...register("threePutts")}
+                  {...trackedRegister("threePutts")}
                 />
               </FormField>
             </div>

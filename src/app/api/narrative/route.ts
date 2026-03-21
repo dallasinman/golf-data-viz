@@ -17,7 +17,7 @@ import {
   type TroubleHoleInput,
 } from "@/lib/golf/trouble-context";
 
-const NARRATIVE_TIMEOUT_MS = 15_000;
+const NARRATIVE_TIMEOUT_MS = 25_000;
 
 type ErrorCode =
   | "RATE_LIMITED"
@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
+    console.error(JSON.stringify({ event: "narrative_error", code: "VALIDATION" }));
     return errorResponse("Invalid JSON", "VALIDATION", 400);
   }
 
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
   const parsed = roundInputSchema.safeParse(rawInput);
   if (!parsed.success) {
     const firstError = parsed.error.issues[0]?.message ?? "Invalid input";
+    console.error(JSON.stringify({ event: "narrative_error", code: "VALIDATION" }));
     return errorResponse(firstError, "VALIDATION", 400);
   }
 
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
     maxPerHour: 10,
   });
   if (!rateLimitResult.allowed) {
+    console.error(JSON.stringify({ event: "narrative_error", code: "RATE_LIMITED", ip }));
     return errorResponse(
       "Too many narrative requests. Try again later.",
       "RATE_LIMITED",
@@ -145,6 +148,7 @@ export async function POST(request: NextRequest) {
 
     const textBlock = message.content.find((block) => block.type === "text");
     if (!textBlock || textBlock.type !== "text") {
+      console.error(JSON.stringify({ event: "narrative_error", code: "GENERATION_FAILED", ip }));
       return errorResponse(
         "No text in response",
         "GENERATION_FAILED",
@@ -158,6 +162,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ narrative, word_count: wordCount });
   } catch (err: unknown) {
     if (err instanceof Anthropic.APIConnectionError) {
+      console.error(JSON.stringify({ event: "narrative_error", code: "UNAVAILABLE", ip }));
       return errorResponse(
         "Narrative service is temporarily unavailable",
         "UNAVAILABLE",
@@ -169,6 +174,7 @@ export async function POST(request: NextRequest) {
       err.status &&
       err.status >= 500
     ) {
+      console.error(JSON.stringify({ event: "narrative_error", code: "UNAVAILABLE", ip }));
       return errorResponse(
         "Narrative service is temporarily unavailable",
         "UNAVAILABLE",
@@ -176,6 +182,7 @@ export async function POST(request: NextRequest) {
       );
     }
     if (err instanceof Error && err.name === "AbortError") {
+      console.error(JSON.stringify({ event: "narrative_error", code: "GATEWAY_TIMEOUT", ip }));
       return errorResponse(
         "Narrative generation timed out",
         "GATEWAY_TIMEOUT",
@@ -189,13 +196,20 @@ export async function POST(request: NextRequest) {
         err.message.includes("timeout") ||
         err.message.includes("Request was aborted"))
     ) {
+      console.error(JSON.stringify({ event: "narrative_error", code: "GATEWAY_TIMEOUT", ip }));
       return errorResponse(
         "Narrative generation timed out",
         "GATEWAY_TIMEOUT",
         504
       );
     }
-    console.error("[narrative] Unexpected error:", String(err));
+    console.error(JSON.stringify({
+      event: "narrative_error",
+      code: "GENERATION_FAILED",
+      error: err instanceof Error ? err.message : String(err),
+      ip: ip,
+      handicap_index: input.handicapIndex,
+    }));
     captureMonitoringException(
       err instanceof Error ? err : new Error(String(err)),
       { source: "narrative", code: "GENERATION_FAILED" }

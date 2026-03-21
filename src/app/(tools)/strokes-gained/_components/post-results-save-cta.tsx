@@ -12,6 +12,11 @@ import {
   type TurnstileWidgetHandle,
 } from "@/components/security/turnstile-widget";
 
+function getUserAgentClass(): "mobile" | "desktop" {
+  if (typeof navigator === "undefined") return "desktop";
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "mobile" : "desktop";
+}
+
 interface PostResultsSaveCtaProps {
   input: RoundInput;
   turnstileSiteKey: string | null;
@@ -59,6 +64,9 @@ export function PostResultsSaveCta({
 
   async function handleSave() {
     trackEvent("post_results_save_cta_clicked");
+    trackEvent("save_attempted", {
+      auth_state: isAuthenticated ? "authenticated" : "anonymous",
+    });
 
     setPhase(isAuthenticated ? "saving" : "verifying");
     setErrorMessage(null);
@@ -68,10 +76,13 @@ export function PostResultsSaveCta({
     // Turnstile is best-effort: try to get a token, but proceed without one.
     // Rate limiting + trust scoring + dedup provide defense-in-depth.
     let token: string | null = null;
+    let turnstileOutcome: "skipped" | "success" | "failed" | "timeout" = "skipped";
     if (!isAuthenticated && turnstileSiteKey && turnstileRef.current) {
       try {
         token = await turnstileRef.current.execute();
+        turnstileOutcome = "success";
       } catch (turnstileErr) {
+        turnstileOutcome = "failed";
         Sentry.captureMessage("Turnstile execute() failed — saving without token", {
           level: "warning",
           extra: {
@@ -94,7 +105,13 @@ export function PostResultsSaveCta({
       );
       res = await Promise.race([savePromise, timeoutPromise]);
     } catch (networkErr) {
-      trackEvent("round_save_failed", { error_type: "network" });
+      trackEvent("round_save_failed", {
+        error_type: "network",
+        error_code: networkErr instanceof Error ? networkErr.message : "unknown",
+        auth_state: isAuthenticated ? "authenticated" : "anonymous",
+        turnstile_outcome: turnstileOutcome,
+        user_agent_class: getUserAgentClass(),
+      });
       Sentry.captureException(networkErr, {
         extra: {
           source: "saveRound_client",
@@ -109,7 +126,11 @@ export function PostResultsSaveCta({
     }
 
     if (res.success) {
-      trackEvent("round_saved");
+      trackEvent("round_saved", {
+        auth_state: isAuthenticated ? "authenticated" : "anonymous",
+        turnstile_outcome: turnstileOutcome,
+        user_agent_class: getUserAgentClass(),
+      });
       setPhase("success");
       // Brief success micro-interaction beat before notifying parent
       setTimeout(() => {
@@ -120,7 +141,13 @@ export function PostResultsSaveCta({
 
     // Failure
     const errorType = classifyError(res.code);
-    trackEvent("round_save_failed", { error_type: errorType });
+    trackEvent("round_save_failed", {
+      error_type: errorType,
+      error_code: res.code,
+      auth_state: isAuthenticated ? "authenticated" : "anonymous",
+      turnstile_outcome: turnstileOutcome,
+      user_agent_class: getUserAgentClass(),
+    });
 
     if (res.code === "DUPLICATE_ROUND") {
       setPhase("already_saved");

@@ -71,7 +71,11 @@ export type AnalyticsEvent =
   | "widget_cta_clicked"
   | "referral_tier_unlocked"
   | "seo_cta_clicked"
-  | "pwa_installed";
+  | "pwa_installed"
+  | "form_field_completed"
+  | "form_abandoned"
+  | "save_attempted"
+  | "viral_loop_completed";
 
 type EmptyPayload = Record<never, never>;
 
@@ -90,7 +94,7 @@ export type AnalyticsEventProps = {
   download_png_clicked: { has_share_param: boolean; utm_source?: string; headline_pattern?: string | null; share_method?: "native" | "download" | "cancelled" };
   copy_link_clicked: { share_type: "canonical" | "encoded"; surface: "results_page"; utm_source?: string; headline_pattern?: string | null };
   shared_round_viewed: { referrer: string; utm_source: string };
-  round_saved: EmptyPayload;
+  round_saved: { auth_state: "authenticated" | "anonymous"; turnstile_outcome: "skipped" | "success" | "failed" | "timeout"; user_agent_class: "mobile" | "desktop" };
   gir_estimated: EmptyPayload;
   round_save_failed: {
     error_type:
@@ -100,6 +104,10 @@ export type AnalyticsEventProps = {
       | "rate_limited"
       | "verification"
       | "duplicate";
+    error_code?: string;
+    auth_state: "authenticated" | "anonymous";
+    turnstile_outcome: "skipped" | "success" | "failed" | "timeout";
+    user_agent_class: "mobile" | "desktop";
   };
   confidence_badge_clicked: { category: string; level: string };
   methodology_tooltip_opened: { category: string; surface: "results_summary" };
@@ -203,6 +211,10 @@ export type AnalyticsEventProps = {
       | "generation"
       | "timeout"
       | "network";
+    http_status?: number;
+    error_code?: string;
+    latency_ms?: number;
+    retry_count: number;
   };
   narrative_copied: { word_count: number; surface: "results_page" };
   post_results_save_cta_viewed: EmptyPayload;
@@ -217,6 +229,10 @@ export type AnalyticsEventProps = {
   referral_tier_unlocked: EmptyPayload;
   seo_cta_clicked: { surface: string; source_path: string };
   pwa_installed: EmptyPayload;
+  form_field_completed: { field_name: string; field_index: number; field_group: "course_info" | "scoring_breakdown" | "optional_stats" };
+  form_abandoned: { last_field_completed: string; fields_completed_count: number; field_group_reached: string; time_on_form_ms: number };
+  save_attempted: { auth_state: "authenticated" | "anonymous" };
+  viral_loop_completed: { funnel_time_ms: number };
 };
 
 type RequiredKeys<T extends object> = {

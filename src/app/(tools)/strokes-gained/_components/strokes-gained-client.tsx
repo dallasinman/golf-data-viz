@@ -37,7 +37,7 @@ import { buildShareUrl } from "@/lib/golf/share-url";
 import { generateShareHeadline } from "@/lib/golf/share-headline";
 import { captureElementAsPng } from "@/lib/capture";
 import { shareImage } from "@/lib/share";
-import { RoundInputForm } from "./round-input-form";
+import { RoundInputForm, FIELD_META } from "./round-input-form";
 import { ResultsSummary } from "./results-summary";
 import { ShareCard } from "./share-card";
 import { ReceiptCard } from "./receipt-card";
@@ -203,6 +203,10 @@ export default function StrokesGainedClient({
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSampleSubmitRef = useRef(false);
   const claimRequestInFlightRef = useRef(false);
+  const completedFieldsRef = useRef(new Set<string>());
+  const highestFieldIndexRef = useRef(0);
+  const formStartTimeRef = useRef<number | null>(null);
+  const formAbandonedFiredRef = useRef(false);
 
   if (
     attributionUtmSourceRef.current === undefined &&
@@ -228,6 +232,9 @@ export default function StrokesGainedClient({
   useEffect(() => {
     if (initialInput && !sharedRoundViewedRef.current) {
       sharedRoundViewedRef.current = true;
+      try {
+        sessionStorage.setItem("gdv:shared_arrival", String(Date.now()));
+      } catch { /* sessionStorage unavailable */ }
       const referrer =
         typeof document !== "undefined" && document.referrer
           ? (() => {
@@ -298,6 +305,34 @@ export default function StrokesGainedClient({
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     };
   }, []);
+
+  // Form abandonment tracking via visibilitychange (not beforeunload — unreliable on iOS Safari)
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "hidden") return;
+      if (!formStartedRef.current) return;
+      if (completedFieldsRef.current.size === 0) return;
+      if (formAbandonedFiredRef.current) return;
+      // Don't fire if calculation was completed (form was submitted)
+      if (result) return;
+
+      formAbandonedFiredRef.current = true;
+
+      const highestIndex = highestFieldIndexRef.current;
+      const lastFieldEntry = Object.entries(FIELD_META).find(([, m]) => m.index === highestIndex);
+      const lastFieldName = lastFieldEntry?.[0] ?? "unknown";
+      const lastFieldMeta = lastFieldEntry?.[1];
+
+      trackEvent("form_abandoned", {
+        last_field_completed: lastFieldName,
+        fields_completed_count: completedFieldsRef.current.size,
+        field_group_reached: lastFieldMeta?.group ?? "unknown",
+        time_on_form_ms: formStartTimeRef.current ? Date.now() - formStartTimeRef.current : 0,
+      });
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [result]);
 
   // Rehydrate pending claim from localStorage after OAuth redirect.
   // Google OAuth navigates away, losing in-memory state. A dedicated
@@ -377,6 +412,21 @@ export default function StrokesGainedClient({
     try { localStorage.removeItem(LAST_ROUND_KEY); } catch { /* ok */ }
   }
 
+  const handleFieldCompleted = useCallback((fieldName: string) => {
+    if (completedFieldsRef.current.has(fieldName)) return;
+    completedFieldsRef.current.add(fieldName);
+    const meta = FIELD_META[fieldName];
+    if (!meta) return;
+    if (meta.index > highestFieldIndexRef.current) {
+      highestFieldIndexRef.current = meta.index;
+    }
+    trackEvent("form_field_completed", {
+      field_name: fieldName,
+      field_index: meta.index,
+      field_group: meta.group,
+    });
+  }, []);
+
   function handleTrySample() {
     // Ensure form_started fires before calculation_completed for correct funnel ordering
     if (!formStartedRef.current) {
@@ -391,6 +441,12 @@ export default function StrokesGainedClient({
   }
 
   function handleFormSubmit(input: RoundInput) {
+    // Reset field tracking refs for fresh tracking on next round entry
+    completedFieldsRef.current.clear();
+    highestFieldIndexRef.current = 0;
+    formStartTimeRef.current = null;
+    formAbandonedFiredRef.current = false;
+
     setIsCalculating(true);
 
     const benchmark = getInterpolatedBenchmark(input.handicapIndex);
@@ -427,12 +483,19 @@ export default function StrokesGainedClient({
       trackEvent("gir_estimated");
     }
 
-    // Recipient funnel completion
-    if (isRecipientFunnel()) {
+    // Recipient funnel completion — gate on sessionStorage flag set on shared-link arrival
+    const sharedArrival = (() => {
+      try { return sessionStorage.getItem("gdv:shared_arrival"); }
+      catch { return null; }
+    })();
+    if (sharedArrival) {
       trackEvent("recipient_completed_own_calc", {
         utm_source: getUtmSource(),
         utm_medium: getUtmMedium(),
         handicap_bracket: sgResult.benchmarkBracket,
+      });
+      trackEvent("viral_loop_completed", {
+        funnel_time_ms: Date.now() - Number(sharedArrival),
       });
     }
 
@@ -772,6 +835,7 @@ export default function StrokesGainedClient({
         onFocusCapture={() => {
           if (!formStartedRef.current) {
             formStartedRef.current = true;
+            formStartTimeRef.current = Date.now();
             trackEvent("form_started", {
               utm_source: getAttributionUtmSource(),
             });
@@ -790,6 +854,7 @@ export default function StrokesGainedClient({
           onSubmit={handleFormSubmit}
           initialValues={formInitialValues}
           isCalculating={isCalculating}
+          onFieldCompleted={handleFieldCompleted}
         />
       </div>
 
