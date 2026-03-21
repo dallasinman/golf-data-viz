@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import type { RoundInput } from "@/lib/golf/types";
 import { toRoundInsert } from "@/lib/golf/round-mapper";
 import { roundInputSchema } from "@/lib/golf/schemas";
@@ -234,15 +235,23 @@ export async function saveRound(
       }
     } else if (!user && !token) {
       console.warn("[saveRound] Anonymous save without Turnstile token — adblocker likely");
-      captureMonitoringException(new Error("Turnstile soft-fail: no token provided"), {
-        source: "saveRound",
-        code: "TURNSTILE_NO_TOKEN",
+      Sentry.addBreadcrumb({
+        category: "turnstile",
+        message: "Anonymous save without Turnstile token — adblocker likely",
+        level: "warning",
       });
     }
 
     // Recalculate SG server-side — never trust client-supplied values
     const validatedInput = parsed.data as RoundInput;
-    const benchmark = getInterpolatedBenchmark(validatedInput.handicapIndex);
+    let benchmark;
+    try {
+      benchmark = getInterpolatedBenchmark(validatedInput.handicapIndex);
+    } catch (err) {
+      console.error("[saveRound] Benchmark calculation failed:", err);
+      captureMonitoringException(err, { source: "saveRound", code: "VALIDATION" });
+      return fail("VALIDATION", "Invalid handicap index.");
+    }
     const phase2Mode = getSgPhase2Mode();
     const sgV1 = calculateStrokesGained(validatedInput, benchmark);
     const sg = phase2Mode === "full"

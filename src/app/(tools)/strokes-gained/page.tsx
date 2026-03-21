@@ -12,6 +12,22 @@ import StrokesGainedClient from "./_components/strokes-gained-client";
 const PAGE_DESCRIPTION =
   "Free post-round strokes gained analysis from your scorecard stats. Compare yourself to handicap peers, not Tour pros.";
 
+const DEFAULT_METADATA: Metadata = {
+  title: "Strokes Gained Benchmarker",
+  description: PAGE_DESCRIPTION,
+  alternates: { canonical: "/strokes-gained" },
+  openGraph: {
+    title: "Strokes Gained Benchmarker",
+    description: PAGE_DESCRIPTION,
+    url: "/strokes-gained",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Strokes Gained Benchmarker",
+    description: PAGE_DESCRIPTION,
+  },
+};
+
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
@@ -24,34 +40,27 @@ export async function generateMetadata({
   const input = payload ? decodeRound(payload) : null;
 
   if (!input) {
-    return {
-      title: "Strokes Gained Benchmarker",
-      description: PAGE_DESCRIPTION,
-      alternates: { canonical: "/strokes-gained" },
-      openGraph: {
-        title: "Strokes Gained Benchmarker",
-        description: PAGE_DESCRIPTION,
-        url: "/strokes-gained",
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: "Strokes Gained Benchmarker",
-        description: PAGE_DESCRIPTION,
-      },
-    };
+    return DEFAULT_METADATA;
   }
 
-  const benchmark = getInterpolatedBenchmark(input.handicapIndex);
-  const result = calculateStrokesGained(input, benchmark);
+  // An uncaught throw in generateMetadata returns a 500 for the entire page.
+  // The share codec already clamps handicap, but defense-in-depth for any edge case.
+  let benchmark, sgResult;
+  try {
+    benchmark = getInterpolatedBenchmark(input.handicapIndex);
+    sgResult = calculateStrokesGained(input, benchmark);
+  } catch {
+    return DEFAULT_METADATA;
+  }
 
   const title = `Shot ${input.score} at ${input.course}`;
   const weakest = findWeakestCategory({
-    sgOffTheTee: result.categories["off-the-tee"],
-    sgApproach: result.categories["approach"],
-    sgAroundTheGreen: result.categories["around-the-green"],
-    sgPutting: result.categories["putting"],
+    sgOffTheTee: sgResult.categories["off-the-tee"],
+    sgApproach: sgResult.categories["approach"],
+    sgAroundTheGreen: sgResult.categories["around-the-green"],
+    sgPutting: sgResult.categories["putting"],
   });
-  const presentationTrust = derivePresentationTrust({ input, result });
+  const presentationTrust = derivePresentationTrust({ input, result: sgResult });
   const description = buildRoundMetadataDescription({
     handicapIndex: input.handicapIndex,
     greensInRegulation: input.greensInRegulation,
