@@ -38,6 +38,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Required for PostHog /ingest proxy — without this, Next.js redirects
+  // /ingest/e to /ingest/e/ before the rewrite can match.
   skipTrailingSlashRedirect: true,
 };
 

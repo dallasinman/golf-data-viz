@@ -27,8 +27,6 @@ const { mockCreate, mockCheckRateLimit, mockGetInterpolatedBenchmark, mockCalcul
     };
   });
 
-// Both @anthropic-ai/sdk and @posthog/ai must share the same error classes
-// so instanceof checks in the route's catch block match thrown errors.
 vi.mock("@anthropic-ai/sdk", () => {
   class Anthropic {
     messages = { create: mockCreate };
@@ -40,15 +38,6 @@ vi.mock("@anthropic-ai/sdk", () => {
     APIConnectionError: SharedAPIConnectionError,
     APIError: SharedAPIError,
   };
-});
-
-vi.mock("@posthog/ai", () => {
-  class Anthropic {
-    messages = { create: mockCreate };
-    static APIConnectionError = SharedAPIConnectionError;
-    static APIError = SharedAPIError;
-  }
-  return { Anthropic };
 });
 
 vi.mock("@/lib/rate-limit", () => ({

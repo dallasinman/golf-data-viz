@@ -16,11 +16,15 @@ Sentry.init({
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_TOKEN!, {
-  api_host: "/ingest",
-  ui_host: "https://us.posthog.com",
-  defaults: "2026-01-30",
-  person_profiles: "always",
-  capture_exceptions: true,
-  debug: process.env.NODE_ENV === "development",
-});
+const posthogToken = process.env.NEXT_PUBLIC_POSTHOG_TOKEN?.trim();
+if (posthogToken) {
+  posthog.init(posthogToken, {
+    api_host: "/ingest",
+    ui_host: "https://us.posthog.com",
+    defaults: "2026-01-30",
+    person_profiles: "always",
+    // Sentry already captures exceptions via @sentry/nextjs — don't double-report
+    capture_exceptions: false,
+    debug: process.env.NODE_ENV === "development",
+  });
+}

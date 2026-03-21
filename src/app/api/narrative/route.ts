@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { Anthropic } from "@posthog/ai";
+import Anthropic from "@anthropic-ai/sdk";
 import type { Message } from "@anthropic-ai/sdk/resources/messages";
 import { roundInputSchema } from "@/lib/golf/schemas";
 import { getPostHogClient } from "@/lib/posthog-server";
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
   // Call Claude API
   const phClient = getPostHogClient();
-  const client = new Anthropic({ apiKey, posthog: phClient });
+  const client = new Anthropic({ apiKey });
 
   try {
     const message = await client.messages.create(
@@ -145,7 +145,6 @@ export async function POST(request: NextRequest) {
         temperature: 0.7,
         system: NARRATIVE_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userPrompt }],
-        posthogProperties: { handicap_index: input.handicapIndex },
       },
       { timeout: NARRATIVE_TIMEOUT_MS }
     ) as Message;
@@ -163,6 +162,11 @@ export async function POST(request: NextRequest) {
     const narrative = textBlock.text.trim();
     const wordCount = narrative.split(/\s+/).length;
 
+    phClient.capture({
+      distinctId: ip,
+      event: "narrative_generated",
+      properties: { handicap_index: input.handicapIndex, word_count: wordCount },
+    });
     await phClient.shutdown();
     return NextResponse.json({ narrative, word_count: wordCount });
   } catch (err: unknown) {

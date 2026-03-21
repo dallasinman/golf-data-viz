@@ -483,7 +483,7 @@ export default function StrokesGainedClient({
       posthog.setPersonProperties({
         last_calculation_at: new Date().toISOString(),
         last_handicap_bracket: sgResult.benchmarkBracket,
-        calculation_count: ((posthog.get_property?.("calculation_count") as number) ?? 0) + 1,
+        calculation_count: (Number(posthog.get_property?.("calculation_count")) || 0) + 1,
       });
     } catch {
       // PostHog unavailable during SSR or if blocked

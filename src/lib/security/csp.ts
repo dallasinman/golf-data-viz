@@ -52,6 +52,11 @@ const connectSources = [
   "https://*.ingest.sentry.io",
   "https://*.ingest.us.sentry.io",
   "https://challenges.cloudflare.com",
+  // PostHog: /ingest proxy handles most traffic as same-origin, but surveys
+  // and session replay may connect to PostHog directly
+  "https://us.posthog.com",
+  "https://us.i.posthog.com",
+  "https://us-assets.i.posthog.com",
 ];
 
 const cspDirectives = [
