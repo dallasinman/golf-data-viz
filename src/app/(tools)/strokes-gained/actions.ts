@@ -221,12 +221,23 @@ export async function saveRound(
       });
 
       if (!turnstileResult.ok) {
-        console.warn("[saveRound] Turnstile verification failed — proceeding anyway", {
+        console.warn("[saveRound] Turnstile token provided but verification failed — proceeding anyway", {
           reason: turnstileResult.reason,
+          errorCodes: turnstileResult.result.errorCodes,
+        });
+        captureMonitoringException(new Error("Turnstile soft-fail: token invalid"), {
+          source: "saveRound",
+          code: "TURNSTILE_SOFT_FAIL",
+          reason: turnstileResult.reason,
+          errorCodes: turnstileResult.result.errorCodes,
         });
       }
     } else if (!user && !token) {
-      console.warn("[saveRound] Anonymous save without Turnstile token");
+      console.warn("[saveRound] Anonymous save without Turnstile token — adblocker likely");
+      captureMonitoringException(new Error("Turnstile soft-fail: no token provided"), {
+        source: "saveRound",
+        code: "TURNSTILE_NO_TOKEN",
+      });
     }
 
     // Recalculate SG server-side — never trust client-supplied values

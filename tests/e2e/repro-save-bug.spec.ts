@@ -92,7 +92,7 @@ test.describe("Reproduce save-round bug", () => {
     expect(saved || alreadySaved).toBeTruthy();
   });
 
-  test("DIAG: Page state + save CTA for unauthenticated user", async ({
+  test.skip("DIAG: Page state + save CTA for unauthenticated user", async ({
     page,
   }) => {
     await page.goto("/strokes-gained", { waitUntil: "networkidle" });

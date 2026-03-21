@@ -76,6 +76,8 @@ export function PostResultsSaveCta({
           level: "warning",
           extra: {
             error: turnstileErr instanceof Error ? turnstileErr.message : String(turnstileErr),
+            hasSiteKey: !!turnstileSiteKey,
+            hasRef: !!turnstileRef.current,
           },
         });
         // token stays null — save proceeds without Turnstile
