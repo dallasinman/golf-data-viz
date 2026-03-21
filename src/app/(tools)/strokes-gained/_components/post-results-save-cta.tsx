@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CircleCheck, Loader2 } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 import { trackEvent } from "@/lib/analytics/client";
 import type { RoundInput } from "@/lib/golf/types";
 import type { SaveRoundResult } from "../actions";
@@ -75,8 +76,16 @@ export function PostResultsSaveCta({
 
       try {
         token = await turnstileRef.current.execute();
-      } catch {
+      } catch (turnstileErr) {
         trackEvent("round_save_failed", { error_type: "verification" });
+        Sentry.captureMessage("Turnstile execute() failed — likely adblocker", {
+          level: "warning",
+          extra: {
+            error: turnstileErr instanceof Error ? turnstileErr.message : String(turnstileErr),
+            hasSiteKey: !!turnstileSiteKey,
+            hasRef: !!turnstileRef.current,
+          },
+        });
         setPhase("error");
         setErrorMessage(
           "Verification blocked — your ad blocker may be preventing the bot check. Try disabling it or saving from a different browser."
@@ -89,11 +98,23 @@ export function PostResultsSaveCta({
 
     let res: SaveRoundResult;
     try {
-      res = await saveRound(input, { turnstileToken: token });
-    } catch {
+      const savePromise = saveRound(input, { turnstileToken: token });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Save request timed out after 15s")), 15000)
+      );
+      res = await Promise.race([savePromise, timeoutPromise]);
+    } catch (networkErr) {
       trackEvent("round_save_failed", { error_type: "network" });
+      Sentry.captureException(networkErr, {
+        extra: {
+          source: "saveRound_client",
+          isAuthenticated,
+          hasToken: !!token,
+          error: networkErr instanceof Error ? networkErr.message : String(networkErr),
+        },
+      });
       setPhase("error");
-      setErrorMessage("Round could not be saved.");
+      setErrorMessage("Round could not be saved. Check your connection and try again.");
       return;
     }
 
@@ -117,6 +138,29 @@ export function PostResultsSaveCta({
     }
 
     setPhase("error");
+
+    Sentry.captureMessage(`Save round failed: ${res.code}`, {
+      level: "warning",
+      extra: {
+        code: res.code,
+        message: res.message,
+        isAuthenticated,
+        hasToken: !!token,
+      },
+    });
+
+    // If the client thought we were authenticated but the server disagrees
+    // (stale session cookies), show a clearer message than the generic bot-check text.
+    if (
+      isAuthenticated &&
+      (res.code === "VERIFICATION_REQUIRED" || res.code === "VERIFICATION_FAILED")
+    ) {
+      setErrorMessage(
+        "Your session has expired. Please refresh the page and try again."
+      );
+      return;
+    }
+
     setErrorMessage(res.message);
   }
 

@@ -211,8 +211,16 @@ export async function saveRound(
     const user = await getUser();
     const token = verification.turnstileToken?.trim() ?? "";
 
+    console.log("[saveRound] Auth check", {
+      hasUser: !!user,
+      userId: user?.id?.slice(0, 8) ?? null,
+      hasToken: !!token,
+      tokenLength: token.length,
+    });
+
     if (!user) {
       if (!token) {
+        console.warn("[saveRound] No user and no Turnstile token — likely stale auth cookies");
         return fail("VERIFICATION_REQUIRED", VERIFICATION_REQUIRED_MESSAGE);
       }
 
