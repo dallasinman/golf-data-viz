@@ -52,11 +52,16 @@ const connectSources = [
   "https://*.ingest.sentry.io",
   "https://*.ingest.us.sentry.io",
   "https://challenges.cloudflare.com",
+  // PostHog: /ingest proxy handles most traffic as same-origin, but surveys
+  // and session replay may connect to PostHog directly
+  "https://us.posthog.com",
+  "https://us.i.posthog.com",
+  "https://us-assets.i.posthog.com",
 ];
 
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://va.vercel-scripts.com https://challenges.cloudflare.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://va.vercel-scripts.com https://challenges.cloudflare.com https://us-assets.i.posthog.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://www.googletagmanager.com https://www.google-analytics.com",
   `connect-src ${connectSources.join(" ")}`,

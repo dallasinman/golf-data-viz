@@ -1,38 +1,42 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Hoist mocks before any imports
-const { mockCreate, mockCheckRateLimit, mockGetInterpolatedBenchmark, mockCalculateStrokesGainedV3 } =
-  vi.hoisted(() => ({
-    mockCreate: vi.fn(),
-    mockCheckRateLimit: vi.fn(),
-    mockGetInterpolatedBenchmark: vi.fn(),
-    mockCalculateStrokesGainedV3: vi.fn(),
-  }));
+const { mockCreate, mockCheckRateLimit, mockGetInterpolatedBenchmark, mockCalculateStrokesGainedV3, SharedAPIConnectionError, SharedAPIError } =
+  vi.hoisted(() => {
+    class APIConnectionError extends Error {
+      constructor(opts: { message: string }) {
+        super(opts.message);
+        this.name = "APIConnectionError";
+      }
+    }
+    class APIError extends Error {
+      status: number;
+      constructor(status: number, _body: unknown, message: string) {
+        super(message);
+        this.name = "APIError";
+        this.status = status;
+      }
+    }
+    return {
+      mockCreate: vi.fn(),
+      mockCheckRateLimit: vi.fn(),
+      mockGetInterpolatedBenchmark: vi.fn(),
+      mockCalculateStrokesGainedV3: vi.fn(),
+      SharedAPIConnectionError: APIConnectionError,
+      SharedAPIError: APIError,
+    };
+  });
 
 vi.mock("@anthropic-ai/sdk", () => {
-  class APIConnectionError extends Error {
-    constructor(opts: { message: string }) {
-      super(opts.message);
-      this.name = "APIConnectionError";
-    }
-  }
-  class APIError extends Error {
-    status: number;
-    constructor(status: number, _body: unknown, message: string) {
-      super(message);
-      this.name = "APIError";
-      this.status = status;
-    }
-  }
   class Anthropic {
     messages = { create: mockCreate };
-    static APIConnectionError = APIConnectionError;
-    static APIError = APIError;
+    static APIConnectionError = SharedAPIConnectionError;
+    static APIError = SharedAPIError;
   }
   return {
     default: Anthropic,
-    APIConnectionError,
-    APIError,
+    APIConnectionError: SharedAPIConnectionError,
+    APIError: SharedAPIError,
   };
 });
 

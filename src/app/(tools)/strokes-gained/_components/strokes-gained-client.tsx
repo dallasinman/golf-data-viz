@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { CircleCheck, Link2 } from "lucide-react";
+import posthog from "posthog-js";
 import { trackEvent } from "@/lib/analytics/client";
 import { buildRoundAnalyticsContext } from "@/lib/golf/analytics";
 import type {
@@ -475,6 +476,28 @@ export default function StrokesGainedClient({
       methodology_version: sgResult.methodologyVersion,
       ...analyticsContext,
     });
+    try {
+      // posthog-js is a singleton initialized in instrumentation-client.ts.
+      // During SSR hydration, posthog won't be initialized yet — this try/catch
+      // is load-bearing, not just defensive.
+      //
+      // Use capture() with $set to update person properties server-side.
+      // posthog.setPersonProperties + get_property doesn't work for counters
+      // because get_property reads local storage while set sends to the server.
+      posthog.capture("calculation_person_update", {
+        $set: {
+          last_calculation_at: new Date().toISOString(),
+          last_handicap_bracket: sgResult.benchmarkBracket,
+        },
+        $set_once: {
+          first_calculation_at: new Date().toISOString(),
+        },
+      });
+      // Increment is handled by PostHog's calculation_completed event count —
+      // survey targeting uses "user has done calculation_completed >= 3 times"
+    } catch {
+      // PostHog unavailable during SSR or if blocked
+    }
     if (sgResult.estimatedCategories.length > 0) {
       trackEvent("gir_estimated");
     }

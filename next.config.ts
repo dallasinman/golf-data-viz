@@ -26,6 +26,21 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/ingest/:path*",
+        destination: "https://us.i.posthog.com/:path*",
+      },
+    ];
+  },
+  // Required for PostHog /ingest proxy — without this, Next.js redirects
+  // /ingest/e to /ingest/e/ before the rewrite can match.
+  skipTrailingSlashRedirect: true,
 };
 
 export default withSentryConfig(nextConfig, {

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import type { Message } from "@anthropic-ai/sdk/resources/messages";
 import { roundInputSchema } from "@/lib/golf/schemas";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { extractClientIp, checkRateLimit } from "@/lib/rate-limit";
 import { getInterpolatedBenchmark } from "@/lib/golf/benchmarks";
 import { calculateStrokesGainedV3 } from "@/lib/golf/strokes-gained-v3";
@@ -144,7 +146,7 @@ export async function POST(request: NextRequest) {
         messages: [{ role: "user", content: userPrompt }],
       },
       { timeout: NARRATIVE_TIMEOUT_MS }
-    );
+    ) as Message;
 
     const textBlock = message.content.find((block) => block.type === "text");
     if (!textBlock || textBlock.type !== "text") {
@@ -159,6 +161,19 @@ export async function POST(request: NextRequest) {
     const narrative = textBlock.text.trim();
     const wordCount = narrative.split(/\s+/).length;
 
+    try {
+      const phClient = getPostHogClient();
+      phClient.capture({
+        // Single fixed ID for aggregate-only metrics — avoids creating
+        // unbounded phantom persons (PostHog charges by person count)
+        distinctId: "narrative-api-anon",
+        event: "narrative_generated",
+        properties: { handicap_index: input.handicapIndex, word_count: wordCount },
+      });
+      await phClient.flush();
+    } catch {
+      // PostHog capture is best-effort — don't fail the response
+    }
     return NextResponse.json({ narrative, word_count: wordCount });
   } catch (err: unknown) {
     if (err instanceof Anthropic.APIConnectionError) {
